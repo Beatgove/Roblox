@@ -128,7 +128,7 @@ Config.RainDurationSeconds = 60
 Config.Sounds = {
 	Ping = "rbxasset://sounds/electronicpingshort.wav",
 	Click = "rbxasset://sounds/button.wav",
-	Whoosh = "rbxasset://sounds/swoosh.wav",
+	Whoosh = "rbxasset://sounds/action_falling.mp3",
 	Snap = "rbxasset://sounds/snap.mp3",
 	Jump = "rbxasset://sounds/action_jump.mp3",
 	Oof = "rbxasset://sounds/uuhhh.mp3",
@@ -185,7 +185,7 @@ Config.Slimes = {
 	{ id = "KingSlime", rarity = "Secret", price = 1000000000, income = 4000000, color = Color3.fromRGB(255, 215, 0), size = 5.8, extra = { "crown", "wings" } },
 	{ id = "Glitch", rarity = "Secret", price = 3000000000, income = 11000000, color = Color3.fromRGB(0, 255, 120), size = 5.8, extra = { "antenna", "spikes" } },
 
-	{ id = "Codey", rarity = "Exclusive", price = 5000, income = 150, color = Color3.fromRGB(0, 230, 230), size = 3.2, extra = { "antenna", "bow" } },
+	{ id = "Codey", rarity = "Exclusive", price = 1500, income = 40, color = Color3.fromRGB(0, 230, 230), size = 3.2, extra = { "antenna", "bow" } },
 	{ id = "Sunny", rarity = "Exclusive", price = 20000, income = 400, color = Color3.fromRGB(255, 230, 80), size = 3.5, extra = { "halo", "ears" } },
 	{ id = "PumpkinKing", rarity = "Exclusive", price = 50000, income = 900, color = Color3.fromRGB(255, 120, 0), size = 3.8, extra = { "crown", "leaf" } },
 }

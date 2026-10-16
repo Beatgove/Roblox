@@ -106,7 +106,7 @@ function DispenserService.Start()
 	prompt.ActionText = "Roll a Slime!"
 	prompt.ObjectText = "Slime Dispenser"
 	prompt.HoldDuration = 0.25
-	prompt.MaxActivationDistance = 14
+	prompt.MaxActivationDistance = 11
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = machine
 	prompt.Triggered:Connect(roll)

@@ -48,7 +48,7 @@ local function spawnSlime()
 	prompt.ActionText = "Buy " .. Util.Money(price)
 	prompt.ObjectText = name .. " (" .. def.rarity .. ")"
 	prompt.HoldDuration = 0.4
-	prompt.MaxActivationDistance = 12
+	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = model.PrimaryPart
 

@@ -55,11 +55,13 @@ local function signGui(parent: BasePart, face: Enum.NormalId, text: string, name
 	return label
 end
 
-local function billboard(parent: BasePart, offset: number, text: string): TextLabel
+-- studs: size the label in world studs so it shrinks with distance (base
+-- labels), instead of a fixed pixel size that crowds the screen from afar.
+local function billboard(parent: BasePart, offset: number, text: string, studs: Vector2?): TextLabel
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(200, 50)
+	gui.Size = if studs then UDim2.fromScale(studs.X, studs.Y) else UDim2.fromOffset(200, 50)
 	gui.StudsOffset = Vector3.new(0, offset, 0)
-	gui.MaxDistance = 80
+	gui.MaxDistance = if studs then 70 else 80
 	gui.Parent = parent
 	local label = Instance.new("TextLabel")
 	label.Name = "Text"
@@ -225,7 +227,7 @@ local function buildBelt(map: Folder)
 	portal(MapBuilder.BeltEnd, Color3.fromRGB(255, 80, 160), "LAST CHANCE!")
 end
 
-MapBuilder.DispenserPosition = Vector3.new(0, 0, 20)
+MapBuilder.DispenserPosition = Vector3.new(0, 0, 25) -- far enough from the belt that their prompts never overlap
 
 -- The Slime Dispenser: a giant gumball machine full of slimes, with an odds board.
 local function buildDispenser(map: Folder)
@@ -533,7 +535,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		Material = Enum.Material.Neon,
 	})
 	collector.Parent = plot
-	billboard(collector, 4, "$0").Name = "Bank"
+	billboard(collector, 4, "$0", Vector2.new(9, 2.4)).Name = "Bank"
 
 	local lock = part({
 		Name = "LockButton",
@@ -543,7 +545,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		Material = Enum.Material.Neon,
 	})
 	lock.Parent = plot
-	billboard(lock, 4, "LOCK BASE").Name = "Status"
+	billboard(lock, 4, "LOCK BASE", Vector2.new(9, 2.2)).Name = "Status"
 
 	local sign = part({
 		Name = "Sign",

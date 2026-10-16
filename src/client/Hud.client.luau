@@ -99,6 +99,13 @@ local function button(props, onClick)
 		gradient(color:Lerp(Color3.new(1, 1, 1), 0.25), color:Lerp(Color3.new(0, 0, 0), 0.2)),
 		new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4), PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }),
 	})
+	-- UIGradient tints a button's own text too (white text on a gradient
+	-- vanishes), so the label lives in a child TextLabel that mirrors b.Text.
+	local label = text({ Size = UDim2.fromScale(1, 1), Text = b.Text, TextColor3 = props.TextColor3, Font = props.Font, ZIndex = b.ZIndex, Parent = b })
+	b.TextTransparency = 1
+	b:GetPropertyChangedSignal("Text"):Connect(function()
+		label.Text = b.Text
+	end)
 	local scale = new("UIScale", { Parent = b })
 	b.MouseEnter:Connect(function()
 		TweenService:Create(scale, TweenInfo.new(0.12), { Scale = 1.07 }):Play()
@@ -409,10 +416,18 @@ end)
 local side = new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.fromOffset(120, 380),
+	Size = UDim2.fromOffset(120, 350),
 	BackgroundTransparency = 1,
 	Parent = gui,
-}, { new("UIListLayout", { Padding = UDim.new(0, 10) }) })
+}, { new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center }) })
+-- Shrink the side buttons on short screens so they never hit Roblox's top-left menu.
+local sideScale = new("UIScale", { Parent = side })
+local function fitSide()
+	local h = workspace.CurrentCamera.ViewportSize.Y
+	sideScale.Scale = math.clamp((h - 150) / 350, 0.55, 1)
+end
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitSide)
+fitSide()
 local shopBtn = button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = COLORS.gold, Text = "🛒 SHOP", Parent = side }, function()
 	openPanel(shop, shopScale)
 end)
