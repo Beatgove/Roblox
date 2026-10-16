@@ -399,6 +399,54 @@ handlers.hop = function(d)
 	burst(d.pos, Color3.fromRGB(240, 240, 240), 6, { texture = SMOKE, light = 0, size = 2, speed = 4, gravity = 2 })
 	sound("Jump", 1.3, 0.4, d.pos)
 end
+handlers.merge = function(d)
+	-- Three glowing orbs fly from their pens into the merged slime's pen.
+	for _, from in d.from do
+		local orb = Instance.new("Part")
+		orb.Shape = Enum.PartType.Ball
+		orb.Anchored = true
+		orb.CanCollide = false
+		orb.CanQuery = false
+		orb.Material = Enum.Material.Neon
+		orb.Color = d.color
+		orb.Size = Vector3.one * 2.5
+		orb.Position = from + Vector3.new(0, 3, 0)
+		orb.Parent = fxFolder
+		local mid = (from + d.to) / 2 + Vector3.new(0, 12, 0)
+		TweenService:Create(orb, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = mid }):Play()
+		task.delay(0.35, function()
+			TweenService:Create(orb, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = d.to + Vector3.new(0, 3, 0), Size = Vector3.one }):Play()
+		end)
+		Debris:AddItem(orb, 0.7)
+	end
+	task.delay(0.65, function()
+		burst(d.to + Vector3.new(0, 3, 0), d.color, 80, { speed = 22, size = 1.6 })
+		burst(d.to + Vector3.new(0, 3, 0), Color3.fromRGB(255, 225, 90), 50, { speed = 15 })
+		ring(d.to, Color3.fromRGB(255, 225, 90), 22)
+		pillar(d.to, Color3.fromRGB(255, 225, 90))
+		sound("Snap", 0.8, 0.8, d.to)
+	end)
+end
+handlers.merged = function(d)
+	task.delay(0.65, function()
+		announce("MERGED! " .. string.rep("★", d.stars), Color3.fromRGB(255, 225, 90), d.name, nil, 2)
+		flash(Color3.fromRGB(255, 225, 90), 0.5, 0.6)
+		shake(1 + d.stars * 0.5)
+		confetti(60 + d.stars * 30)
+		sound("Whoosh", 0.7, 0.9)
+		for i = 0, d.stars + 1 do
+			task.delay(0.12 * i, sound, "Ping", 0.8 + i * 0.2, 0.8)
+		end
+	end)
+end
+handlers.daily = function(d)
+	confetti(100)
+	flash(Color3.fromRGB(255, 160, 60), 0.4, 0.6)
+	announce("🎁 DAY " .. d.day .. " REWARD!", Color3.fromRGB(255, 180, 70), if d.day < 7 then "Come back tomorrow for Day " .. (d.day + 1) .. "!" else "You finished the week!", nil, 2)
+	for i = 0, 3 do
+		task.delay(0.1 * i, sound, "Ping", 1 + i * 0.2, 0.8)
+	end
+end
 handlers.code = function()
 	confetti(80)
 	sound("Ping", 1.2, 0.8)

@@ -38,6 +38,19 @@ Config.Codes = {
 	SPOOKY = { slime = "PumpkinKing", expires = os.time({ year = 2026, month = 11, day = 1, hour = 0 }), msg = "Exclusive Pumpkin King slime!" },
 }
 
+-- ===== Daily login rewards =====
+-- A 7-day streak. Missing a day restarts at day 1. Day 7 repeats every week.
+-- cashSeconds = that many seconds of income (at least cashMin).
+Config.DailyRewards = {
+	{ label = "Cash", cashSeconds = 60, cashMin = 200 },
+	{ label = "15 min 5x Luck", luckMinutes = 15 },
+	{ label = "Big Cash", cashSeconds = 300, cashMin = 1000 },
+	{ label = "Grow Boost", grow = true },
+	{ label = "Huge Cash", cashSeconds = 900, cashMin = 5000 },
+	{ label = "30 min 5x Luck", luckMinutes = 30 },
+	{ label = "Sunny Slime + Mega Cash", slime = "Sunny", cashSeconds = 1800, cashMin = 20000 },
+}
+
 -- ===== Luck =====
 Config.LuckMult = 5
 Config.NewPlayerLuckMinutes = 10 -- first-time players get free 5x luck
@@ -55,6 +68,20 @@ Config.Mutations = {
 	{ name = "Diamond", chance = 0.01, mult = 4, color = Color3.fromRGB(140, 240, 255) },
 	{ name = "Rainbow", chance = 0.002, mult = 8, color = Color3.fromRGB(255, 120, 255) },
 }
+
+-- ===== Merging =====
+-- Merge 3 identical slimes (same name and same stars) into one with an extra star.
+Config.MergeCount = 3
+Config.MaxStars = 3
+Config.StarIncomeMult = 3.5 -- each star multiplies income by this (3 slimes in, 3.5x out, 2 pens freed)
+
+function Config.StarMult(stars: number?): number
+	return Config.StarIncomeMult ^ (stars or 0)
+end
+
+function Config.Stars(stars: number?): string
+	return if stars and stars > 0 then " " .. string.rep("★", stars) else ""
+end
 
 -- ===== Economy =====
 Config.StartingCash = 50
@@ -159,6 +186,7 @@ Config.Slimes = {
 	{ id = "Glitch", rarity = "Secret", price = 3000000000, income = 11000000, color = Color3.fromRGB(0, 255, 120), size = 5.8, extra = { "antenna", "spikes" } },
 
 	{ id = "Codey", rarity = "Exclusive", price = 5000, income = 150, color = Color3.fromRGB(0, 230, 230), size = 3.2, extra = { "antenna", "bow" } },
+	{ id = "Sunny", rarity = "Exclusive", price = 20000, income = 400, color = Color3.fromRGB(255, 230, 80), size = 3.5, extra = { "halo", "ears" } },
 	{ id = "PumpkinKing", rarity = "Exclusive", price = 50000, income = 900, color = Color3.fromRGB(255, 120, 0), size = 3.8, extra = { "crown", "leaf" } },
 }
 
@@ -182,8 +210,8 @@ function Config.MutationMult(mut: string?): number
 	return if m then m.mult else 1
 end
 
-function Config.DisplayName(id: string, mut: string?): string
-	return if mut then mut .. " " .. id else id
+function Config.DisplayName(id: string, mut: string?, stars: number?): string
+	return (if mut then mut .. " " .. id else id) .. Config.Stars(stars)
 end
 
 return Config

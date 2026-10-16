@@ -211,10 +211,11 @@ local function addAura(body: BasePart, rarity, mut)
 end
 
 -- Creates a slime model. `stage` is the growth stage (1 for belt slimes), `mut` an optional mutation.
-function SlimeModel.Create(slimeId: string, stage: number, mut: string?): Model
+function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: number?): Model
 	local def = Config.SlimeById[slimeId]
 	local rarity = Config.RarityByName[def.rarity]
-	local size = def.size * Config.GrowthSizeMult[stage]
+	local starCount: number = stars or 0
+	local size = def.size * Config.GrowthSizeMult[stage] * (1 + 0.15 * starCount)
 	local mutation = mut and Config.MutationByName[mut]
 
 	local model = Instance.new("Model")
@@ -276,8 +277,24 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?): Model
 		gui.Rarity.TextColor3 = Color3.new(1, 1, 1)
 		gui.Rarity.TextStrokeColor3 = Color3.fromRGB(255, 0, 80)
 	end
-	gui.Title.Text = slimeId
-	gui.Info.Text = Util.Money(def.income * Config.MutationMult(mut)) .. "/s"
+	gui.Title.Text = slimeId .. Config.Stars(starCount)
+	if starCount > 0 then
+		gui.Title.TextColor3 = Color3.fromRGB(255, 225, 90)
+		-- Orbiting star sparkles for merged slimes.
+		local p = Instance.new("ParticleEmitter")
+		p.Name = "StarSparkle"
+		p.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		p.Color = ColorSequence.new(Color3.fromRGB(255, 225, 90))
+		p.LightEmission = 1
+		p.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5 + starCount * 0.3), NumberSequenceKeypoint.new(1, 0) })
+		p.Lifetime = NumberRange.new(0.8, 1.2)
+		p.Rate = 6 * starCount
+		p.Speed = NumberRange.new(2, 4)
+		p.SpreadAngle = Vector2.new(180, 180)
+		p.Parent = body
+		model:SetAttribute("Stars", starCount)
+	end
+	gui.Info.Text = Util.Money(def.income * Config.MutationMult(mut) * Config.StarMult(starCount)) .. "/s"
 
 	model:SetAttribute("SlimeId", slimeId)
 	model:SetAttribute("Rarity", def.rarity)

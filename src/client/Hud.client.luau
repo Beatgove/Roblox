@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode" } do
+for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily" } do
 	Remotes:WaitForChild(name)
 end
 
@@ -384,11 +384,32 @@ end
 player:GetAttributeChangedSignal("IndexList"):Connect(refreshIndex)
 refreshIndex()
 
+-- Daily rewards
+local daily, dailyScale = panel("🎁 Daily Rewards", Color3.fromRGB(255, 140, 60))
+local dailyInfo = text({ Position = UDim2.fromOffset(16, 60), Size = UDim2.new(1, -32, 0, 26), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "", Parent = daily })
+local dayGrid = new("Frame", { Position = UDim2.fromOffset(12, 94), Size = UDim2.new(1, -24, 1, -186), BackgroundTransparency = 1, Parent = daily }, {
+	new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 0.5, -8), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center }),
+})
+local dayCards = {}
+for i, r in Config.DailyRewards do
+	local card = new("Frame", { BackgroundColor3 = COLORS.panel, LayoutOrder = i, Parent = dayGrid }, { corner(12) })
+	local st = new("UIStroke", { Color = COLORS.muted, Thickness = 2, Parent = card })
+	text({ Position = UDim2.fromOffset(4, 4), Size = UDim2.new(1, -8, 0.3, 0), Text = "DAY " .. i, TextColor3 = if i == 7 then COLORS.gold else COLORS.text, Parent = card })
+	text({ Position = UDim2.new(0, 4, 0.32, 0), Size = UDim2.new(1, -8, 0.32, 0), Text = if r.slime then "🌟" elseif r.luckMinutes then "🍀" elseif r.grow then "🌱" else "💰", Parent = card })
+	text({ Position = UDim2.new(0, 4, 0.66, 0), Size = UDim2.new(1, -8, 0.3, 0), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = r.label, Parent = card })
+	dayCards[i] = { card = card, stroke = st }
+end
+local claimBtn = button({ Size = UDim2.new(1, -40, 0, 64), Position = UDim2.new(0, 20, 1, -84), BackgroundColor3 = Color3.fromRGB(255, 140, 60), Text = "CLAIM!", Parent = daily }, function()
+	if player:GetAttribute("DailyClaimable") then
+		Remotes.ClaimDaily:FireServer()
+	end
+end)
+
 -- ===== Side buttons =====
 local side = new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.fromOffset(120, 300),
+	Size = UDim2.fromOffset(120, 380),
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, { new("UIListLayout", { Padding = UDim.new(0, 10) }) })
@@ -403,6 +424,41 @@ button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = COLORS.blue, Text 
 end)
 button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = COLORS.pink, Text = "📖 INDEX", Parent = side }, function()
 	openPanel(index, indexScale)
+end)
+local dailyBtn = button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = Color3.fromRGB(255, 140, 60), Text = "🎁 DAILY", Parent = side }, function()
+	openPanel(daily, dailyScale)
+end)
+local badge = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(26, 26), BackgroundColor3 = COLORS.bad, Visible = false, Parent = dailyBtn }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), stroke(COLORS.outline, 2) })
+text({ Size = UDim2.fromScale(1, 1), Text = "!", Parent = badge })
+
+local function refreshDaily()
+	local day = player:GetAttribute("DailyDay") or 1
+	local claimable = player:GetAttribute("DailyClaimable") == true
+	badge.Visible = claimable
+	for i, c in dayCards do
+		local done = i < day or (i == day and not claimable)
+		local isToday = i == day and claimable
+		c.stroke.Color = if isToday then COLORS.gold elseif done then COLORS.accent else COLORS.muted
+		c.stroke.Thickness = if isToday then 4 else 2
+		c.card.BackgroundColor3 = if done then Color3.fromRGB(40, 90, 70) else COLORS.panel
+	end
+	claimBtn.Text = if claimable then "CLAIM DAY " .. day .. "!" else "COME BACK TOMORROW"
+end
+player:GetAttributeChangedSignal("DailyDay"):Connect(refreshDaily)
+player:GetAttributeChangedSignal("DailyClaimable"):Connect(refreshDaily)
+refreshDaily()
+task.spawn(function()
+	while true do
+		local left = (player:GetAttribute("DailyResetAt") or 0) - workspace:GetServerTimeNow()
+		dailyInfo.Text = if player:GetAttribute("DailyClaimable") then "Log in every day! Missing a day restarts the streak." else "Next reward in " .. Util.Duration(left)
+		task.wait(1)
+	end
+end)
+-- Pop the calendar open when there's a reward waiting.
+task.delay(2.5, function()
+	if player:GetAttribute("DailyClaimable") then
+		openPanel(daily, dailyScale)
+	end
 end)
 -- The shop button gently pulses to draw the eye.
 task.spawn(function()
@@ -507,7 +563,7 @@ local function filterPrompt(prompt: ProximityPrompt)
 	local mine = ownerId == player.UserId
 	if prompt.Name == "StealPrompt" then
 		prompt.Enabled = not mine
-	elseif prompt.Name == "SellPrompt" then
+	elseif prompt.Name == "SellPrompt" or prompt.Name == "MergePrompt" then
 		prompt.Enabled = mine
 	end
 end
@@ -531,6 +587,8 @@ local tips = {
 	"They earn cash every second. Step on your green pad to collect it.",
 	"Slimes grow over time, even while you're offline.",
 	"Hold E on someone's slime to steal it, then run home!",
+	"Got 3 of the same slime? Hold R on one to MERGE them into a ★ slime!",
+	"Claim your 🎁 DAILY reward every day. Day 7 gives the exclusive Sunny slime!",
 	"Press the red button in your base to shield it from thieves.",
 	"Try the code RELEASE in 🎟️ CODES for free cash and 5x luck!",
 }

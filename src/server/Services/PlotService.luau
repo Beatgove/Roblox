@@ -70,7 +70,7 @@ end
 function PlotService.SlimeIncome(slime, at: number?): number
 	local def = Config.SlimeById[slime.id]
 	local stage = Util.Stage((at or now()) - slime.born)
-	return def.income * Config.GrowthIncomeMult[stage] * Config.MutationMult(slime.mut)
+	return def.income * Config.GrowthIncomeMult[stage] * Config.MutationMult(slime.mut) * Config.StarMult(slime.stars)
 end
 
 function PlotService.IndexCount(player: Player): number
@@ -196,7 +196,7 @@ function PlotService.Render(player: Player)
 		end
 		local stage = Util.Stage(now() - slime.born)
 		plot.stages[i] = stage
-		local model = SlimeModel.Create(slime.id, stage, slime.mut)
+		local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars)
 		local height = model.PrimaryPart.Size.Y / 2
 		-- Face the entrance (plot -Z) so slimes look at visitors.
 		model:PivotTo(pad.CFrame * CFrame.new(0, 0.2 + height, 0))
@@ -208,7 +208,7 @@ function PlotService.Render(player: Player)
 		local steal = Instance.new("ProximityPrompt")
 		steal.Name = "StealPrompt"
 		steal.ActionText = "Steal"
-		steal.ObjectText = Config.DisplayName(slime.id, slime.mut)
+		steal.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars)
 		steal.HoldDuration = Config.StealHoldSeconds
 		steal.MaxActivationDistance = 8
 		steal.RequiresLineOfSight = false
@@ -219,7 +219,7 @@ function PlotService.Render(player: Player)
 		local sell = Instance.new("ProximityPrompt")
 		sell.Name = "SellPrompt"
 		sell.ActionText = "Sell " .. Util.Money(PlotService.SellValue(slime))
-		sell.ObjectText = Config.DisplayName(slime.id, slime.mut)
+		sell.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars)
 		sell.HoldDuration = 1
 		sell.MaxActivationDistance = 8
 		sell.RequiresLineOfSight = false
@@ -238,6 +238,26 @@ function PlotService.Render(player: Player)
 			end
 		end)
 
+		-- Merge prompt only when this slime has enough identical partners.
+		if #PlotService.MergeGroup(data, i) >= Config.MergeCount then
+			local merge = Instance.new("ProximityPrompt")
+			merge.Name = "MergePrompt"
+			merge.ActionText = "MERGE 3 → " .. string.rep("★", (slime.stars or 0) + 1)
+			merge.ObjectText = Config.DisplayName(slime.id, nil, slime.stars)
+			merge.HoldDuration = 0.8
+			merge.MaxActivationDistance = 8
+			merge.RequiresLineOfSight = false
+			merge.KeyboardKeyCode = Enum.KeyCode.R
+			merge.UIOffset = Vector2.new(0, 80)
+			merge:SetAttribute("OwnerId", player.UserId)
+			merge.Parent = model.PrimaryPart
+			merge.Triggered:Connect(function(who)
+				if who == player then
+					PlotService.Merge(player, model:GetAttribute("Slot"))
+				end
+			end)
+		end
+
 		model.Parent = folder
 	end
 	PlotService.Sync(player)
@@ -249,7 +269,71 @@ function PlotService.HasFreeSlot(player: Player): boolean
 end
 
 function PlotService.SellValue(slime): number
-	return math.floor(Config.SlimeById[slime.id].price * Config.MutationMult(slime.mut) / 2)
+	return math.floor(Config.SlimeById[slime.id].price * Config.MutationMult(slime.mut) * (Config.MergeCount ^ (slime.stars or 0)) / 2)
+end
+
+-- Slots of slimes that can merge with the one in `slot` (same name, same stars), including itself.
+function PlotService.MergeGroup(data, slot: number): { number }
+	local base = data.slimes[slot]
+	if not base or (base.stars or 0) >= Config.MaxStars then
+		return {}
+	end
+	local group = { slot }
+	for i, s in data.slimes do
+		if #group >= Config.MergeCount then
+			break
+		end
+		if i ~= slot and s.id == base.id and (s.stars or 0) == (base.stars or 0) then
+			table.insert(group, i)
+		end
+	end
+	return group
+end
+
+-- Fuses 3 identical slimes into one with an extra star. Keeps the oldest age and the best mutation.
+function PlotService.Merge(player: Player, slot: number)
+	local data = DataService.Get(player)
+	local plot = plotOf[player]
+	if not data or not plot then
+		return
+	end
+	local group = PlotService.MergeGroup(data, slot)
+	if #group < Config.MergeCount then
+		Net.Notify(player, "You need " .. Config.MergeCount .. " of the same slime to merge.", "bad")
+		return
+	end
+	local positions = {}
+	local born = math.huge
+	local bestMut, bestMult = nil, 1
+	for _, i in group do
+		local s = data.slimes[i]
+		born = math.min(born, s.born)
+		if Config.MutationMult(s.mut) > bestMult then
+			bestMut, bestMult = s.mut, Config.MutationMult(s.mut)
+		end
+		local pad = plot.model.Pens:FindFirstChild("Pen" .. i)
+		if pad then
+			table.insert(positions, pad.Position)
+		end
+	end
+	local base = data.slimes[slot]
+	local merged = { id = base.id, born = born, mut = bestMut, stars = (base.stars or 0) + 1 }
+	table.sort(group, function(a, b)
+		return a > b
+	end)
+	for _, i in group do
+		table.remove(data.slimes, i)
+	end
+	table.insert(data.slimes, merged)
+	PlotService.Render(player)
+	local pad = plot.model.Pens:FindFirstChild("Pen" .. #data.slimes)
+	local name = Config.DisplayName(merged.id, merged.mut, merged.stars)
+	Net.FxAll("merge", { from = positions, to = pad and pad.Position or positions[1], color = Config.RarityByName[Config.SlimeById[merged.id].rarity].color })
+	Net.Fx(player, "merged", { name = name, stars = merged.stars })
+	Net.Notify(player, "MERGED! " .. name .. " earns " .. Util.Money(PlotService.SlimeIncome(merged) * PlotService.IncomeMultiplier(player)) .. "/s", "epic")
+	if merged.stars >= 2 then
+		Net.NotifyAll(player.DisplayName .. " merged a " .. name .. "!", "epic")
+	end
 end
 
 -- World position of the pen a newly added slime would go in.

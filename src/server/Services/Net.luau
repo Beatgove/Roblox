@@ -20,6 +20,7 @@ Net.RebirthEvent = remote("Rebirth") -- client -> server: ()
 Net.BannerEvent = remote("Banner") -- server -> all: (text, seconds)
 Net.FxEvent = remote("Fx") -- server -> client: (kind, data) visual/sound effects
 Net.RollEvent = remote("Roll") -- client -> server: () use the Slime Dispenser
+Net.ClaimDailyEvent = remote("ClaimDaily") -- client -> server: () claim today's login reward
 
 Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (ok, message)
 Net.RedeemCode.Name = "RedeemCode"

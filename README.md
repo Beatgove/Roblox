@@ -10,6 +10,8 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Slime Dispenser: pay cash for a random slime, odds shown on the board next to it. 5x Luck boosts Rare+ odds (free for 10 minutes for new players, from codes, during Slime Rain, or bought).
 - Codes menu: `RELEASE`, `SLIMETIME`, `LUCKY`, `FREESLIME`, `SPOOKY` (Halloween, until Nov 1). Add more in `Config.Codes`.
 - Slime Index: collection book, +1% income per slime discovered.
+- Merging: 3 identical slimes (hold R) fuse into one ★ slime with 3.5x income, up to ★★★.
+- Daily rewards: 7-day login calendar (cash, luck, Grow Boost, and the exclusive Sunny slime on day 7). Missing a day restarts it.
 - Raiding: thieves glow red with a THIEF tag; if the owner catches them, the slime bounces its way home.
 - Effects: hopping belt slimes, bouncing pens, rarity reveals, confetti, screen flashes, camera shake, Slime Rain drops, sounds.
 - Halloween update: Pumpkin, Ghosty, Vampire spawn only in October.

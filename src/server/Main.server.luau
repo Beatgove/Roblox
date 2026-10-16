@@ -15,6 +15,7 @@ local StealService = require(Services.StealService)
 local MonetizationService = require(Services.MonetizationService)
 local DispenserService = require(Services.DispenserService)
 local CodeService = require(Services.CodeService)
+local DailyService = require(Services.DailyService)
 
 local plots = MapBuilder.Build()
 DataService.Start()
@@ -24,6 +25,7 @@ StealService.Start()
 MonetizationService.Start()
 DispenserService.Start()
 CodeService.Start()
+DailyService.Start()
 
 local function makeLeaderstats(player: Player)
 	local ls = Instance.new("Folder")
@@ -54,14 +56,7 @@ local function welcomeBack(player: Player, data)
 		end
 	end
 
-	local today = t // 86400
-	if data.lastDaily ~= today then
-		data.dailyStreak = if data.lastDaily == today - 1 then math.min(data.dailyStreak + 1, 7) else 1
-		data.lastDaily = today
-		local gift = math.max(100, math.floor(PlotService.IncomePerSecond(player) * 60 * data.dailyStreak))
-		PlotService.AddCash(player, gift)
-		Net.Notify(player, "Day " .. data.dailyStreak .. " streak gift: " .. Util.Money(gift) .. "! Come back tomorrow for more.", "good")
-	end
+	DailyService.Sync(player)
 	data.lastOnline = t
 end
 
