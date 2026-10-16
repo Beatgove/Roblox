@@ -11,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "Fx" } do
+for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "HoldTight", "Fx" } do
 	Remotes:WaitForChild(name)
 end
 
@@ -180,6 +180,10 @@ local carryChip, carryLabel = chip(Color3.fromRGB(255, 170, 30))
 local rainChip, rainLabel = chip(Color3.fromRGB(70, 150, 255))
 local eventChip, eventLabel = chip(Color3.fromRGB(255, 150, 40))
 local boostChip, boostLabel = chip(Color3.fromRGB(255, 120, 200))
+local kingChip, kingLabel = chip(Color3.fromRGB(110, 210, 80))
+local revengeChip, revengeLabel = chip(Color3.fromRGB(220, 50, 50))
+local bountyChip, bountyLabel = chip(Color3.fromRGB(230, 170, 30))
+local rookieChip, rookieLabel = chip(Color3.fromRGB(255, 200, 90))
 
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
@@ -856,6 +860,58 @@ for _, attr in { "Cash", "Income", "Rebirths", "RebirthCost", "Slots", "SlimeCou
 end
 refresh()
 
+-- Revenge: the thief who robbed you glows red (only on your screen).
+local revengeGlow: Highlight? = nil
+local function updateRevengeGlow(active: boolean)
+	local target = active and Players:GetPlayerByUserId(player:GetAttribute("RevengeUserId") or 0)
+	local char = target and target.Character
+	if char then
+		if not revengeGlow or revengeGlow.Parent ~= char then
+			if revengeGlow then
+				revengeGlow:Destroy()
+			end
+			revengeGlow = new("Highlight", { Name = "RevengeGlow", FillColor = Color3.fromRGB(255, 40, 40), FillTransparency = 0.5, OutlineColor = Color3.fromRGB(255, 220, 60), DepthMode = Enum.HighlightDepthMode.AlwaysOnTop, Parent = char })
+		end
+	elseif revengeGlow then
+		revengeGlow:Destroy()
+		revengeGlow = nil
+	end
+end
+
+-- Squirm: when a stolen slime wriggles, tap HOLD ON in time or it slips away.
+local squirmBtn
+local squirmToken = 0
+squirmBtn = button({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.62), Size = UDim2.fromOffset(260, 90), BackgroundColor3 = Color3.fromRGB(255, 80, 120), Text = "🫳 HOLD ON! (F)", Visible = false, ZIndex = 5, Parent = gui }, function()
+	if squirmBtn.Visible then
+		squirmBtn.Visible = false
+		Remotes.HoldTight:FireServer(squirmToken)
+	end
+end)
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+	if not processed and squirmBtn.Visible and (input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonX) then
+		squirmBtn.Visible = false
+		Remotes.HoldTight:FireServer(squirmToken)
+	end
+end)
+Remotes.Fx.OnClientEvent:Connect(function(kind, d)
+	if kind == "squirm" then
+		squirmToken = d.token
+		squirmBtn.Position = UDim2.fromScale(0.35 + math.random() * 0.3, 0.55 + math.random() * 0.15)
+		squirmBtn.Visible = true
+		local s = squirmBtn:FindFirstChildOfClass("UIScale")
+		if s then
+			s.Scale = 0.5
+			TweenService:Create(s, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		end
+		local token = d.token
+		task.delay(d.window, function()
+			if squirmToken == token then
+				squirmBtn.Visible = false
+			end
+		end)
+	end
+end)
+
 local rainEndsAt = 0
 local rainMsg = ""
 task.spawn(function()
@@ -885,6 +941,18 @@ task.spawn(function()
 		boostChip.Visible = boost > 1.001
 		local friends = player:GetAttribute("Friends") or 0
 		boostLabel.Text = string.format("🚀 x%.2g CASH", boost) .. (if friends > 0 then " (" .. friends .. " friends)" else "")
+		local kingLeft = (workspace:GetAttribute("KingUntil") or 0) - nowT
+		kingChip.Visible = kingLeft > 0
+		kingLabel.Text = "👑 KING SLIME " .. Util.Duration(math.max(kingLeft, 0))
+		local revengeLeft = (player:GetAttribute("RevengeUntil") or 0) - nowT
+		revengeChip.Visible = revengeLeft > 0
+		revengeLabel.Text = "😤 REVENGE " .. Util.Duration(math.max(revengeLeft, 0))
+		local bounty = player:GetAttribute("Bounty") or 0
+		bountyChip.Visible = bounty > 0
+		bountyLabel.Text = "💰 WANTED " .. Util.Money(bounty)
+		rookieChip.Visible = player:GetAttribute("Rookie") == true
+		rookieLabel.Text = "🐣 ROOKIE SHIELD"
+		updateRevengeGlow(revengeLeft > 0)
 		if rainLeft > 0 then
 			banner.Visible = true
 			bannerText.Text = rainMsg
@@ -966,6 +1034,10 @@ local tips = {
 	"Buy ⬆️ UPGRADES for more income, longer shields and extra pens. They survive rebirth!",
 	"Level up by playing. Every level pays cash, and new titles show over your head.",
 	"Find more slimes for the 📖 INDEX to unlock big milestone rewards.",
+	"Stolen slimes SQUIRM! Tap HOLD ON fast or they slip away and bounce home.",
+	"Got robbed? You get REVENGE: the thief's shield can't stop you for 3 minutes.",
+	"Thieves get a 💰 bounty. Slap a WANTED player to claim it!",
+	"👑 The King Slime shows up every 12 minutes. Slap it with everyone for big cash!",
 }
 if os.date("!*t").month == 10 then
 	table.insert(tips, 1, "🎃 HALLOWEEN UPDATE: Pumpkin, Ghosty and Vampire slimes until Oct 31! Code: SPOOKY")

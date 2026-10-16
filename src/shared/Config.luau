@@ -152,7 +152,7 @@ end
 
 -- ===== Player level =====
 -- XP for doing things. Levels give cash, every 5 levels gives luck, and titles show over your head.
-Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30 }
+Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30, boss = 40, bounty = 30 }
 Config.XPPerCollect = 1 / 500 -- plus 1 XP per $500 collected (capped per collect)
 function Config.XPForLevel(level: number): number
 	return math.floor(80 * level ^ 1.45)
@@ -164,6 +164,45 @@ Config.Titles = {
 	{ level = 20, name = "Slime Baron", color = Color3.fromRGB(190, 110, 255) },
 	{ level = 35, name = "Slime Tycoon", color = Color3.fromRGB(255, 200, 50) },
 	{ level = 50, name = "Slime Legend", color = Color3.fromRGB(255, 80, 120) },
+}
+
+-- ===== Standout systems (from player feedback on steal games) =====
+-- Squirm: stolen slimes are slippery. While carried, they try to wriggle free and the thief
+-- has to tap HOLD ON in time or the slime bounces home. Rarer slimes squirm more.
+Config.SquirmEverySeconds = 2.5
+Config.SquirmWindow = 1.4
+function Config.SquirmChance(rarityOrder: number): number
+	return 0.03 + 0.015 * rarityOrder
+end
+-- Revenge: after you're robbed, the thief's shield can't stop you for a while, you carry at
+-- full speed when stealing from them, and they glow for you.
+Config.RevengeSeconds = 180
+-- Bounty: every steal puts a bounty on the thief. Slap, zap or trap them to cash it in.
+Config.BountyShare = 0.25 -- of the stolen slime's sell value
+Config.BountyMaxIncomeSeconds = 600 -- a claim pays at most this many seconds of the claimer's income
+Config.BountyMinPayout = 250
+-- Rookie Shield: brand new players can't be robbed until they've earned this much
+-- (or rebirth, or steal from someone themselves).
+Config.RookieEarnedLimit = 3000
+-- King Slime: a co-op boss that crashes into the middle of the map. Slap it together.
+Config.King = {
+	firstDelay = 240,
+	everySeconds = 720,
+	lifeSeconds = 150,
+	baseHp = 30,
+	hpPerPlayer = 20,
+	slapDamage = 1,
+	taserDamage = 5,
+	hopEvery = 2.2,
+	stompEvery = 3, -- every Nth hop is a stomp
+	stompRange = 18,
+	stompForce = 65,
+	pos = Vector3.new(48, 0, 26),
+	roam = 14,
+	size = 12,
+	rewardSeconds = 240, -- cash = income x this x (0.5 + your share of the hits)
+	rewardMin = 1500,
+	topRollLuck = 5,
 }
 
 -- ===== Slime Index milestones (granted automatically) =====

@@ -129,6 +129,12 @@ function PlotService.IncomePerSecond(player: Player): number
 	return total * PlotService.IncomeMultiplier(player)
 end
 
+-- New players can't be robbed until they've found their feet (see Config.RookieEarnedLimit).
+function PlotService.IsRookie(player: Player): boolean
+	local data = DataService.Get(player)
+	return data ~= nil and not data.rookieOff and data.rebirths == 0 and data.totalEarned < Config.RookieEarnedLimit
+end
+
 function PlotService.IsLocked(plot: Plot): boolean
 	return plot.lockedUntil > now()
 end
@@ -149,6 +155,7 @@ function PlotService.Sync(player: Player)
 	player:SetAttribute("LuckUntil", data.luckUntil)
 	player:SetAttribute("RollCost", PlotService.RollCost(player))
 	player:SetAttribute("Boost", PlotService.BoostMultiplier(player))
+	player:SetAttribute("Rookie", PlotService.IsRookie(player))
 	local ups = {}
 	for _, key in Config.UpgradeOrder do
 		table.insert(ups, key .. "=" .. (data.upgrades[key] or 0))

@@ -12,12 +12,37 @@ local PlotService = require(script.Parent.PlotService)
 local SlimeModel = require(script.Parent.SlimeModel)
 local Net = require(script.Parent.Net)
 local Signals = require(script.Parent.Signals)
+local BountyService = require(script.Parent.BountyService)
 
 local StealService = {}
 
 local carrying: { [Player]: boolean } = {}
 -- Ends a thief's carry early (slapped, tased): the slime bounces home.
 local dropFns: { [Player]: () -> () } = {}
+-- Squirm: the token the thief must send back (HoldTight) before the deadline.
+local squirms: { [Player]: { token: number, deadline: number } } = {}
+local squirmToken = 0
+-- Revenge: victim -> { thief, untilT } (os.clock time).
+local revenge: { [Player]: { thief: Player, untilT: number } } = {}
+
+local function hasRevenge(player: Player, on: Player): boolean
+	local r = revenge[player]
+	return r ~= nil and r.thief == on and r.untilT > os.clock()
+end
+
+local function setRevenge(victim: Player, thief: Player?)
+	if thief then
+		revenge[victim] = { thief = thief, untilT = os.clock() + Config.RevengeSeconds }
+		victim:SetAttribute("RevengeUserId", thief.UserId)
+		victim:SetAttribute("RevengeName", thief.DisplayName)
+		victim:SetAttribute("RevengeUntil", workspace:GetServerTimeNow() + Config.RevengeSeconds)
+	else
+		revenge[victim] = nil
+		victim:SetAttribute("RevengeUserId", nil)
+		victim:SetAttribute("RevengeName", nil)
+		victim:SetAttribute("RevengeUntil", nil)
+	end
+end
 
 function StealService.IsCarrying(player: Player): boolean
 	return carrying[player] == true
@@ -146,7 +171,13 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	if not victimPlot or not thiefPlot then
 		return
 	end
-	if PlotService.IsLocked(victimPlot) then
+	local isRevenge = hasRevenge(thief, victim)
+	if not isRevenge and PlotService.IsRookie(victim) then
+		Net.Notify(thief, "🐣 " .. victim.DisplayName .. " is new here. Their Rookie Shield protects them for now!", "bad")
+		Net.Fx(thief, "deny", {})
+		return
+	end
+	if PlotService.IsLocked(victimPlot) and not isRevenge then
 		Net.Notify(thief, "That base is shielded!", "bad")
 		Net.Fx(thief, "deny", {})
 		return
@@ -174,8 +205,17 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	local carried = attachToHead(char, slime, stage)
 	local marks = markThief(char)
 	-- Gear (Speed Coil) keeps a little of its boost while carrying.
-	humanoid.WalkSpeed = Config.CarryWalkSpeed + (humanoid:GetAttribute("CarryBonus") or 0)
+	-- Revenge steals run at full speed.
+	humanoid.WalkSpeed = if isRevenge then (humanoid:GetAttribute("BaseSpeed") or 16) else Config.CarryWalkSpeed + (humanoid:GetAttribute("CarryBonus") or 0)
 	thief:SetAttribute("Carrying", name)
+	-- Stealing ends your own Rookie Shield.
+	local thiefData = DataService.Get(thief)
+	if thiefData and PlotService.IsRookie(thief) then
+		thiefData.rookieOff = true
+		PlotService.Sync(thief)
+		Net.Notify(thief, "🐣 You stole, so your Rookie Shield is gone. Fair's fair!", "info")
+	end
+	local rarityOrder = Config.RarityByName[Config.SlimeById[slime.id].rarity].order
 
 	Net.Notify(thief, "You grabbed " .. name .. "! Run back to your base!", "epic")
 	Net.Notify(victim, "🚨 " .. thief.DisplayName .. " is stealing your " .. name .. "! Catch them!", "bad")
@@ -196,6 +236,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		diedConn:Disconnect()
 		carrying[thief] = nil
 		dropFns[thief] = nil
+		squirms[thief] = nil
 		if thief.Parent then
 			thief:SetAttribute("Carrying", nil)
 		end
@@ -219,15 +260,26 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			Signals.Progress(thief, "steal")
 			Net.Notify(thief, "STOLEN! " .. name .. " is yours now.", "epic")
 			Net.Fx(thief, "stealWin", {})
+			if isRevenge then
+				setRevenge(thief, nil)
+				Net.NotifyAll("😤 " .. thief.DisplayName .. " got REVENGE on " .. victim.DisplayName .. "!", "epic")
+			else
+				BountyService.Add(thief, PlotService.SellValue(slime) * Config.BountyShare)
+			end
 			if victim.Parent then
-				Net.Notify(victim, thief.DisplayName .. " stole your " .. name .. ". Get revenge!", "bad")
+				Net.Notify(victim, thief.DisplayName .. " stole your " .. name .. (if isRevenge then " back!" else ". REVENGE: their shield can't stop you for " .. Util.Duration(Config.RevengeSeconds) .. "!"), "bad")
 				Net.Fx(victim, "stolen", {})
+				if not isRevenge then
+					setRevenge(victim, thief)
+					Net.Fx(victim, "revenge", { name = thief.DisplayName })
+				end
 			end
 		elseif victim.Parent and PlotService.GetPlot(victim) then
 			if thief.Parent then
 				local reason = if outcome == "tagged"
 					then "CAUGHT! The owner took it back!"
 					elseif outcome == "slapped" then "SLAPPED! You dropped the slime!"
+					elseif outcome == "squirmed" then "It SQUIRMED out of your hands!"
 					else "You dropped the slime!"
 				Net.Notify(thief, reason, "bad")
 				Net.Fx(thief, "caught", {})
@@ -248,12 +300,28 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	end
 
 	local started = os.clock()
+	local nextSquirm = started + Config.SquirmEverySeconds
 	task.spawn(function()
 		while not finished do
 			task.wait(0.2)
 			if not thief.Parent or died or not root.Parent then
 				finish("dropped")
 				break
+			end
+			-- Slippery slimes: answer the squirm in time or it wriggles free.
+			local sq = squirms[thief]
+			if sq and os.clock() > sq.deadline then
+				finish("squirmed")
+				break
+			end
+			if not sq and os.clock() >= nextSquirm then
+				nextSquirm = os.clock() + Config.SquirmEverySeconds
+				if math.random() < Config.SquirmChance(rarityOrder) then
+					squirmToken += 1
+					squirms[thief] = { token = squirmToken, deadline = os.clock() + Config.SquirmWindow + 0.3 }
+					Net.Fx(thief, "squirm", { token = squirmToken, window = Config.SquirmWindow })
+					Net.FxAll("squirmAll", { pos = root.Position + Vector3.new(0, 4, 0) })
+				end
 			end
 			if os.clock() - started > Config.CarryTimeoutSeconds then
 				finish("timeout")
@@ -275,9 +343,23 @@ end
 
 function StealService.Start()
 	PlotService.StealRequested.Event:Connect(startSteal)
+	Net.HoldTightEvent.OnServerEvent:Connect(function(player, token)
+		local sq = squirms[player]
+		if sq and token == sq.token then
+			squirms[player] = nil
+			Net.Fx(player, "held", {})
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(p)
 		carrying[p] = nil
 		dropFns[p] = nil
+		squirms[p] = nil
+		revenge[p] = nil
+		for victim, r in revenge do
+			if r.thief == p then
+				setRevenge(victim, nil)
+			end
+		end
 	end)
 end
 

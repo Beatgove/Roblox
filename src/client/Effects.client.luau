@@ -470,7 +470,7 @@ handlers.knock = function(d)
 	end
 	shake(1.2)
 	flash(Color3.fromRGB(255, 255, 255), 0.3, 0.3)
-	announce("SLAPPED!", Color3.fromRGB(255, 200, 150), nil, nil, 1)
+	announce(d.text or "SLAPPED!", Color3.fromRGB(255, 200, 150), nil, nil, 1)
 end
 handlers.frozen = function(d)
 	flash(Color3.fromRGB(120, 255, 140), 0.4, 0.5)
@@ -561,6 +561,71 @@ handlers.levelUp = function(d)
 		task.delay(0.12 * i, sound, "Ping", 1 + i * 0.25, 0.8)
 	end
 end
+-- Squirm: a carried slime wriggles (everyone sees it shake; the thief also gets the HOLD ON button).
+handlers.squirm = function()
+	shake(0.5)
+	sound("Oof", 1.8, 0.6)
+end
+handlers.squirmAll = function(d)
+	burst(d.pos, Color3.fromRGB(150, 255, 150), 12, { speed = 8, size = 0.8 })
+	popText(d.pos, "SQUIRM!", Color3.fromRGB(150, 255, 150))
+end
+handlers.held = function()
+	sound("Snap", 1.6, 0.5)
+end
+handlers.revenge = function(d)
+	flash(Color3.fromRGB(255, 70, 70), 0.35, 0.5)
+	announce("REVENGE!", Color3.fromRGB(255, 80, 80), "Go steal one back from " .. d.name .. ". Their shield can't stop you!", nil, 3)
+end
+handlers.bounty = function(d)
+	confetti(60)
+	announce("BOUNTY!", Color3.fromRGB(255, 215, 60), "+" .. Util.Money(d.amount), nil, 1.6)
+	sound("Ping", 1.2, 0.8)
+	task.delay(0.12, sound, "Ping", 1.6, 0.8)
+end
+
+-- King Slime boss
+handlers.kingSpawn = function(d)
+	announce("👑 KING SLIME!", Color3.fromRGB(150, 255, 100), "Slap it together for big rewards!", nil, 3)
+	flash(Color3.fromRGB(150, 255, 100), 0.4, 0.6)
+	sound("Whoosh", 0.5, 1)
+	task.delay(1.2, function()
+		shake(2)
+		burst(d.pos + Vector3.new(0, 2, 0), Color3.fromRGB(150, 255, 100), 90, { speed = 30, size = 1.8 })
+		ring(d.pos, Color3.fromRGB(150, 255, 100), 30)
+		sound("Snap", 0.3, 1, d.pos)
+	end)
+end
+handlers.kingHit = function(d)
+	burst(d.pos, Color3.fromRGB(190, 255, 120), 10 + d.damage * 4, { speed = 14 })
+	popText(d.pos, "-" .. d.damage, Color3.fromRGB(255, 255, 255))
+	sound("Snap", 1.2 + math.random() * 0.4, 0.6, d.pos)
+end
+handlers.stomp = function(d)
+	ring(d.pos, Color3.fromRGB(150, 255, 100), d.range * 2)
+	burst(d.pos, Color3.fromRGB(150, 255, 100), 30, { speed = 20 })
+	sound("Snap", 0.35, 1, d.pos)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root and (root.Position - d.pos).Magnitude < d.range * 3 then
+		shake(1.2)
+	end
+end
+handlers.kingDefeated = function(d)
+	confetti(120)
+	flash(Color3.fromRGB(255, 220, 80), 0.5, 0.8)
+	announce("KING DEFEATED!", Color3.fromRGB(255, 220, 80), "Rewards for everyone who helped!", nil, 3)
+	burst(d.pos, Color3.fromRGB(150, 255, 100), 120, { speed = 35, size = 2 })
+	burst(d.pos, Color3.fromRGB(255, 215, 60), 60, { speed = 25 })
+	pillar(d.pos, Color3.fromRGB(255, 215, 60))
+	for i = 0, 4 do
+		task.delay(0.12 * i, sound, "Ping", 0.8 + i * 0.2, 0.8)
+	end
+end
+handlers.kingEscape = function(d)
+	burst(d.pos, Color3.fromRGB(150, 255, 100), 40, { speed = 20 })
+	sound("Whoosh", 0.6, 1)
+end
+
 handlers.fuseStart = function(d)
 	burst(d.pos + Vector3.new(0, 6, 0), Color3.fromRGB(150, 255, 120), 50, { speed = 16 })
 	burst(d.pos + Vector3.new(0, 6, 0), Color3.fromRGB(200, 120, 255), 30, { speed = 12 })

@@ -31,6 +31,7 @@ local function defaultData()
 		lastDaily = 0,
 		dailyStreak = 0,
 		totalEarned = 0,
+		rookieOff = false, -- true once a new player steals (ends their Rookie Shield)
 		steals = 0,
 		index = {}, -- slime id -> true once ever owned (Slime Index)
 		codes = {}, -- redeemed code -> true

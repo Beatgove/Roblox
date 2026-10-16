@@ -10,6 +10,8 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local StealService = require(script.Parent.StealService)
 local Signals = require(script.Parent.Signals)
+local BountyService = require(script.Parent.BountyService)
+local BossService = require(script.Parent.BossService)
 local Net = require(script.Parent.Net)
 
 local GearService = {}
@@ -77,6 +79,7 @@ local function freeze(player: Player, seconds: number)
 end
 
 local function hitThief(attacker: Player, target: Player)
+	BountyService.Claim(attacker, target)
 	if StealService.IsCarrying(target) then
 		StealService.Drop(target)
 		Net.Notify(attacker, "You knocked the slime out of " .. target.DisplayName .. "'s hands!", "epic")
@@ -92,6 +95,9 @@ local function useSlap(player: Player, def)
 		return
 	end
 	Net.FxAll("swing", { pos = root.Position })
+	if BossService.TryHit(player, root.Position, def.range, Config.King.slapDamage) then
+		return
+	end
 	local target = targetInFront(player, def.range, 0.2)
 	local tRoot = target and rootOf(target)
 	if not target or not tRoot then
@@ -139,6 +145,7 @@ local function useTrap(player: Player, def)
 		Net.Notify(victim, "You stepped in " .. player.DisplayName .. "'s Slime Trap!", "bad")
 		Net.Notify(player, "Your trap caught " .. victim.DisplayName .. "!", "good")
 		trap:Destroy()
+		BountyService.Claim(player, victim)
 		freeze(victim, def.freeze)
 	end)
 	task.delay(def.life, function()
@@ -159,6 +166,11 @@ local function useTaser(player: Player, def)
 	end
 	local target = targetInFront(player, def.range, 0.85)
 	local tRoot = target and rootOf(target)
+	if not target and BossService.TryHit(player, root.Position, def.range, Config.King.taserDamage) then
+		local king = workspace:FindFirstChild("KingSlime") :: Model?
+		Net.FxAll("zap", { from = root.Position, to = if king then king:GetPivot().Position else root.Position })
+		return
+	end
 	if not target or not tRoot then
 		Net.FxAll("zap", { from = root.Position, to = root.Position + root.CFrame.LookVector * def.range })
 		return
