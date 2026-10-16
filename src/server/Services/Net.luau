@@ -18,6 +18,20 @@ end
 Net.NotifyEvent = remote("Notify") -- server -> client: (text, kind)
 Net.RebirthEvent = remote("Rebirth") -- client -> server: ()
 Net.BannerEvent = remote("Banner") -- server -> all: (text, seconds)
+Net.FxEvent = remote("Fx") -- server -> client: (kind, data) visual/sound effects
+Net.RollEvent = remote("Roll") -- client -> server: () use the Slime Dispenser
+
+Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (ok, message)
+Net.RedeemCode.Name = "RedeemCode"
+Net.RedeemCode.Parent = folder
+
+function Net.Fx(player: Player, kind: string, data)
+	Net.FxEvent:FireClient(player, kind, data)
+end
+
+function Net.FxAll(kind: string, data)
+	Net.FxEvent:FireAllClients(kind, data)
+end
 
 -- kind: "info" | "good" | "bad" | "epic"
 function Net.Notify(player: Player, text: string, kind: string?)

@@ -1,6 +1,6 @@
--- Spawns slimes on the central belt, sells them, and runs Slime Rain events.
+-- Spawns slimes on the central belt (they hop along it), sells them, and runs Slime Rain events.
 
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Util = require(game.ReplicatedStorage.Shared.Util)
@@ -8,60 +8,45 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local SlimeModel = require(script.Parent.SlimeModel)
 local MapBuilder = require(script.Parent.MapBuilder)
+local Roller = require(script.Parent.Roller)
 local Net = require(script.Parent.Net)
 
 local ConveyorService = {}
 
 local rainUntil = 0
 local beltFolder: Folder
-
-local byRarity: { [string]: { any } } = {}
-for _, s in Config.Slimes do
-	byRarity[s.rarity] = byRarity[s.rarity] or {}
-	table.insert(byRarity[s.rarity], s)
-end
+local moving: { { model: Model, start: CFrame, finish: CFrame, born: number, phase: number } } = {}
 
 function ConveyorService.IsRaining(): boolean
 	return os.clock() < rainUntil
 end
 
-local function rollRarity(luck: number)
-	local total = 0
-	local weights = {}
-	for i, r in Config.Rarities do
-		local w = r.weight * (if r.order >= 3 then luck else 1)
-		weights[i] = w
-		total += w
+local function announceIfRare(rarity, text: string)
+	if rarity.order >= 5 then
+		Net.NotifyAll(text, "epic")
 	end
-	local roll = math.random() * total
-	for i, r in Config.Rarities do
-		roll -= weights[i]
-		if roll <= 0 then
-			return r
-		end
-	end
-	return Config.Rarities[1]
-end
-
-local function rollSlime(luck: number)
-	local rarity = rollRarity(luck)
-	local list = byRarity[rarity.name]
-	return list[math.random(1, #list)]
 end
 
 local function spawnSlime()
-	local def = rollSlime(if ConveyorService.IsRaining() then Config.RainLuck else 1)
-	local model = SlimeModel.Create(def.id, 1)
+	local luck = if ConveyorService.IsRaining() then Config.RainLuck else 1
+	local def = Roller.Slime(luck)
+	local mut = Roller.Mutation(luck)
+	local rarity = Config.RarityByName[def.rarity]
+	local price = math.floor(def.price * Config.MutationMult(mut))
+	local name = Config.DisplayName(def.id, mut)
+
+	local model = SlimeModel.Create(def.id, 1, mut)
 	local height = model.PrimaryPart.Size.Y / 2
 	local y = MapBuilder.BeltTopY + height
-	local startCF = CFrame.new(MapBuilder.BeltStart + Vector3.new(0, y, 0)) * CFrame.Angles(0, -math.pi / 2, 0)
-	local endCF = CFrame.new(MapBuilder.BeltEnd + Vector3.new(0, y, 0)) * CFrame.Angles(0, -math.pi / 2, 0)
+	local facing = CFrame.Angles(0, -math.pi / 2, 0)
+	local startCF = CFrame.new(MapBuilder.BeltStart + Vector3.new(0, y, 0)) * facing
+	local endCF = CFrame.new(MapBuilder.BeltEnd + Vector3.new(0, y, 0)) * facing
 	model:PivotTo(startCF)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "BuyPrompt"
-	prompt.ActionText = "Buy " .. Util.Money(def.price)
-	prompt.ObjectText = def.id .. " (" .. def.rarity .. ")"
+	prompt.ActionText = "Buy " .. Util.Money(price)
+	prompt.ObjectText = name .. " (" .. def.rarity .. ")"
 	prompt.HoldDuration = 0.4
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
@@ -76,55 +61,69 @@ local function spawnSlime()
 		if not data then
 			return
 		end
-		if data.cash < def.price then
-			Net.Notify(player, "Not enough cash for " .. def.id .. " (" .. Util.Money(def.price) .. ")", "bad")
+		if data.cash < price then
+			Net.Notify(player, "Not enough cash for " .. name .. " (" .. Util.Money(price) .. ")", "bad")
+			Net.Fx(player, "deny", {})
 			return
 		end
 		if not PlotService.HasFreeSlot(player) then
 			Net.Notify(player, "Your pens are full! Sell a slime or rebirth for more space.", "bad")
+			Net.Fx(player, "deny", {})
 			return
 		end
 		claimed = true
-		data.cash -= def.price
-		PlotService.AddSlime(player, { id = def.id, born = os.time() })
+		data.cash -= price
+		Net.FxAll("buy", { pos = model.PrimaryPart.Position, color = rarity.color, order = rarity.order })
+		Net.Fx(player, "reveal", { name = name, rarity = def.rarity, mut = mut, quiet = rarity.order < 4 and mut == nil })
 		model:Destroy()
-		local rarity = Config.RarityByName[def.rarity]
-		Net.Notify(player, "Bought " .. def.id .. "! It's in your base.", "good")
-		if rarity.order >= 5 then
-			Net.NotifyAll(player.DisplayName .. " bought a " .. def.rarity .. " " .. def.id .. "!", "epic")
-		end
+		PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut })
+		Net.Notify(player, "Bought " .. name .. "! It's in your base.", "good")
+		announceIfRare(rarity, player.DisplayName .. " bought a " .. def.rarity .. " " .. name .. "!")
 	end)
 
 	model.Parent = beltFolder
+	table.insert(moving, { model = model, start = startCF, finish = endCF, born = os.clock(), phase = math.random() * 6 })
 
-	if Config.RarityByName[def.rarity].order >= 5 then
-		Net.NotifyAll("A " .. def.rarity .. " " .. def.id .. " is on the belt!", "epic")
+	if rarity.order >= 5 or mut then
+		Net.FxAll("rareSpawn", { pos = startCF.Position, color = rarity.color, order = rarity.order })
 	end
+	announceIfRare(rarity, "A " .. def.rarity .. " " .. name .. " is on the belt! RUN!")
+end
 
-	local tween = TweenService:Create(
-		model.PrimaryPart,
-		TweenInfo.new(Config.BeltTravelSeconds, Enum.EasingStyle.Linear),
-		{ CFrame = endCF }
-	)
-	tween.Completed:Connect(function()
-		if model.Parent then
-			model:Destroy()
+-- One loop moves every belt slime: forward along the belt with little hops.
+local function stepBelt()
+	local t = os.clock()
+	for i = #moving, 1, -1 do
+		local m = moving[i]
+		if not m.model.Parent then
+			table.remove(moving, i)
+			continue
 		end
-	end)
-	tween:Play()
+		local alpha = (t - m.born) / Config.BeltTravelSeconds
+		if alpha >= 1 then
+			m.model:Destroy()
+			table.remove(moving, i)
+			continue
+		end
+		local hop = math.abs(math.sin((t + m.phase) * 4)) * 1.4
+		m.model:PivotTo(m.start:Lerp(m.finish, alpha) + Vector3.new(0, hop, 0))
+	end
 end
 
 function ConveyorService.StartRain(seconds: number, byName: string?)
 	local t = os.clock()
 	rainUntil = math.max(rainUntil, t) + seconds
+	workspace:SetAttribute("RainUntil", workspace:GetServerTimeNow() + (rainUntil - t))
 	local who = if byName then byName .. " started a " else "A "
-	Net.Banner(who .. "SLIME RAIN! Rare slimes x" .. Config.RainLuck .. " for " .. seconds .. "s", seconds)
+	Net.Banner(who .. "SLIME RAIN! 5x LUCK everywhere for " .. seconds .. "s", seconds)
 end
 
 function ConveyorService.Start()
 	beltFolder = Instance.new("Folder")
 	beltFolder.Name = "BeltSlimes"
 	beltFolder.Parent = workspace
+
+	RunService.Heartbeat:Connect(stepBelt)
 
 	task.spawn(function()
 		while true do

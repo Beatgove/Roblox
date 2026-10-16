@@ -13,6 +13,8 @@ local PlotService = require(Services.PlotService)
 local ConveyorService = require(Services.ConveyorService)
 local StealService = require(Services.StealService)
 local MonetizationService = require(Services.MonetizationService)
+local DispenserService = require(Services.DispenserService)
+local CodeService = require(Services.CodeService)
 
 local plots = MapBuilder.Build()
 DataService.Start()
@@ -20,6 +22,8 @@ PlotService.Start(plots)
 ConveyorService.Start()
 StealService.Start()
 MonetizationService.Start()
+DispenserService.Start()
+CodeService.Start()
 
 local function makeLeaderstats(player: Player)
 	local ls = Instance.new("Folder")
@@ -37,6 +41,10 @@ end
 -- Offline earnings and the daily streak gift: the reasons to come back tomorrow.
 local function welcomeBack(player: Player, data)
 	local t = os.time()
+	if data.lastOnline == 0 then
+		DispenserService.GiveLuck(player, Config.NewPlayerLuckMinutes * 60)
+		Net.Notify(player, "🍀 NEW PLAYER BONUS: 5x LUCK for " .. Config.NewPlayerLuckMinutes .. " minutes! Try the Slime Dispenser!", "epic")
+	end
 	if data.lastOnline > 0 then
 		local away = math.min(t - data.lastOnline, Config.OfflineCapSeconds)
 		local earned = math.floor(PlotService.IncomePerSecond(player) * away * Config.OfflineRate)

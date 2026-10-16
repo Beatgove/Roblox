@@ -2,7 +2,19 @@
 
 A collect-and-steal tycoon for Roblox. Why this game: see [RESEARCH.md](RESEARCH.md).
 
-Buy slimes off the conveyor, they earn cash every second and grow bigger (even offline), raid other bases to steal theirs, shield your own, rebirth for permanent multipliers.
+Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every second and grow bigger (even offline), raid other bases to steal theirs, shield your own, rebirth for permanent multipliers.
+
+**What's in it**
+- 28 slimes across 9 rarities (Common to Secret, plus code-only Exclusives), each with its own look: crowns, wings, halos, horns, antennae, auras and glow.
+- Mutations: Golden (x2), Diamond (x4), Rainbow (x8) on any slime.
+- Slime Dispenser: pay cash for a random slime, odds shown on the board next to it. 5x Luck boosts Rare+ odds (free for 10 minutes for new players, from codes, during Slime Rain, or bought).
+- Codes menu: `RELEASE`, `SLIMETIME`, `LUCKY`, `FREESLIME`, `SPOOKY` (Halloween, until Nov 1). Add more in `Config.Codes`.
+- Slime Index: collection book, +1% income per slime discovered.
+- Raiding: thieves glow red with a THIEF tag; if the owner catches them, the slime bounces its way home.
+- Effects: hopping belt slimes, bouncing pens, rarity reveals, confetti, screen flashes, camera shake, Slime Rain drops, sounds.
+- Halloween update: Pumpkin, Ghosty, Vampire spawn only in October.
+
+Store art: `marketing/icon_512.png` (game icon) and `marketing/thumbnail_1920x1080.png` (thumbnail).
 
 ## Files
 
@@ -18,6 +30,10 @@ src/server/Services/ConveyorService.luau  Belt spawns, buying, Slime Rain events
 src/server/Services/StealService.luau  Raiding and carrying slimes home
 src/server/Services/MonetizationService.luau  Game passes + dev products (ProcessReceipt)
 src/server/Services/DataService.luau   DataStore saving
+src/server/Services/DispenserService.luau  Slime Dispenser rolls and luck
+src/server/Services/CodeService.luau  Codes
+src/server/Services/Roller.luau  Rarity, slime and mutation rolls
+src/client/Effects.client.luau  Particles, reveals, sounds, bouncing
 src/client/Hud.client.luau             All UI
 ```
 
@@ -45,8 +61,8 @@ Creator Hub > your experience > **Monetization**:
 
 - **Passes**: create these four, then paste each ID into `Config.GamePasses`:
   2x Cash (199), VIP (299), Extra Pens (149), Auto Collect (99).
-- **Developer Products**: create these six, paste IDs into `Config.Products`:
-  Small Cash (25), Big Cash (99), Huge Cash (399), Shield 5 min (39), Grow Boost (49), Server Slime Rain (199).
+- **Developer Products**: create these seven, paste IDs into `Config.Products`:
+  5x Luck 15 min (79), Small Cash (25), Big Cash (99), Huge Cash (399), Shield 5 min (39), Grow Boost (49), Server Slime Rain (199).
 - Prices in Roblox must match `price` in Config (Config's price is only what the shop button shows).
 - Republish (File > Publish to Roblox) after pasting IDs.
 - Also turn on **Private Servers** (Monetization > Private servers, e.g. 100 R$/month) and Premium Payouts happen automatically.

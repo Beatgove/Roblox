@@ -1,7 +1,9 @@
 -- Raiding: grab a slime from someone else's base and carry it home.
--- The owner can take it back by catching the thief, and dying or timing out returns it.
+-- Thieves glow red with a THIEF tag. If the owner catches them (or they drop it),
+-- the slime bounces its way back home to its pen.
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Util = require(game.ReplicatedStorage.Shared.Util)
@@ -14,12 +16,16 @@ local StealService = {}
 
 local carrying: { [Player]: boolean } = {}
 
-local function attachToHead(char: Model, slimeId: string, stage: number): Model?
+local HOP_DISTANCE = 7
+local HOP_TIME = 0.38
+local HOP_HEIGHT = 4
+
+local function attachToHead(char: Model, slime, stage: number): Model?
 	local head = char:FindFirstChild("Head") :: BasePart?
 	if not head then
 		return nil
 	end
-	local model = SlimeModel.Create(slimeId, stage)
+	local model = SlimeModel.Create(slime.id, stage, slime.mut)
 	local body = model.PrimaryPart
 	local size = body.Size.Y
 	model:PivotTo(head.CFrame * CFrame.new(0, head.Size.Y / 2 + size / 2 + 0.3, 0))
@@ -34,6 +40,88 @@ local function attachToHead(char: Model, slimeId: string, stage: number): Model?
 	return model
 end
 
+local function markThief(char: Model): { Instance }
+	local marks = {}
+	local h = Instance.new("Highlight")
+	h.Name = "ThiefGlow"
+	h.FillColor = Color3.fromRGB(255, 40, 60)
+	h.FillTransparency = 0.6
+	h.OutlineColor = Color3.fromRGB(255, 255, 255)
+	h.Parent = char
+	table.insert(marks, h)
+	local head = char:FindFirstChild("Head")
+	if head then
+		local gui = Instance.new("BillboardGui")
+		gui.Name = "ThiefTag"
+		gui.Size = UDim2.fromOffset(160, 40)
+		gui.StudsOffset = Vector3.new(0, 7, 0)
+		gui.AlwaysOnTop = true
+		gui.MaxDistance = 200
+		gui.Parent = head
+		local t = Instance.new("TextLabel")
+		t.Size = UDim2.fromScale(1, 1)
+		t.BackgroundTransparency = 1
+		t.Font = Enum.Font.FredokaOne
+		t.TextScaled = true
+		t.Text = "🚨 THIEF! 🚨"
+		t.TextColor3 = Color3.fromRGB(255, 60, 70)
+		t.TextStrokeTransparency = 0
+		t.Parent = gui
+		table.insert(marks, gui)
+	end
+	return marks
+end
+
+-- Animates a slime hopping from `fromPos` back to the owner's next free pen, then puts it there.
+local function bounceHome(slime, fromPos: Vector3, owner: Player, fallback: Player?)
+	local target = PlotService.NextPenPosition(owner)
+	if not target then
+		if fallback and fallback.Parent then
+			PlotService.AddSlime(fallback, slime)
+		end
+		return
+	end
+	local stage = Util.Stage(os.time() - slime.born)
+	local model = SlimeModel.Create(slime.id, stage, slime.mut)
+	local r = model.PrimaryPart.Size.Y / 2
+	model.PrimaryPart.Label.Info.Text = "Bouncing home!"
+	local ground = Vector3.new(0, r + 0.5, 0)
+	local start = Vector3.new(fromPos.X, 0, fromPos.Z) + ground
+	local finish = Vector3.new(target.X, 0, target.Z) + ground + Vector3.new(0, 0.3, 0)
+	local flat = Vector3.new(finish.X - start.X, 0, finish.Z - start.Z)
+	local hops = math.max(3, math.ceil(flat.Magnitude / HOP_DISTANCE))
+	local facing = if flat.Magnitude > 0.1 then CFrame.lookAt(Vector3.zero, flat.Unit) else CFrame.identity
+	model:PivotTo(CFrame.new(start) * facing)
+	model.Parent = workspace
+
+	local t0 = os.clock()
+	local total = hops * HOP_TIME
+	local lastHop = 0
+	local conn
+	conn = RunService.Heartbeat:Connect(function()
+		local elapsed = os.clock() - t0
+		local alpha = math.min(elapsed / total, 1)
+		local hopIndex = math.floor(elapsed / HOP_TIME)
+		local hopAlpha = (elapsed % HOP_TIME) / HOP_TIME
+		local height = math.sin(hopAlpha * math.pi) * HOP_HEIGHT
+		model:PivotTo(CFrame.new(start:Lerp(finish, alpha) + Vector3.new(0, height, 0)) * facing)
+		if hopIndex > lastHop then
+			lastHop = hopIndex
+			Net.FxAll("hop", { pos = model.PrimaryPart.Position - Vector3.new(0, r, 0) })
+		end
+		if alpha >= 1 then
+			conn:Disconnect()
+			model:Destroy()
+			if owner.Parent and PlotService.GetPlot(owner) then
+				PlotService.AddSlime(owner, slime)
+				Net.Notify(owner, "Your " .. Config.DisplayName(slime.id, slime.mut) .. " bounced back home!", "good")
+			elseif fallback and fallback.Parent then
+				PlotService.AddSlime(fallback, slime)
+			end
+		end
+	end)
+end
+
 local function startSteal(thief: Player, victim: Player, slot: number)
 	if carrying[thief] then
 		Net.Notify(thief, "You're already carrying a slime!", "bad")
@@ -46,16 +134,18 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	end
 	if PlotService.IsLocked(victimPlot) then
 		Net.Notify(thief, "That base is shielded!", "bad")
+		Net.Fx(thief, "deny", {})
 		return
 	end
 	if not PlotService.HasFreeSlot(thief) then
 		Net.Notify(thief, "Your pens are full, you have nowhere to put it!", "bad")
+		Net.Fx(thief, "deny", {})
 		return
 	end
 	local char = thief.Character
 	local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not humanoid or humanoid.Health <= 0 or not root then
+	if not char or not humanoid or humanoid.Health <= 0 or not root then
 		return
 	end
 
@@ -64,15 +154,19 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		return
 	end
 	carrying[thief] = true
+	local name = Config.DisplayName(slime.id, slime.mut)
 
 	local stage = Util.Stage(os.time() - slime.born)
-	local carried = attachToHead(char, slime.id, stage)
+	local carried = attachToHead(char, slime, stage)
+	local marks = markThief(char)
 	local oldSpeed = humanoid.WalkSpeed
 	humanoid.WalkSpeed = Config.CarryWalkSpeed
-	thief:SetAttribute("Carrying", slime.id)
+	thief:SetAttribute("Carrying", name)
 
-	Net.Notify(thief, "You grabbed " .. slime.id .. "! Run back to your base!", "epic")
-	Net.Notify(victim, thief.DisplayName .. " is stealing your " .. slime.id .. "! Catch them!", "bad")
+	Net.Notify(thief, "You grabbed " .. name .. "! Run back to your base!", "epic")
+	Net.Notify(victim, "🚨 " .. thief.DisplayName .. " is stealing your " .. name .. "! Catch them!", "bad")
+	Net.Fx(victim, "alarm", { thief = thief.DisplayName })
+	Net.Fx(thief, "grab", {})
 
 	local finished = false
 	local died = false
@@ -90,8 +184,12 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		if thief.Parent then
 			thief:SetAttribute("Carrying", nil)
 		end
+		local dropPos = if carried and carried.PrimaryPart then carried.PrimaryPart.Position else root.Position
 		if carried then
 			carried:Destroy()
+		end
+		for _, m in marks do
+			m:Destroy()
 		end
 		if humanoid.Parent then
 			humanoid.WalkSpeed = oldSpeed
@@ -103,23 +201,26 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			if data then
 				data.steals += 1
 			end
-			Net.Notify(thief, "Stolen! " .. slime.id .. " is yours now.", "epic")
+			Net.Notify(thief, "STOLEN! " .. name .. " is yours now.", "epic")
+			Net.Fx(thief, "stealWin", {})
 			if victim.Parent then
-				Net.Notify(victim, thief.DisplayName .. " stole your " .. slime.id .. ". Get revenge!", "bad")
+				Net.Notify(victim, thief.DisplayName .. " stole your " .. name .. ". Get revenge!", "bad")
+				Net.Fx(victim, "stolen", {})
 			end
-		else
-			if victim.Parent and PlotService.GetPlot(victim) then
-				PlotService.AddSlime(victim, slime)
-				Net.Notify(victim, "Your " .. slime.id .. " came back!", "good")
-			elseif thief.Parent then
-				-- Owner left mid-raid: the thief keeps it.
-				PlotService.AddSlime(thief, slime)
-				return
-			end
+		elseif victim.Parent and PlotService.GetPlot(victim) then
 			if thief.Parent then
-				local reason = if outcome == "tagged" then "The owner caught you!" else "You dropped the slime!"
+				local reason = if outcome == "tagged" then "CAUGHT! The owner took it back!" else "You dropped the slime!"
 				Net.Notify(thief, reason, "bad")
+				Net.Fx(thief, "caught", {})
 			end
+			if outcome == "tagged" then
+				Net.Notify(victim, "You caught " .. thief.DisplayName .. "!", "good")
+				Net.Fx(victim, "stealWin", {})
+			end
+			bounceHome(slime, dropPos, victim, nil)
+		elseif thief.Parent then
+			-- Owner left mid-raid: the thief keeps it.
+			PlotService.AddSlime(thief, slime)
 		end
 	end
 
@@ -141,7 +242,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			end
 			local vChar = victim.Parent and victim.Character
 			local vRoot = vChar and vChar:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if vRoot and (vRoot.Position - root.Position).Magnitude <= Config.OwnerTagDistance then
+			if os.clock() - started > 1 and vRoot and (vRoot.Position - root.Position).Magnitude <= Config.OwnerTagDistance then
 				finish("tagged")
 				break
 			end

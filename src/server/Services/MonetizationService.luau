@@ -10,6 +10,7 @@ local DataService = require(script.Parent.DataService)
 local Passes = require(script.Parent.Passes)
 local PlotService = require(script.Parent.PlotService)
 local ConveyorService = require(script.Parent.ConveyorService)
+local DispenserService = require(script.Parent.DispenserService)
 local Net = require(script.Parent.Net)
 
 local MonetizationService = {}
@@ -27,6 +28,9 @@ local function grantProduct(player: Player, product): boolean
 		local amount = math.max(product.min, PlotService.IncomePerSecond(player) * product.seconds)
 		PlotService.AddCash(player, amount)
 		Net.Notify(player, "+" .. Util.Money(amount) .. " cash! Thanks for the support!", "epic")
+	elseif product.kind == "Luck" then
+		DispenserService.GiveLuck(player, product.seconds)
+		Net.Notify(player, "🍀 5x LUCK for " .. Util.Duration(product.seconds) .. "! Go roll the Dispenser!", "epic")
 	elseif product.kind == "Lock" then
 		PlotService.Lock(player, product.seconds, true)
 		Net.Notify(player, "Shield up for " .. Util.Duration(product.seconds) .. "!", "epic")

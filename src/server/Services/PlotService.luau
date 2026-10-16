@@ -1,5 +1,6 @@
 -- Player bases: plot assignment, slimes in pens, growth, income, collecting and locking.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
@@ -60,13 +61,36 @@ function PlotService.IncomeMultiplier(player: Player): number
 	if Passes.Owns(player, "VIP") then
 		mult *= 1.25
 	end
+	if data then
+		mult *= 1 + PlotService.IndexCount(player) * Config.IndexBonusPerSlime
+	end
 	return mult
 end
 
 function PlotService.SlimeIncome(slime, at: number?): number
 	local def = Config.SlimeById[slime.id]
 	local stage = Util.Stage((at or now()) - slime.born)
-	return def.income * Config.GrowthIncomeMult[stage]
+	return def.income * Config.GrowthIncomeMult[stage] * Config.MutationMult(slime.mut)
+end
+
+function PlotService.IndexCount(player: Player): number
+	local data = DataService.Get(player)
+	local n = 0
+	if data then
+		for _ in data.index do
+			n += 1
+		end
+	end
+	return n
+end
+
+function PlotService.LuckUntil(player: Player): number
+	local data = DataService.Get(player)
+	return data and data.luckUntil or 0
+end
+
+function PlotService.RollCost(player: Player): number
+	return math.max(Config.DispenserMinCost, math.floor(PlotService.IncomePerSecond(player) * Config.DispenserIncomeSeconds))
 end
 
 function PlotService.IncomePerSecond(player: Player): number
@@ -99,6 +123,13 @@ function PlotService.Sync(player: Player)
 	player:SetAttribute("RebirthCost", Config.RebirthCost(data.rebirths))
 	player:SetAttribute("Slots", PlotService.Slots(player))
 	player:SetAttribute("SlimeCount", #data.slimes)
+	player:SetAttribute("LuckUntil", data.luckUntil)
+	player:SetAttribute("RollCost", PlotService.RollCost(player))
+	local ids = {}
+	for id in data.index do
+		table.insert(ids, id)
+	end
+	player:SetAttribute("IndexList", table.concat(ids, ","))
 	local plot = plotOf[player]
 	if plot then
 		player:SetAttribute("LockedUntil", plot.lockedUntil)
@@ -165,18 +196,19 @@ function PlotService.Render(player: Player)
 		end
 		local stage = Util.Stage(now() - slime.born)
 		plot.stages[i] = stage
-		local model = SlimeModel.Create(slime.id, stage)
+		local model = SlimeModel.Create(slime.id, stage, slime.mut)
 		local height = model.PrimaryPart.Size.Y / 2
 		-- Face the entrance (plot -Z) so slimes look at visitors.
 		model:PivotTo(pad.CFrame * CFrame.new(0, 0.2 + height, 0))
 		model:SetAttribute("Slot", i)
 		model:SetAttribute("OwnerId", player.UserId)
 		model.PrimaryPart.Label.Info.Text = slimeLabelInfo(slime, player)
+		CollectionService:AddTag(model, "PenSlime")
 
 		local steal = Instance.new("ProximityPrompt")
 		steal.Name = "StealPrompt"
 		steal.ActionText = "Steal"
-		steal.ObjectText = slime.id
+		steal.ObjectText = Config.DisplayName(slime.id, slime.mut)
 		steal.HoldDuration = Config.StealHoldSeconds
 		steal.MaxActivationDistance = 8
 		steal.RequiresLineOfSight = false
@@ -186,8 +218,8 @@ function PlotService.Render(player: Player)
 
 		local sell = Instance.new("ProximityPrompt")
 		sell.Name = "SellPrompt"
-		sell.ActionText = "Sell " .. Util.Money(Config.SlimeById[slime.id].price // 2)
-		sell.ObjectText = slime.id
+		sell.ActionText = "Sell " .. Util.Money(PlotService.SellValue(slime))
+		sell.ObjectText = Config.DisplayName(slime.id, slime.mut)
 		sell.HoldDuration = 1
 		sell.MaxActivationDistance = 8
 		sell.RequiresLineOfSight = false
@@ -216,6 +248,21 @@ function PlotService.HasFreeSlot(player: Player): boolean
 	return data ~= nil and #data.slimes < PlotService.Slots(player)
 end
 
+function PlotService.SellValue(slime): number
+	return math.floor(Config.SlimeById[slime.id].price * Config.MutationMult(slime.mut) / 2)
+end
+
+-- World position of the pen a newly added slime would go in.
+function PlotService.NextPenPosition(player: Player): Vector3?
+	local plot = plotOf[player]
+	local data = DataService.Get(player)
+	if not plot or not data then
+		return nil
+	end
+	local pad = plot.model.Pens:FindFirstChild("Pen" .. (#data.slimes + 1))
+	return pad and pad.Position
+end
+
 function PlotService.AddSlime(player: Player, slime): boolean
 	local data = DataService.Get(player)
 	if not data or not PlotService.HasFreeSlot(player) then
@@ -223,6 +270,17 @@ function PlotService.AddSlime(player: Player, slime): boolean
 	end
 	table.insert(data.slimes, slime)
 	PlotService.Render(player)
+	local plot = plotOf[player]
+	local pad = plot and plot.model.Pens:FindFirstChild("Pen" .. #data.slimes)
+	local rarity = Config.RarityByName[Config.SlimeById[slime.id].rarity]
+	if pad then
+		Net.FxAll("land", { pos = pad.Position, color = rarity.color, big = rarity.order >= 5 })
+	end
+	if not data.index[slime.id] then
+		data.index[slime.id] = true
+		PlotService.Sync(player)
+		Net.Notify(player, "📖 NEW! " .. slime.id .. " added to your Slime Index (+1% income)", "epic")
+	end
 	return true
 end
 
@@ -243,7 +301,7 @@ function PlotService.Sell(player: Player, slot: number)
 		return
 	end
 	PlotService.RemoveSlime(player, slot)
-	local value = Config.SlimeById[slime.id].price // 2
+	local value = PlotService.SellValue(slime)
 	PlotService.AddCash(player, value)
 	Net.Notify(player, "Sold " .. slime.id .. " for " .. Util.Money(value), "good")
 end
@@ -294,6 +352,7 @@ function PlotService.Rebirth(player: Player)
 	data.bank = 0
 	data.slimes = {}
 	PlotService.Render(player)
+	Net.Fx(player, "rebirth", { n = data.rebirths })
 	Net.Notify(player, "REBIRTH " .. data.rebirths .. "! Income is now x" .. PlotService.IncomeMultiplier(player), "epic")
 	Net.NotifyAll(player.DisplayName .. " reached Rebirth " .. data.rebirths .. "!", "epic")
 end
@@ -334,7 +393,7 @@ local function setupPlotInteractions(plot: Plot)
 		local amount = math.floor(data.bank)
 		data.bank -= amount
 		PlotService.AddCash(owner, amount)
-		Net.Notify(owner, "+" .. Util.Money(amount), "good")
+		Net.Fx(owner, "collect", { pos = collector.Position, amount = amount })
 		task.delay(0.5, function()
 			debounce = false
 		end)
@@ -458,6 +517,7 @@ function PlotService.Start(builtPlots)
 				end
 				if grew then
 					PlotService.Render(player)
+					Net.Fx(player, "grow", {})
 					Net.Notify(player, "Your slimes grew! Income is up.", "good")
 				elseif plot.slimeFolder then
 					for _, m in plot.slimeFolder:GetChildren() do

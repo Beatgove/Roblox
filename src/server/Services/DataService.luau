@@ -26,12 +26,16 @@ local function defaultData()
 		cash = Config.StartingCash,
 		bank = 0,
 		rebirths = 0,
-		slimes = {}, -- array of { id = string, born = number(os.time) }
+		slimes = {}, -- array of { id = string, born = os.time(), mut = mutation name or nil }
 		lastOnline = 0,
 		lastDaily = 0,
 		dailyStreak = 0,
 		totalEarned = 0,
 		steals = 0,
+		index = {}, -- slime id -> true once ever owned (Slime Index)
+		codes = {}, -- redeemed code -> true
+		luckUntil = 0, -- os.time() until which 5x dispenser luck is active
+		rolls = 0,
 		receipts = {}, -- PurchaseId -> true (recent, for idempotent ProcessReceipt)
 		receiptOrder = {},
 	}
@@ -52,6 +56,10 @@ local function reconcile(data)
 		end
 	end
 	data.slimes = clean
+	-- Older saves: everything currently owned counts as discovered.
+	for _, s in data.slimes do
+		data.index[s.id] = true
+	end
 	return data
 end
 
