@@ -572,6 +572,7 @@ handlers.squirmAll = function(d)
 end
 handlers.held = function()
 	sound("Snap", 1.6, 0.5)
+	announce("GOT A GRIP!", Color3.fromRGB(150, 255, 150), nil, nil, 0.8)
 end
 handlers.revenge = function(d)
 	flash(Color3.fromRGB(255, 70, 70), 0.35, 0.5)
@@ -596,7 +597,39 @@ handlers.kingSpawn = function(d)
 		sound("Snap", 0.3, 1, d.pos)
 	end)
 end
+handlers.kingIncoming = function(d)
+	-- A dark shadow grows on the ground where the King will land.
+	local shadow = Instance.new("Part")
+	shadow.Shape = Enum.PartType.Cylinder
+	shadow.Anchored = true
+	shadow.CanCollide = false
+	shadow.CanQuery = false
+	shadow.Material = Enum.Material.SmoothPlastic
+	shadow.Color = Color3.fromRGB(20, 10, 30)
+	shadow.Transparency = 0.9
+	shadow.Size = Vector3.new(0.2, 2, 2)
+	shadow.CFrame = CFrame.new(d.pos.X, 0.15, d.pos.Z) * CFrame.Angles(0, 0, math.pi / 2)
+	shadow.Parent = fxFolder
+	TweenService:Create(shadow, TweenInfo.new(d.seconds + 1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = Vector3.new(0.2, Config.King.size * 1.4, Config.King.size * 1.4), Transparency = 0.35 }):Play()
+	Debris:AddItem(shadow, d.seconds + 1.5)
+	announce("👑 INCOMING!", Color3.fromRGB(150, 255, 100), "Something big is falling near spawn...", nil, d.seconds)
+	sound("Whoosh", 0.4, 0.8)
+end
+local kingFlash: Highlight? = nil
 handlers.kingHit = function(d)
+	local king = workspace:FindFirstChild("KingSlime")
+	if king then
+		if not kingFlash or kingFlash.Parent ~= king then
+			local hl = Instance.new("Highlight")
+			hl.FillColor = Color3.new(1, 1, 1)
+			hl.OutlineTransparency = 1
+			hl.Parent = king
+			kingFlash = hl
+		end
+		local h = kingFlash :: Highlight
+		h.FillTransparency = 0.2
+		TweenService:Create(h, TweenInfo.new(0.25), { FillTransparency = 1 }):Play()
+	end
 	burst(d.pos, Color3.fromRGB(190, 255, 120), 10 + d.damage * 4, { speed = 14 })
 	popText(d.pos, "-" .. d.damage, Color3.fromRGB(255, 255, 255))
 	sound("Snap", 1.2 + math.random() * 0.4, 0.6, d.pos)
@@ -620,6 +653,20 @@ handlers.kingDefeated = function(d)
 	for i = 0, 4 do
 		task.delay(0.12 * i, sound, "Ping", 0.8 + i * 0.2, 0.8)
 	end
+end
+handlers.kingEnrage = function(d)
+	flash(Color3.fromRGB(255, 80, 50), 0.4, 0.6)
+	announce("ENRAGED!", Color3.fromRGB(255, 90, 60), "The King Slime is almost down!", nil, 1.8)
+	burst(d.pos, Color3.fromRGB(255, 90, 60), 60, { speed = 25 })
+	sound("Whoosh", 0.6, 1)
+end
+handlers.kingReward = function(d)
+	local medal = if d.rank == 1 then "🥇" elseif d.rank == 2 then "🥈" elseif d.rank == 3 then "🥉" else "👑"
+	task.delay(2.5, announce, medal .. " #" .. d.rank .. " of " .. d.of, Color3.fromRGB(255, 220, 80), d.damage .. " damage · " .. d.text, nil, 2.5)
+end
+handlers.rookieEnd = function()
+	flash(Color3.fromRGB(255, 200, 90), 0.3, 0.5)
+	announce("ROOKIE SHIELD OFF", Color3.fromRGB(255, 200, 90), "Lock your base when thieves come!", nil, 2.5)
 end
 handlers.kingEscape = function(d)
 	burst(d.pos, Color3.fromRGB(150, 255, 100), 40, { speed = 20 })

@@ -155,7 +155,12 @@ function PlotService.Sync(player: Player)
 	player:SetAttribute("LuckUntil", data.luckUntil)
 	player:SetAttribute("RollCost", PlotService.RollCost(player))
 	player:SetAttribute("Boost", PlotService.BoostMultiplier(player))
-	player:SetAttribute("Rookie", PlotService.IsRookie(player))
+	local rookie = PlotService.IsRookie(player)
+	if player:GetAttribute("Rookie") == true and not rookie and not data.rookieOff then
+		Net.Notify(player, "🐣 Your Rookie Shield wore off. Guard your slimes, thieves can raid you now!", "bad")
+		Net.Fx(player, "rookieEnd", {})
+	end
+	player:SetAttribute("Rookie", rookie)
 	local ups = {}
 	for _, key in Config.UpgradeOrder do
 		table.insert(ups, key .. "=" .. (data.upgrades[key] or 0))
@@ -689,6 +694,7 @@ function PlotService.Start(builtPlots)
 				if status then
 					status.Text = if locked
 						then "LOCKED " .. Util.Duration(plot.lockedUntil - now())
+						elseif plot.owner and PlotService.IsRookie(plot.owner) then "🐣 ROOKIE SHIELD"
 						elseif plot.owner and now() < plot.lockReadyAt then "Ready in " .. Util.Duration(plot.lockReadyAt - now())
 						else "LOCK BASE"
 				end

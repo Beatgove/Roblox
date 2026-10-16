@@ -197,8 +197,12 @@ Config.King = {
 	stompEvery = 3, -- every Nth hop is a stomp
 	stompRange = 18,
 	stompForce = 65,
-	pos = Vector3.new(48, 0, 26),
-	roam = 14,
+	-- Hops around a strip between the belt and the south bases (spawn side), clear of plots.
+	pos = Vector3.new(60, 0, -21),
+	roamX = 24,
+	roamZ = 3,
+	enrageAt = 0.3, -- below 30% HP it hops faster and stomps every hop
+	warnSeconds = 4,
 	size = 12,
 	rewardSeconds = 240, -- cash = income x this x (0.5 + your share of the hits)
 	rewardMin = 1500,
@@ -249,6 +253,8 @@ Config.QuestPool = {
 	{ kind = "steal", goal = 1, text = "Steal %d slime" },
 	{ kind = "slap", goal = 5, text = "Slap players %d times" },
 	{ kind = "gift", goal = 3, text = "Open %d playtime gifts" },
+	{ kind = "bounty", goal = 1, text = "Claim %d bounty on a thief" },
+	{ kind = "boss", goal = 1, text = "Help beat the King Slime %d time" },
 }
 Config.QuestReward = { cashSeconds = 300, cashMin = 1500, luckMinutes = 5 }
 Config.AllQuestsBonus = { cashSeconds = 900, cashMin = 5000, luckMinutes = 15 }

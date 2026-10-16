@@ -272,6 +272,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				if not isRevenge then
 					setRevenge(victim, thief)
 					Net.Fx(victim, "revenge", { name = thief.DisplayName })
+					Net.Notify(thief, "😤 " .. victim.DisplayName .. " wants REVENGE! Your shield won't stop them for " .. Util.Duration(Config.RevengeSeconds) .. ".", "bad")
 				end
 			end
 		elseif victim.Parent and PlotService.GetPlot(victim) then
@@ -308,6 +309,10 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				finish("dropped")
 				break
 			end
+			if PlotService.InPlot(thiefPlot, root.Position) then
+				finish("success")
+				break
+			end
 			-- Slippery slimes: answer the squirm in time or it wriggles free.
 			local sq = squirms[thief]
 			if sq and os.clock() > sq.deadline then
@@ -325,10 +330,6 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			end
 			if os.clock() - started > Config.CarryTimeoutSeconds then
 				finish("timeout")
-				break
-			end
-			if PlotService.InPlot(thiefPlot, root.Position) then
-				finish("success")
 				break
 			end
 			local vChar = victim.Parent and victim.Character

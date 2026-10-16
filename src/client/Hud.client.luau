@@ -871,6 +871,12 @@ local function updateRevengeGlow(active: boolean)
 				revengeGlow:Destroy()
 			end
 			revengeGlow = new("Highlight", { Name = "RevengeGlow", FillColor = Color3.fromRGB(255, 40, 40), FillTransparency = 0.5, OutlineColor = Color3.fromRGB(255, 220, 60), DepthMode = Enum.HighlightDepthMode.AlwaysOnTop, Parent = char })
+			local head = char:FindFirstChild("Head")
+			if head then
+				local tag = new("BillboardGui", { Name = "RevengeTag", Size = UDim2.fromOffset(180, 34), StudsOffset = Vector3.new(0, 8.5, 0), AlwaysOnTop = true, Parent = revengeGlow })
+				tag.Adornee = head
+				text({ Size = UDim2.fromScale(1, 1), Text = "😤 REVENGE TARGET", TextColor3 = Color3.fromRGB(255, 90, 90), Parent = tag })
+			end
 		end
 	elseif revengeGlow then
 		revengeGlow:Destroy()
@@ -893,8 +899,11 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, processed
 		Remotes.HoldTight:FireServer(squirmToken)
 	end
 end)
+local squirmBar = new("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -8), Size = UDim2.new(0.8, 0, 0, 8), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 6, Parent = squirmBtn }, { corner(4) })
 Remotes.Fx.OnClientEvent:Connect(function(kind, d)
 	if kind == "squirm" then
+		squirmBar.Size = UDim2.new(0.8, 0, 0, 8)
+		TweenService:Create(squirmBar, TweenInfo.new(d.window, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 0, 8) }):Play()
 		squirmToken = d.token
 		squirmBtn.Position = UDim2.fromScale(0.35 + math.random() * 0.3, 0.55 + math.random() * 0.15)
 		squirmBtn.Visible = true
@@ -943,10 +952,10 @@ task.spawn(function()
 		boostLabel.Text = string.format("🚀 x%.2g CASH", boost) .. (if friends > 0 then " (" .. friends .. " friends)" else "")
 		local kingLeft = (workspace:GetAttribute("KingUntil") or 0) - nowT
 		kingChip.Visible = kingLeft > 0
-		kingLabel.Text = "👑 KING SLIME " .. Util.Duration(math.max(kingLeft, 0))
+		kingLabel.Text = string.format("👑 KING %d/%d · %s", workspace:GetAttribute("KingHp") or 0, workspace:GetAttribute("KingMaxHp") or 0, Util.Duration(math.max(kingLeft, 0)))
 		local revengeLeft = (player:GetAttribute("RevengeUntil") or 0) - nowT
 		revengeChip.Visible = revengeLeft > 0
-		revengeLabel.Text = "😤 REVENGE " .. Util.Duration(math.max(revengeLeft, 0))
+		revengeLabel.Text = "😤 " .. (player:GetAttribute("RevengeName") or "REVENGE") .. " " .. Util.Duration(math.max(revengeLeft, 0))
 		local bounty = player:GetAttribute("Bounty") or 0
 		bountyChip.Visible = bounty > 0
 		bountyLabel.Text = "💰 WANTED " .. Util.Money(bounty)

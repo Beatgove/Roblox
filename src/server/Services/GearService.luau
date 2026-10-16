@@ -95,11 +95,14 @@ local function useSlap(player: Player, def)
 		return
 	end
 	Net.FxAll("swing", { pos = root.Position })
-	if BossService.TryHit(player, root.Position, def.range, Config.King.slapDamage) then
-		return
-	end
 	local target = targetInFront(player, def.range, 0.2)
 	local tRoot = target and rootOf(target)
+	-- Slap the King Slime unless a player is closer (so you can still slap a thief beside it).
+	local king = workspace:FindFirstChild("KingSlime") :: Model?
+	local kingDist = if king then (king:GetPivot().Position - root.Position).Magnitude - Config.King.size / 2 else math.huge
+	if (not tRoot or kingDist < (tRoot.Position - root.Position).Magnitude) and BossService.TryHit(player, root.Position, def.range, Config.King.slapDamage) then
+		return
+	end
 	if not target or not tRoot then
 		return
 	end

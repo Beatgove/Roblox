@@ -58,8 +58,16 @@ function BountyService.Add(player: Player, amount: number)
 	if amount <= 0 then
 		return
 	end
-	bounties[player] = (bounties[player] or 0) + amount
+	local before = bounties[player] or 0
+	bounties[player] = before + amount
 	updateTag(player)
+	-- Big bounties get announced so the whole server starts hunting.
+	for _, step in { 10000, 1000000, 1000000000 } do
+		if before < step and bounties[player] >= step then
+			Net.NotifyAll("💰 " .. player.DisplayName .. " is WANTED for " .. Util.Money(bounties[player]) .. "! Slap them to claim it!", "epic")
+			break
+		end
+	end
 	Net.Notify(player, "💰 You're WANTED! Bounty: " .. Util.Money(bounties[player]) .. ". Don't get slapped!", "bad")
 end
 

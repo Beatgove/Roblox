@@ -51,7 +51,6 @@ local function build(): Boss
 		Color = Color3.fromRGB(120, 230, 90),
 		Material = Enum.Material.Glass,
 		Transparency = 0.15,
-		CanCollide = true,
 		CanQuery = true,
 	})
 	body.Parent = model
@@ -147,24 +146,29 @@ local function finish(b: Boss, defeated: boolean)
 	boss = nil
 	workspace:SetAttribute("KingUntil", nil)
 	workspace:SetAttribute("KingHp", nil)
+	workspace:SetAttribute("KingMaxHp", nil)
 	local pos = b.body.Position
 	if defeated then
 		Net.FxAll("kingDefeated", { pos = pos })
-		local total, top, topHits = 0, nil, 0
+		local ranking, total = {}, 0
 		for p, n in b.hits do
 			total += n
-			if n > topHits then
-				top, topHits = p, n
-			end
+			table.insert(ranking, { player = p, damage = n })
 		end
-		for p, n in b.hits do
+		table.sort(ranking, function(x, y)
+			return x.damage > y.damage
+		end)
+		for rank, r in ranking do
+			local p = r.player
 			if p.Parent then
-				local share = n / math.max(total, 1)
+				local share = r.damage / math.max(total, 1)
 				local text = Rewards.Grant(p, { cashSeconds = math.floor(K.rewardSeconds * (0.5 + share)), cashMin = K.rewardMin })
 				Signals.Progress(p, "boss")
-				Net.Notify(p, "👑 King Slime defeated! You landed " .. n .. " hits: " .. text, "epic")
+				Net.Fx(p, "kingReward", { rank = rank, of = #ranking, damage = r.damage, text = text })
+				Net.Notify(p, string.format("👑 King Slime defeated! You were #%d of %d (%d damage): %s", rank, #ranking, r.damage, text), "epic")
 			end
 		end
+		local top = ranking[1] and ranking[1].player
 		if top and top.Parent then
 			Net.NotifyAll("👑 " .. top.DisplayName .. " was the King Slime's top slapper!", "epic")
 			Rewards.Grant(top, { freeRoll = true, rollLuck = K.topRollLuck })
@@ -173,9 +177,21 @@ local function finish(b: Boss, defeated: boolean)
 		Net.FxAll("kingEscape", { pos = pos })
 		Net.NotifyAll("👑 The King Slime got away! It'll be back...", "bad")
 	end
-	task.delay(0.6, function()
-		b.model:Destroy()
-	end)
+	if defeated then
+		task.delay(0.6, function()
+			b.model:Destroy()
+		end)
+	else
+		-- Leaps away into the sky.
+		task.spawn(function()
+			local from = b.model:GetPivot()
+			for i = 1, 30 do
+				b.model:PivotTo(from + Vector3.new(0, (i / 30) ^ 2 * 150, 0))
+				task.wait(1 / 30)
+			end
+			b.model:Destroy()
+		end)
+	end
 end
 
 -- Gear calls this first: returns true if the swing/zap hit the King instead of a player.
@@ -239,17 +255,27 @@ local function stomp(b: Boss)
 	end
 end
 
+local function randomSpot(): Vector3
+	return K.pos + Vector3.new((math.random() * 2 - 1) * K.roamX, 0, (math.random() * 2 - 1) * K.roamZ)
+end
+
 local function spawnKing()
 	if boss or #Players:GetPlayers() == 0 then
 		return
 	end
+	local land = randomSpot()
+	-- Heads-up: a shadow grows where it will land, so players can gather (or run).
+	Net.NotifyAll("👑 Something BIG is falling from the sky...", "epic")
+	Net.FxAll("kingIncoming", { pos = land, seconds = K.warnSeconds })
+	task.wait(K.warnSeconds)
+
 	local b = build()
 	boss = b
-	local land = K.pos
 	b.model:PivotTo(groundCFrame(land) + Vector3.new(0, 120, 0))
 	b.model.Parent = workspace
 	updateBar(b)
 	workspace:SetAttribute("KingUntil", workspace:GetServerTimeNow() + K.lifeSeconds)
+	workspace:SetAttribute("KingMaxHp", b.maxHp)
 	Net.NotifyAll("👑 THE KING SLIME HAS ARRIVED! Slap it together for big rewards!", "epic")
 	Net.FxAll("kingSpawn", { pos = land })
 	-- Crash down from the sky.
@@ -268,17 +294,22 @@ local function spawnKing()
 	stomp(b)
 	local ends = os.clock() + K.lifeSeconds
 	local hop = 0
+	local enraged = false
 	while b.alive and os.clock() < ends do
-		task.wait(K.hopEvery)
+		task.wait(if enraged then K.hopEvery * 0.6 else K.hopEvery)
 		if not b.alive then
 			break
 		end
+		if not enraged and b.hp <= b.maxHp * K.enrageAt then
+			enraged = true
+			b.body.Color = Color3.fromRGB(255, 90, 60)
+			b.fill.BackgroundColor3 = Color3.fromRGB(255, 90, 60)
+			Net.FxAll("kingEnrage", { pos = b.body.Position })
+			Net.NotifyAll("👑 The King Slime is ENRAGED! Finish it off!", "epic")
+		end
 		hop += 1
-		local a = math.random() * math.pi * 2
-		local r = math.random() * K.roam
-		local target = K.pos + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
-		local big = hop % K.stompEvery == 0
-		hopTo(b, target, if big then 14 else 5, if big then 1.1 else 0.6)
+		local big = enraged or hop % K.stompEvery == 0
+		hopTo(b, randomSpot(), if big then 14 else 5, if big then 1.1 else 0.6)
 		if big and b.alive then
 			stomp(b)
 		end
