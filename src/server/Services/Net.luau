@@ -24,6 +24,9 @@ Net.ClaimDailyEvent = remote("ClaimDaily") -- client -> server: () claim today's
 Net.BuyGearEvent = remote("BuyGear") -- client -> server: (gearKey)
 Net.ClaimGiftEvent = remote("ClaimGift") -- client -> server: (giftIndex)
 Net.ClaimQuestEvent = remote("ClaimQuest") -- client -> server: (questIndex)
+Net.BuyUpgradeEvent = remote("BuyUpgrade") -- client -> server: (upgradeKey)
+Net.FuseStartEvent = remote("FuseStart") -- client -> server: ({ slot, slot, slot })
+Net.FuseClaimEvent = remote("FuseClaim") -- client -> server: ()
 
 Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (ok, message)
 Net.RedeemCode.Name = "RedeemCode"

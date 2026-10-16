@@ -77,6 +77,20 @@ function Roller.Mutation(luck: number): string?
 	return nil
 end
 
+-- Traits a brand-new slime is born with (Sparkly any time, event/month traits when active).
+function Roller.Traits(): { string }?
+	local event = Roller.ActiveEvent()
+	local month = os.date("!*t").month
+	local out = {}
+	for name, t in Config.Traits do
+		if (t.event == nil or t.event == event) and (t.month == nil or t.month == month) and rng:NextNumber() < t.chance then
+			table.insert(out, name)
+		end
+	end
+	table.sort(out)
+	return if #out > 0 then out else nil
+end
+
 -- Percent chance of each rarity at a given luck, for the odds display.
 function Roller.Odds(luck: number)
 	local total = 0

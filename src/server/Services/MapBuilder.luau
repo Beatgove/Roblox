@@ -323,6 +323,66 @@ local function buildDispenser(map: Folder)
 	MapBuilder.OddsBoard = label
 end
 
+MapBuilder.FusePosition = Vector3.new(-30, 0, 18)
+
+-- The Fuse Machine: a bubbling cauldron with two glowing tubes.
+local function buildFuseMachine(map: Folder)
+	local pos = MapBuilder.FusePosition
+	local model = Instance.new("Model")
+	model.Name = "FuseMachine"
+	local base = part({
+		Name = "Base",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(5, 10, 10),
+		CFrame = CFrame.new(pos + Vector3.new(0, 2.5, 0)) * CFrame.Angles(0, 0, math.pi / 2),
+		Color = Color3.fromRGB(60, 40, 90),
+		Material = Enum.Material.Metal,
+	})
+	base.Parent = model
+	local goo = part({
+		Name = "Goo",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.6, 9, 9),
+		CFrame = CFrame.new(pos + Vector3.new(0, 5.1, 0)) * CFrame.Angles(0, 0, math.pi / 2),
+		Color = Color3.fromRGB(150, 255, 120),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	})
+	goo.Parent = model
+	CollectionService:AddTag(goo, "Pulse")
+	for _, side in { -1, 1 } do
+		local tube = part({
+			Name = "Tube",
+			Size = Vector3.new(1.4, 9, 1.4),
+			Position = pos + Vector3.new(side * 5.5, 7, 0),
+			Color = Color3.fromRGB(190, 120, 255),
+			Material = Enum.Material.Neon,
+			Transparency = 0.2,
+			CanCollide = false,
+		})
+		tube.Parent = model
+		CollectionService:AddTag(tube, "Pulse")
+	end
+	local bubbles = Instance.new("ParticleEmitter")
+	bubbles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	bubbles.Color = ColorSequence.new(Color3.fromRGB(150, 255, 120), Color3.fromRGB(190, 120, 255))
+	bubbles.LightEmission = 1
+	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0) })
+	bubbles.Lifetime = NumberRange.new(1, 2)
+	bubbles.Rate = 18
+	bubbles.Speed = NumberRange.new(3, 6)
+	bubbles.EmissionDirection = Enum.NormalId.Right
+	bubbles.Parent = goo
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(150, 255, 120)
+	light.Range = 22
+	light.Brightness = 3
+	light.Parent = goo
+	billboard(goo, 6, "🧪 FUSE MACHINE").TextColor3 = Color3.fromRGB(150, 255, 120)
+	model.Parent = map
+	MapBuilder.FuseMachine = base
+end
+
 -- Trees, lamps, crystals and flowers so the world feels alive.
 local function decorate(map: Folder)
 	local deco = Instance.new("Folder")
@@ -600,6 +660,7 @@ function MapBuilder.Build()
 	buildBelt(map)
 	decorate(map)
 	buildDispenser(map)
+	buildFuseMachine(map)
 
 	local plots = {}
 	local xs = { -96, -32, 32, 96 }

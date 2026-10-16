@@ -32,11 +32,12 @@ local function spawnSlime()
 	local luck = (if ConveyorService.IsRaining() then Config.RainLuck else 1) * Roller.EventLuck()
 	local def = Roller.Slime(luck)
 	local mut = Roller.Mutation(luck)
+	local traits = Roller.Traits()
 	local rarity = Config.RarityByName[def.rarity]
-	local price = math.floor(def.price * Config.MutationMult(mut))
-	local name = Config.DisplayName(def.id, mut)
+	local price = math.floor(def.price * Config.MutationMult(mut) * Config.TraitMult(traits))
+	local name = Config.DisplayName(def.id, mut, nil, traits)
 
-	local model = SlimeModel.Create(def.id, 1, mut)
+	local model = SlimeModel.Create(def.id, 1, mut, nil, traits)
 	local height = model.PrimaryPart.Size.Y / 2
 	local y = MapBuilder.BeltTopY + height
 	local facing = CFrame.Angles(0, -math.pi / 2, 0)
@@ -77,7 +78,7 @@ local function spawnSlime()
 		Net.FxAll("buy", { pos = model.PrimaryPart.Position, color = rarity.color, order = rarity.order })
 		Net.Fx(player, "reveal", { name = name, rarity = def.rarity, mut = mut, quiet = rarity.order < 4 and mut == nil })
 		model:Destroy()
-		PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut })
+		PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits })
 		Net.Notify(player, "Bought " .. name .. "! It's in your base.", "good")
 		Signals.Progress(player, "buy")
 		announceIfRare(rarity, player.DisplayName .. " bought a " .. def.rarity .. " " .. name .. "!")
@@ -86,7 +87,7 @@ local function spawnSlime()
 	model.Parent = beltFolder
 	table.insert(moving, { model = model, start = startCF, finish = endCF, born = os.clock(), phase = math.random() * 6 })
 
-	if rarity.order >= 5 or mut then
+	if rarity.order >= 5 or mut or traits then
 		Net.FxAll("rareSpawn", { pos = startCF.Position, color = rarity.color, order = rarity.order })
 	end
 	announceIfRare(rarity, "A " .. def.rarity .. " " .. name .. " is on the belt! RUN!")

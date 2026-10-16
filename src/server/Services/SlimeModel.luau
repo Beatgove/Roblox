@@ -211,7 +211,7 @@ local function addAura(body: BasePart, rarity, mut)
 end
 
 -- Creates a slime model. `stage` is the growth stage (1 for belt slimes), `mut` an optional mutation.
-function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: number?): Model
+function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: number?, traits: { string }?): Model
 	local def = Config.SlimeById[slimeId]
 	local rarity = Config.RarityByName[def.rarity]
 	local starCount: number = stars or 0
@@ -284,7 +284,25 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 		gui.Rarity.TextColor3 = Color3.new(1, 1, 1)
 		gui.Rarity.TextStrokeColor3 = Color3.fromRGB(255, 0, 80)
 	end
-	gui.Title.Text = slimeId .. Config.Stars(starCount)
+	local icons = Config.TraitIcons(traits)
+	gui.Title.Text = (if icons ~= "" then icons .. " " else "") .. slimeId .. Config.Stars(starCount)
+	local traitList: { string } = traits or {}
+	for _, t in traitList do
+		local tdef = Config.Traits[t]
+		if tdef then
+			local p = Instance.new("ParticleEmitter")
+			p.Name = "Trait" .. t
+			p.Texture = SPARKLE
+			p.Color = ColorSequence.new(tdef.color)
+			p.LightEmission = 1
+			p.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(1, 0) })
+			p.Lifetime = NumberRange.new(0.7, 1.1)
+			p.Rate = 10
+			p.Speed = NumberRange.new(1.5, 3.5)
+			p.SpreadAngle = Vector2.new(180, 180)
+			p.Parent = body
+		end
+	end
 	if starCount > 0 then
 		gui.Title.TextColor3 = Color3.fromRGB(255, 225, 90)
 		-- Orbiting star sparkles for merged slimes.
@@ -301,7 +319,7 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 		p.Parent = body
 		model:SetAttribute("Stars", starCount)
 	end
-	gui.Info.Text = Util.Money(def.income * Config.MutationMult(mut) * Config.StarMult(starCount)) .. "/s"
+	gui.Info.Text = Util.Money(def.income * Config.MutationMult(mut) * Config.StarMult(starCount) * Config.TraitMult(traits)) .. "/s"
 
 	model:SetAttribute("SlimeId", slimeId)
 	model:SetAttribute("Rarity", def.rarity)

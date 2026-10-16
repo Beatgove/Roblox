@@ -92,6 +92,7 @@ local function claim(player: Player, i: number)
 		return
 	end
 	q.claimed = true
+	Signals.Progress(player, "quest")
 	local text = Rewards.Grant(player, Config.QuestReward)
 	Net.Notify(player, "Quest reward: " .. text .. "!", "epic")
 	Net.Fx(player, "gift", {})

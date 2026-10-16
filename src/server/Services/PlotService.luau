@@ -1,6 +1,7 @@
 -- Player bases: plot assignment, slimes in pens, growth, income, collecting and locking.
 
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
@@ -51,12 +52,18 @@ function PlotService.Slots(player: Player): number
 	if Passes.Owns(player, "ExtraPens") then
 		slots += Config.ExtraPensSlots
 	end
+	slots += PlotService.UpgradeLevel(player, "Pens") * Config.Upgrades.Pens.per
 	return math.min(slots, Config.MaxSlots)
+end
+
+function PlotService.UpgradeLevel(player: Player, key: string): number
+	local data = DataService.Get(player)
+	return data and data.upgrades[key] or 0
 end
 
 function PlotService.IncomeMultiplier(player: Player): number
 	local data = DataService.Get(player)
-	local mult = 1 + (data and data.rebirths or 0) * Config.RebirthIncomeBonus
+	local mult = (1 + (data and data.rebirths or 0) * Config.RebirthIncomeBonus) * (1 + PlotService.UpgradeLevel(player, "Income") * Config.Upgrades.Income.per)
 	if Passes.Owns(player, "DoubleCash") then
 		mult *= 2
 	end
@@ -86,7 +93,7 @@ end
 function PlotService.SlimeIncome(slime, at: number?): number
 	local def = Config.SlimeById[slime.id]
 	local stage = Util.Stage((at or now()) - slime.born)
-	return def.income * Config.GrowthIncomeMult[stage] * Config.MutationMult(slime.mut) * Config.StarMult(slime.stars)
+	return def.income * Config.GrowthIncomeMult[stage] * Config.MutationMult(slime.mut) * Config.StarMult(slime.stars) * Config.TraitMult(slime.traits)
 end
 
 function PlotService.IndexCount(player: Player): number
@@ -142,6 +149,17 @@ function PlotService.Sync(player: Player)
 	player:SetAttribute("LuckUntil", data.luckUntil)
 	player:SetAttribute("RollCost", PlotService.RollCost(player))
 	player:SetAttribute("Boost", PlotService.BoostMultiplier(player))
+	local ups = {}
+	for _, key in Config.UpgradeOrder do
+		table.insert(ups, key .. "=" .. (data.upgrades[key] or 0))
+	end
+	player:SetAttribute("Upgrades", table.concat(ups, ","))
+	-- Compact list of owned slimes for menus (Fuse Machine picker).
+	local owned = {}
+	for i, sl in data.slimes do
+		owned[i] = { id = sl.id, mut = sl.mut, stars = sl.stars, traits = sl.traits }
+	end
+	player:SetAttribute("SlimeList", HttpService:JSONEncode(owned))
 	local ids = {}
 	for id in data.index do
 		table.insert(ids, id)
@@ -213,7 +231,7 @@ function PlotService.Render(player: Player)
 		end
 		local stage = Util.Stage(now() - slime.born)
 		plot.stages[i] = stage
-		local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars)
+		local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars, slime.traits)
 		local height = model.PrimaryPart.Size.Y / 2
 		-- Face the entrance (plot -Z) so slimes look at visitors.
 		model:PivotTo(pad.CFrame * CFrame.new(0, 0.2 + height, 0))
@@ -225,7 +243,7 @@ function PlotService.Render(player: Player)
 		local steal = Instance.new("ProximityPrompt")
 		steal.Name = "StealPrompt"
 		steal.ActionText = "Steal"
-		steal.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars)
+		steal.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits)
 		steal.HoldDuration = Config.StealHoldSeconds
 		steal.MaxActivationDistance = 8
 		steal.RequiresLineOfSight = false
@@ -236,7 +254,7 @@ function PlotService.Render(player: Player)
 		local sell = Instance.new("ProximityPrompt")
 		sell.Name = "SellPrompt"
 		sell.ActionText = "Sell " .. Util.Money(PlotService.SellValue(slime))
-		sell.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars)
+		sell.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits)
 		sell.HoldDuration = 1
 		sell.MaxActivationDistance = 8
 		sell.RequiresLineOfSight = false
@@ -286,7 +304,7 @@ function PlotService.HasFreeSlot(player: Player): boolean
 end
 
 function PlotService.SellValue(slime): number
-	return math.floor(Config.SlimeById[slime.id].price * Config.MutationMult(slime.mut) * (Config.MergeCount ^ (slime.stars or 0)) / 2)
+	return math.floor(Config.SlimeById[slime.id].price * Config.MutationMult(slime.mut) * Config.TraitMult(slime.traits) * (Config.MergeCount ^ (slime.stars or 0)) / 2)
 end
 
 -- Slots of slimes that can merge with the one in `slot` (same name, same stars), including itself.
@@ -322,9 +340,13 @@ function PlotService.Merge(player: Player, slot: number)
 	local positions = {}
 	local born = math.huge
 	local bestMut, bestMult = nil, 1
+	local traitSet = {}
 	for _, i in group do
 		local s = data.slimes[i]
 		born = math.min(born, s.born)
+		for _, t in s.traits or {} do
+			traitSet[t] = true
+		end
 		if Config.MutationMult(s.mut) > bestMult then
 			bestMut, bestMult = s.mut, Config.MutationMult(s.mut)
 		end
@@ -334,7 +356,18 @@ function PlotService.Merge(player: Player, slot: number)
 		end
 	end
 	local base = data.slimes[slot]
-	local merged = { id = base.id, born = born, mut = bestMut, stars = (base.stars or 0) + 1 }
+	-- Traits from all three carry over (best ones first, up to the cap).
+	local traits = {}
+	for t in traitSet do
+		table.insert(traits, t)
+	end
+	table.sort(traits, function(a, b)
+		return Config.Traits[a].mult > Config.Traits[b].mult
+	end)
+	while #traits > Config.MaxTraits do
+		table.remove(traits)
+	end
+	local merged = { id = base.id, born = born, mut = bestMut, stars = (base.stars or 0) + 1, traits = if #traits > 0 then traits else nil }
 	table.sort(group, function(a, b)
 		return a > b
 	end)
@@ -344,7 +377,7 @@ function PlotService.Merge(player: Player, slot: number)
 	table.insert(data.slimes, merged)
 	PlotService.Render(player)
 	local pad = plot.model.Pens:FindFirstChild("Pen" .. #data.slimes)
-	local name = Config.DisplayName(merged.id, merged.mut, merged.stars)
+	local name = Config.DisplayName(merged.id, merged.mut, merged.stars, merged.traits)
 	Net.FxAll("merge", { from = positions, to = pad and pad.Position or positions[1], color = Config.RarityByName[Config.SlimeById[merged.id].rarity].color })
 	Net.Fx(player, "merged", { name = name, stars = merged.stars })
 	Signals.Progress(player, "merge")
@@ -382,6 +415,7 @@ function PlotService.AddSlime(player: Player, slime): boolean
 		data.index[slime.id] = true
 		PlotService.Sync(player)
 		Net.Notify(player, "📖 NEW! " .. slime.id .. " added to your Slime Index (+1% income)", "epic")
+		Signals.Progress(player, "index", PlotService.IndexCount(player))
 	end
 	return true
 end
@@ -514,7 +548,7 @@ local function setupPlotInteractions(plot: Plot)
 		if who ~= plot.owner then
 			return
 		end
-		local seconds = Config.LockSeconds * (if Passes.Owns(who, "VIP") then 2 else 1)
+		local seconds = (Config.LockSeconds + PlotService.UpgradeLevel(who, "Shield") * Config.Upgrades.Shield.per) * (if Passes.Owns(who, "VIP") then 2 else 1)
 		if PlotService.Lock(who, seconds) then
 			Net.Notify(who, "Base locked for " .. seconds .. "s", "good")
 		else

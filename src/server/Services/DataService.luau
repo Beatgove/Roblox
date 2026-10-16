@@ -37,6 +37,11 @@ local function defaultData()
 		luckUntil = 0, -- os.time() until which 5x dispenser luck is active
 		rolls = 0,
 		gear = { Slap = true }, -- gear key -> true once bought
+		upgrades = {}, -- upgrade key -> level
+		xp = 0,
+		level = 1,
+		fuse = { active = false }, -- Fuse Machine job: { active, endsAt, result = slime table }
+		indexRewards = {}, -- milestone count (as string) -> true
 		quests = { day = -1, list = {}, bonus = false }, -- today's daily quests
 		receipts = {}, -- PurchaseId -> true (recent, for idempotent ProcessReceipt)
 		receiptOrder = {},

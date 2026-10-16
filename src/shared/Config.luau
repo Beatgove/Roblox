@@ -84,6 +84,98 @@ Config.Events = {
 	LuckyHour = { title = "🍀 LUCKY HOUR", desc = "3x luck on the belt and Dispenser!", luck = 3, tint = Color3.fromRGB(200, 255, 210) },
 }
 
+-- ===== Traits (like Steal a Brainrot) =====
+-- Extra tags on a slime that stack with each other (their multipliers add up) and
+-- multiply with mutations. Some roll on new slimes; event ones also strike slimes
+-- already in your pens while that event runs (a meteor hits it, candy rains on it...).
+-- chance = when rolling a new slime. event = only during that event. month = only that month.
+Config.MaxTraits = 3
+Config.Traits = {
+	Sparkly = { icon = "✨", mult = 1.5, chance = 0.03, color = Color3.fromRGB(255, 255, 200) },
+	Spooky = { icon = "👻", mult = 2.5, chance = 0.05, month = 10, color = Color3.fromRGB(200, 120, 255) },
+	Midas = { icon = "👑", mult = 3, chance = 0.08, event = "GoldenHour", color = Color3.fromRGB(255, 210, 60) },
+	Meteor = { icon = "☄️", mult = 4, chance = 0.06, event = "LavaStorm", color = Color3.fromRGB(255, 110, 40) },
+	Sugar = { icon = "🍬", mult = 3, chance = 0.08, event = "CandyParty", color = Color3.fromRGB(255, 150, 210) },
+	Rich = { icon = "💵", mult = 2, chance = 0.1, event = "CashFrenzy", color = Color3.fromRGB(120, 255, 140) },
+	Clover = { icon = "🍀", mult = 2.5, chance = 0.08, event = "LuckyHour", color = Color3.fromRGB(90, 230, 110) },
+}
+-- While an event runs, every StrikeEverySeconds each pen slime has StrikeChance to get that event's trait.
+Config.TraitStrikeEverySeconds = 30
+Config.TraitStrikeChance = 0.04
+
+function Config.TraitMult(traits: { string }?): number
+	if not traits or #traits == 0 then
+		return 1
+	end
+	local sum = 0
+	local list = traits :: { string }
+	for _, t in list do
+		local def = Config.Traits[t]
+		sum += if def then def.mult else 1
+	end
+	return sum
+end
+
+function Config.TraitIcons(traits: { string }?): string
+	local out = ""
+	local list: { string } = traits or {}
+	for _, t in list do
+		local def = Config.Traits[t]
+		if def then
+			out ..= def.icon
+		end
+	end
+	return out
+end
+
+-- ===== Fuse Machine (like Steal a Brainrot's) =====
+-- Put in 3 slimes of any kind, pay a fee, wait, get one slime whose rarity is based on
+-- the average rarity you put in. Odds are shown before you fuse.
+Config.FuseCount = 3
+Config.FuseSeconds = 10 * 60
+Config.FuseFeeShare = 0.25 -- fee = 25% of the input slimes' prices
+Config.FuseOdds = { { shift = -1, chance = 15 }, { shift = 0, chance = 50 }, { shift = 1, chance = 30 }, { shift = 2, chance = 5 } }
+Config.FuseKeepMutationChance = 0.5
+
+-- ===== Base upgrades (permanent, bought with cash, kept on rebirth) =====
+Config.UpgradeOrder = { "Income", "Shield", "Pens" }
+Config.Upgrades = {
+	Income = { name = "Slime Food", desc = "+15% income per level", max = 10, base = 2000, growth = 5, per = 0.15 },
+	Shield = { name = "Stronger Shield", desc = "+15s base lock per level", max = 5, base = 10000, growth = 6, per = 15 },
+	Pens = { name = "Bigger Base", desc = "+1 pen slot per level", max = 4, base = 50000, growth = 8, per = 1 },
+}
+
+function Config.UpgradeCost(key: string, level: number): number
+	local u = Config.Upgrades[key]
+	return math.floor(u.base * u.growth ^ level)
+end
+
+-- ===== Player level =====
+-- XP for doing things. Levels give cash, every 5 levels gives luck, and titles show over your head.
+Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30 }
+Config.XPPerCollect = 1 / 500 -- plus 1 XP per $500 collected (capped per collect)
+function Config.XPForLevel(level: number): number
+	return math.floor(80 * level ^ 1.45)
+end
+Config.Titles = {
+	{ level = 1, name = "Slime Rookie", color = Color3.fromRGB(200, 200, 200) },
+	{ level = 5, name = "Goo Collector", color = Color3.fromRGB(120, 230, 120) },
+	{ level = 10, name = "Slime Wrangler", color = Color3.fromRGB(90, 170, 255) },
+	{ level = 20, name = "Slime Baron", color = Color3.fromRGB(190, 110, 255) },
+	{ level = 35, name = "Slime Tycoon", color = Color3.fromRGB(255, 200, 50) },
+	{ level = 50, name = "Slime Legend", color = Color3.fromRGB(255, 80, 120) },
+}
+
+-- ===== Slime Index milestones (granted automatically) =====
+Config.IndexMilestones = {
+	{ count = 5, label = "$2K + 10 min Luck", cash = 2000, luckMinutes = 10 },
+	{ count = 10, label = "$25K + Grow Boost", cash = 25000, grow = true },
+	{ count = 15, label = "Lucky free roll", freeRoll = true, rollLuck = 5 },
+	{ count = 20, label = "$1M + 30 min Luck", cash = 1000000, luckMinutes = 30 },
+	{ count = 25, label = "$50M", cash = 50000000 },
+	{ count = 30, label = "$1B + Lucky roll", cash = 1000000000, freeRoll = true, rollLuck = 10 },
+}
+
 -- ===== Gear (bought with cash in the GEAR menu, kept forever) =====
 -- rebirth = rebirths needed to buy it. Slap is free for everyone.
 Config.GearOrder = { "Slap", "SpeedCoil", "GravityCoil", "Trap", "Taser" }
@@ -274,8 +366,9 @@ function Config.MutationMult(mut: string?): number
 	return if m then m.mult else 1
 end
 
-function Config.DisplayName(id: string, mut: string?, stars: number?): string
-	return (if mut then mut .. " " .. id else id) .. Config.Stars(stars)
+function Config.DisplayName(id: string, mut: string?, stars: number?, traits: { string }?): string
+	local icons = Config.TraitIcons(traits)
+	return (if icons ~= "" then icons .. " " else "") .. (if mut then mut .. " " .. id else id) .. Config.Stars(stars)
 end
 
 return Config

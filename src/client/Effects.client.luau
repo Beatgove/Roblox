@@ -517,6 +517,56 @@ handlers.questDone = function()
 	sound("Ping", 1.2, 0.8)
 	task.delay(0.12, sound, "Ping", 1.6, 0.8)
 end
+-- An event trait strikes a pen slime: a glowing orb falls from the sky onto it.
+handlers.strike = function(d)
+	local orb = Instance.new("Part")
+	orb.Shape = Enum.PartType.Ball
+	orb.Anchored = true
+	orb.CanCollide = false
+	orb.CanQuery = false
+	orb.Material = Enum.Material.Neon
+	orb.Color = d.color
+	orb.Size = Vector3.one * 2.5
+	orb.Position = d.pos + Vector3.new(6, 70, 4)
+	orb.Parent = fxFolder
+	local f = Instance.new("Fire")
+	f.Color = d.color
+	f.SecondaryColor = Color3.new(1, 1, 1)
+	f.Size = 6
+	f.Parent = orb
+	TweenService:Create(orb, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = d.pos + Vector3.new(0, 2, 0) }):Play()
+	task.delay(0.8, function()
+		orb:Destroy()
+		burst(d.pos + Vector3.new(0, 2, 0), d.color, 60, { speed = 22, size = 1.4 })
+		ring(d.pos, d.color, 14)
+		popText(d.pos + Vector3.new(0, 3, 0), d.icon .. " TRAIT!", d.color)
+		sound("Snap", 0.6, 1, d.pos)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root and (root.Position - d.pos).Magnitude < 60 then
+			shake(0.6)
+		end
+	end)
+end
+handlers.upgrade = function(d)
+	confetti(50)
+	announce("UPGRADED!", Color3.fromRGB(120, 255, 160), d.name .. " Lv " .. d.level, nil, 1.6)
+	sound("Ping", 1.1, 0.8)
+	task.delay(0.12, sound, "Ping", 1.5, 0.8)
+end
+handlers.levelUp = function(d)
+	confetti(90)
+	flash(Color3.fromRGB(255, 220, 80), 0.35, 0.5)
+	announce("LEVEL " .. d.level .. "!", Color3.fromRGB(255, 220, 80), if d.title then "New title: " .. d.title else nil, Color3.fromRGB(255, 255, 255), 2)
+	for i = 0, 2 do
+		task.delay(0.12 * i, sound, "Ping", 1 + i * 0.25, 0.8)
+	end
+end
+handlers.fuseStart = function(d)
+	burst(d.pos + Vector3.new(0, 6, 0), Color3.fromRGB(150, 255, 120), 50, { speed = 16 })
+	burst(d.pos + Vector3.new(0, 6, 0), Color3.fromRGB(200, 120, 255), 30, { speed = 12 })
+	ring(d.pos, Color3.fromRGB(150, 255, 120), 12)
+	sound("Snap", 0.4, 0.8, d.pos)
+end
 
 -- Server events: tint the world, announce, and drop themed things from the sky.
 local Lighting = game:GetService("Lighting")

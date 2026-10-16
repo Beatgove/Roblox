@@ -69,8 +69,9 @@ local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 	local luck = math.max(DispenserService.Luck(player), minLuck or 1)
 	local def = Roller.Slime(luck)
 	local mut = Roller.Mutation(luck)
+	local traits = Roller.Traits()
 	local rarity = Config.RarityByName[def.rarity]
-	local name = Config.DisplayName(def.id, mut)
+	local name = Config.DisplayName(def.id, mut, nil, traits)
 
 	-- The client plays a spin animation, then reveals; the slime lands when the reveal ends.
 	Net.Fx(player, "roll", { name = name, rarity = def.rarity, mut = mut, luck = luck })
@@ -79,13 +80,13 @@ local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 		if not player.Parent then
 			return
 		end
-		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut }) then
+		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits }) then
 			-- Pens filled up during the animation: refund (a free roll pays the slime's value).
 			PlotService.AddCash(player, if free then def.price else cost)
 			Net.Notify(player, "Pens full, roll refunded.", "bad")
 			return
 		end
-		if rarity.order >= 5 or mut then
+		if rarity.order >= 5 or mut or traits then
 			Net.NotifyAll("🎰 " .. player.DisplayName .. " rolled a " .. def.rarity .. " " .. name .. " from the Dispenser!", "epic")
 		end
 	end)
@@ -111,6 +112,7 @@ local function oddsText(): string
 	table.insert(lines, "Events: Golden x10 in Golden Hour,")
 	table.insert(lines, "Lava 15% in Lava Storm,")
 	table.insert(lines, "Candy 8% in Candy Party")
+	table.insert(lines, "Traits: Sparkly 3%, event traits 6-10%")
 	return table.concat(lines, "\n")
 end
 

@@ -11,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest" } do
+for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "Fx" } do
 	Remotes:WaitForChild(name)
 end
 
@@ -145,6 +145,22 @@ local incomeLabel = text({ Size = UDim2.new(1, -20, 0, 20), Position = UDim2.fro
 -- Rebirth progress bar along the bottom of the cash bar.
 local barBack = new("Frame", { Position = UDim2.new(0, 14, 1, -14), Size = UDim2.new(1, -28, 0, 8), BackgroundColor3 = Color3.fromRGB(20, 12, 35), Parent = top }, { corner(4) })
 local barFill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), Parent = barBack }, { corner(4), gradient(COLORS.purple, COLORS.pink) })
+-- Level badge on the left of the cash bar, with an XP bar under the number.
+local levelBox = new("Frame", { Position = UDim2.new(0, -80, 0, 0), Size = UDim2.fromOffset(72, 84), BackgroundColor3 = Color3.new(1, 1, 1), Parent = top }, { corner(18), stroke(COLORS.outline, 4), gradient(COLORS.gold, Color3.fromRGB(200, 120, 30)) })
+text({ Position = UDim2.fromOffset(4, 4), Size = UDim2.new(1, -8, 0, 18), Text = "LEVEL", Parent = levelBox })
+local levelLabel = text({ Position = UDim2.fromOffset(4, 20), Size = UDim2.new(1, -8, 0, 38), Text = "1", Parent = levelBox })
+local xpBack = new("Frame", { Position = UDim2.new(0, 8, 1, -20), Size = UDim2.new(1, -16, 0, 12), BackgroundColor3 = Color3.fromRGB(20, 12, 35), Parent = levelBox }, { corner(6) })
+local xpFill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), Parent = xpBack }, { corner(6), gradient(COLORS.accent, Color3.fromRGB(40, 170, 90)) })
+local function refreshLevel()
+	local xp = player:GetAttribute("XP") or 0
+	local need = math.max(player:GetAttribute("XPNeeded") or 1, 1)
+	levelLabel.Text = tostring(player:GetAttribute("Level") or 1)
+	xpFill.Size = UDim2.fromScale(math.clamp(xp / need, 0, 1), 1)
+end
+for _, attr in { "Level", "XP", "XPNeeded" } do
+	player:GetAttributeChangedSignal(attr):Connect(refreshLevel)
+end
+refreshLevel()
 
 local chips = new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
@@ -389,7 +405,14 @@ local function refreshIndex()
 		c.blob.BackgroundColor3 = if got then c.def.color else Color3.fromRGB(30, 25, 45)
 		c.name.Text = if got then id else "???"
 	end
-	indexHeader.Text = string.format("Discovered %d / %d  ·  +%d%% income bonus", n, #Config.Slimes, math.floor(n * Config.IndexBonusPerSlime * 100))
+	local nextText = "  ·  All rewards claimed!"
+	for _, m in Config.IndexMilestones do
+		if n < m.count then
+			nextText = "  ·  At " .. m.count .. ": " .. m.label
+			break
+		end
+	end
+	indexHeader.Text = string.format("Found %d/%d (+%d%% income)", n, #Config.Slimes, math.floor(n * Config.IndexBonusPerSlime * 100)) .. nextText
 end
 player:GetAttributeChangedSignal("IndexList"):Connect(refreshIndex)
 refreshIndex()
@@ -527,11 +550,187 @@ local function refreshGifts()
 	end
 end
 
+-- Base upgrades (permanent, kept on rebirth)
+local upgrades, upgradesScale = panel("⬆️ Upgrades", Color3.fromRGB(120, 255, 160))
+local upList = scroller(upgrades, new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }))
+local upRows = {}
+for i, key in Config.UpgradeOrder do
+	local def = Config.Upgrades[key]
+	local row = new("Frame", { Size = UDim2.new(1, -8, 0, 80), BackgroundColor3 = COLORS.panel, LayoutOrder = i, Parent = upList }, { corner(12), new("UIStroke", { Color = COLORS.accent, Thickness = 2, Transparency = 0.4 }) })
+	local title = text({ Size = UDim2.new(0.66, -10, 0, 30), Position = UDim2.fromOffset(12, 6), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.accent, Text = def.name, Parent = row })
+	text({ Size = UDim2.new(0.66, -10, 0, 22), Position = UDim2.fromOffset(12, 38), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.muted, Font = Enum.Font.GothamMedium, TextStrokeTransparency = 1, Text = def.desc, Parent = row })
+	local pips = new("Frame", { Position = UDim2.fromOffset(12, 62), Size = UDim2.new(0.66, -10, 0, 10), BackgroundTransparency = 1, Parent = row }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 3) }) })
+	local pipList = {}
+	for l = 1, def.max do
+		pipList[l] = new("Frame", { Size = UDim2.new(1 / def.max, -3, 1, 0), BackgroundColor3 = Color3.fromRGB(20, 12, 35), Parent = pips }, { corner(4) })
+	end
+	local b = button({ Size = UDim2.new(0.3, -8, 0, 56), Position = UDim2.new(0.7, 0, 0, 12), BackgroundColor3 = COLORS.accent, Text = "", Parent = row }, function()
+		Remotes.BuyUpgrade:FireServer(key)
+	end)
+	upRows[key] = { title = title, button = b, pips = pipList }
+end
+text({ Position = UDim2.new(0, 16, 1, -36), Size = UDim2.new(1, -32, 0, 24), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.gold, Text = "Upgrades are permanent. You keep them when you rebirth!", Parent = upgrades })
+local function refreshUpgrades()
+	local levels = {}
+	for k, v in string.gmatch(player:GetAttribute("Upgrades") or "", "(%w+)=(%d+)") do
+		levels[k] = tonumber(v) or 0
+	end
+	for key, r in upRows do
+		local def = Config.Upgrades[key]
+		local lv = levels[key] or 0
+		r.title.Text = def.name .. "  Lv " .. lv .. "/" .. def.max
+		r.button.Text = if lv >= def.max then "MAXED" else Util.Money(Config.UpgradeCost(key, lv))
+		for l, pip in r.pips do
+			pip.BackgroundColor3 = if l <= lv then COLORS.accent else Color3.fromRGB(20, 12, 35)
+		end
+	end
+end
+player:GetAttributeChangedSignal("Upgrades"):Connect(refreshUpgrades)
+refreshUpgrades()
+
+-- Fuse Machine: pick 3 slimes, see the fee and odds, fuse, come back later.
+local FUSE_COLOR = Color3.fromRGB(150, 255, 120)
+local fuse, fuseScale = panel("🧪 Fuse Machine", FUSE_COLOR)
+text({ Position = UDim2.fromOffset(16, 58), Size = UDim2.new(1, -32, 0, 24), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "Pick " .. Config.FuseCount .. " slimes. You get 1 new slime based on their rarity.", Parent = fuse })
+local fuseGrid = new("ScrollingFrame", {
+	Position = UDim2.fromOffset(12, 86),
+	Size = UDim2.new(1, -24, 1, -236),
+	BackgroundTransparency = 1,
+	ScrollBarThickness = 6,
+	AutomaticCanvasSize = Enum.AutomaticSize.Y,
+	CanvasSize = UDim2.new(),
+	Parent = fuse,
+}, { new("UIGridLayout", { CellSize = UDim2.fromOffset(104, 70), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+local fuseEmpty = text({ Position = UDim2.fromOffset(16, 120), Size = UDim2.new(1, -32, 0, 30), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "You need slimes in your pens to fuse.", Visible = false, Parent = fuse })
+local fuseFee = text({ Position = UDim2.new(0, 16, 1, -144), Size = UDim2.new(1, -32, 0, 26), TextColor3 = COLORS.gold, Text = "", Parent = fuse })
+local fuseOdds = text({ Position = UDim2.new(0, 16, 1, -114), Size = UDim2.new(1, -32, 0, 34), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.text, RichText = true, Text = "", Parent = fuse })
+local fuseSelected: { number } = {}
+local fuseSlimes = {}
+local fuseState = { active = false, endsAt = 0 }
+local fuseBtn
+local function fuseOrder(id: string): number
+	local def = Config.SlimeById[id]
+	return math.min(Config.RarityByName[def.rarity].order, 8)
+end
+local function refreshFuseInfo()
+	if fuseState.active then
+		fuseFee.Text = "🧪 Your slimes are fusing..."
+		fuseOdds.Text = "Come back when the timer ends to claim your new slime."
+		return
+	end
+	local fee, sum = 0, 0
+	for _, i in fuseSelected do
+		local s = fuseSlimes[i]
+		fee += Config.SlimeById[s.id].price * Config.FuseFeeShare
+		sum += fuseOrder(s.id)
+	end
+	fuseFee.Text = string.format("Selected %d/%d  ·  Fee %s", #fuseSelected, Config.FuseCount, Util.Money(math.floor(fee)))
+	if #fuseSelected == 0 then
+		fuseOdds.Text = "Rarer slimes in = rarer slime out. Best mutation kept " .. math.floor(Config.FuseKeepMutationChance * 100) .. "% of the time."
+		return
+	end
+	local avg = math.floor(sum / #fuseSelected + 0.5)
+	local chances: { [number]: number } = {}
+	local total = 0
+	for _, o in Config.FuseOdds do
+		total += o.chance
+	end
+	for _, o in Config.FuseOdds do
+		local order = math.clamp(avg + o.shift, 1, 8)
+		chances[order] = (chances[order] or 0) + o.chance / total
+	end
+	local parts = {}
+	for order = 1, 8 do
+		if chances[order] then
+			local r = Config.Rarities[order]
+			table.insert(parts, string.format('<font color="#%s">%s %d%%</font>', r.color:ToHex(), r.name, math.floor(chances[order] * 100 + 0.5)))
+		end
+	end
+	fuseOdds.Text = "Odds: " .. table.concat(parts, "  ")
+end
+local function refreshFuseButton()
+	local left = fuseState.endsAt - workspace:GetServerTimeNow()
+	if fuseState.active then
+		fuseBtn.Text = if left > 0 then "⏳ " .. Util.Duration(left) else "CLAIM YOUR SLIME!"
+	else
+		fuseBtn.Text = if #fuseSelected == Config.FuseCount then "🧪 FUSE!" else "PICK " .. (Config.FuseCount - #fuseSelected) .. " MORE"
+	end
+end
+local function rebuildFuseGrid()
+	for _, c in fuseGrid:GetChildren() do
+		if c:IsA("GuiObject") then
+			c:Destroy()
+		end
+	end
+	local ok, list = pcall(function()
+		return HttpService:JSONDecode(player:GetAttribute("SlimeList") or "[]")
+	end)
+	fuseSlimes = if ok and typeof(list) == "table" then list else {}
+	fuseSelected = {}
+	fuseEmpty.Visible = #fuseSlimes == 0
+	for i, s in fuseSlimes do
+		local def = Config.SlimeById[s.id]
+		if not def then
+			continue
+		end
+		local r = Config.RarityByName[def.rarity]
+		local card = new("TextButton", { BackgroundColor3 = COLORS.panel, Text = "", AutoButtonColor = false, LayoutOrder = i, Parent = fuseGrid }, { corner(12) })
+		local st = new("UIStroke", { Color = r.color, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = card })
+		text({ Position = UDim2.fromOffset(4, 6), Size = UDim2.new(1, -8, 0, 30), Text = Config.DisplayName(s.id, s.mut, s.stars, s.traits), Parent = card })
+		text({ Position = UDim2.fromOffset(4, 40), Size = UDim2.new(1, -8, 0, 20), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = r.color, Text = def.rarity, Parent = card })
+		card.Activated:Connect(function()
+			if fuseState.active then
+				return
+			end
+			click()
+			local at = table.find(fuseSelected, i)
+			if at then
+				table.remove(fuseSelected, at)
+			elseif #fuseSelected < Config.FuseCount then
+				table.insert(fuseSelected, i)
+			end
+			local picked = table.find(fuseSelected, i) ~= nil
+			st.Color = if picked then FUSE_COLOR else r.color
+			st.Thickness = if picked then 5 else 2
+			card.BackgroundColor3 = if picked then Color3.fromRGB(50, 90, 60) else COLORS.panel
+			refreshFuseInfo()
+			refreshFuseButton()
+		end)
+	end
+	refreshFuseInfo()
+end
+fuseBtn = button({ Size = UDim2.new(1, -40, 0, 60), Position = UDim2.new(0, 20, 1, -74), BackgroundColor3 = FUSE_COLOR, Text = "", Parent = fuse }, function()
+	if fuseState.active then
+		Remotes.FuseClaim:FireServer()
+	elseif #fuseSelected == Config.FuseCount then
+		Remotes.FuseStart:FireServer(fuseSelected)
+	end
+end)
+local function refreshFuseState()
+	local ok, st = pcall(function()
+		return HttpService:JSONDecode(player:GetAttribute("Fuse") or "{}")
+	end)
+	if ok and typeof(st) == "table" then
+		fuseState = { active = st.active == true, endsAt = tonumber(st.endsAt) or 0 }
+	end
+	refreshFuseInfo()
+	refreshFuseButton()
+end
+player:GetAttributeChangedSignal("SlimeList"):Connect(rebuildFuseGrid)
+player:GetAttributeChangedSignal("Fuse"):Connect(refreshFuseState)
+rebuildFuseGrid()
+refreshFuseState()
+Remotes.Fx.OnClientEvent:Connect(function(kind)
+	if kind == "openFuse" and not fuse.Visible then
+		openPanel(fuse, fuseScale)
+	end
+end)
+
 -- ===== Side buttons =====
 local side = new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.fromOffset(208, 284),
+	Size = UDim2.fromOffset(208, 356),
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, { new("UIGridLayout", { CellSize = UDim2.fromOffset(100, 62), CellPadding = UDim2.fromOffset(8, 10), SortOrder = Enum.SortOrder.LayoutOrder }) })
@@ -539,7 +738,7 @@ local side = new("Frame", {
 local sideScale = new("UIScale", { Parent = side })
 local function fitSide()
 	local h = workspace.CurrentCamera.ViewportSize.Y
-	sideScale.Scale = math.clamp((h - 150) / 284, 0.5, 1)
+	sideScale.Scale = math.clamp((h - 150) / 356, 0.5, 1)
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitSide)
 fitSide()
@@ -561,6 +760,9 @@ sideButton(5, COLORS.purple, "🔄 REBIRTH", rebirth, rebirthScale)
 sideButton(6, COLORS.blue, "🎟️ CODES", codes, codesScale)
 sideButton(7, Color3.fromRGB(255, 120, 200), "📖 INDEX", index, indexScale)
 local dailyBtn = sideButton(8, Color3.fromRGB(255, 140, 60), "📅 DAILY", daily, dailyScale)
+sideButton(9, Color3.fromRGB(120, 255, 160), "⬆️ UPGRADE", upgrades, upgradesScale)
+local fuseSideBtn = sideButton(10, FUSE_COLOR, "🧪 FUSE", fuse, fuseScale)
+local fuseBadge = makeBadge(fuseSideBtn)
 local badge = makeBadge(dailyBtn)
 local questBadge = makeBadge(questsBtn)
 local giftBadge = makeBadge(giftsBtn)
@@ -569,6 +771,8 @@ task.spawn(function()
 		refreshGifts()
 		giftBadge.Visible = giftsReady > 0
 		questBadge.Visible = questsReady > 0
+		refreshFuseButton()
+		fuseBadge.Visible = fuseState.active and fuseState.endsAt <= workspace:GetServerTimeNow()
 		local reset = (player:GetAttribute("QuestReset") or 0) - workspace:GetServerTimeNow()
 		questInfo.Text = "New quests in " .. Util.Duration(math.max(reset, 0))
 		task.wait(1)
@@ -757,6 +961,11 @@ local tips = {
 	"Finish 📜 QUESTS and open 🎁 GIFTS for free rewards.",
 	"Play with friends: +10% cash for every friend in your server!",
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
+	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
+	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",
+	"Buy ⬆️ UPGRADES for more income, longer shields and extra pens. They survive rebirth!",
+	"Level up by playing. Every level pays cash, and new titles show over your head.",
+	"Find more slimes for the 📖 INDEX to unlock big milestone rewards.",
 }
 if os.date("!*t").month == 10 then
 	table.insert(tips, 1, "🎃 HALLOWEEN UPDATE: Pumpkin, Ghosty and Vampire slimes until Oct 31! Code: SPOOKY")

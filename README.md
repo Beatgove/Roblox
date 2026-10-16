@@ -6,7 +6,8 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 
 **What's in it**
 - 28 slimes across 9 rarities (Common to Secret, plus code-only Exclusives), each with its own look: crowns, wings, halos, horns, antennae, auras and glow.
-- Mutations: Golden (x2), Diamond (x4), Rainbow (x8) on any slime.
+- Mutations: Golden (x2), Lava (x3, Lava Storm), Diamond (x4), Candy (x5, Candy Party), Rainbow (x8).
+- Traits (stack up to 3, multipliers add up): Sparkly, Spooky (October), and event traits Midas, Meteor, Sugar, Rich, Clover. During an event, meteors strike slimes already in your pens and can give them that event's trait.
 - Slime Dispenser: pay cash for a random slime, odds shown on the board next to it. 5x Luck boosts Rare+ odds (free for 10 minutes for new players, from codes, during Slime Rain, or bought).
 - Codes menu: `RELEASE`, `SLIMETIME`, `LUCKY`, `FREESLIME`, `SPOOKY` (Halloween, until Nov 1). Add more in `Config.Codes`.
 - Slime Index: collection book, +1% income per slime discovered.
@@ -20,6 +21,10 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Playtime gifts: 7 presents that unlock from 2 to 60 minutes into a session, including free Dispenser rolls.
 - Daily quests: 3 new goals a day (buy, roll, collect, merge, steal, slap, gifts), plus a bonus for finishing all three.
 - Friend boost (+10% cash per friend in the server, up to +50%) and Premium boost (+10%).
+- Fuse Machine (next to spawn): put in 3 slimes plus a fee, wait 10 minutes, get one slime whose rarity is based on the average you put in. Odds are shown before you fuse, and the best mutation is kept half the time.
+- Base upgrades (permanent, kept on rebirth): Slime Food (+15% income per level), Stronger Shield (+15s lock), Bigger Base (+1 pen).
+- Player levels: XP from everything you do, cash every level, luck every 5 levels, titles over your head from Slime Rookie to Slime Legend.
+- Index milestones: finding 5, 10, 15, 20, 25 and 30 slimes pays out automatically.
 - Global leaderboards by spawn: Top Earners and Top Thieves (they fill in once the game is published).
 
 Store art: `marketing/icon_512.png` (game icon) and `marketing/thumbnail_1920x1080.png` (thumbnail).
@@ -48,6 +53,12 @@ src/server/Services/QuestService.luau  Daily quests
 src/server/Services/BoostService.luau  Friend boost
 src/server/Services/LeaderboardService.luau  Global leaderboards
 src/server/Services/Rewards.luau  Shared reward granting
+src/server/Services/TraitService.luau  Event trait strikes on pen slimes
+src/server/Services/FuseService.luau  Fuse Machine
+src/server/Services/UpgradeService.luau  Base upgrades
+src/server/Services/LevelService.luau  XP, levels and titles
+src/server/Services/IndexService.luau  Index milestone rewards
+src/server/Services/Signals.luau  Progress events shared by quests, XP and the Index
 src/client/Effects.client.luau  Particles, reveals, sounds, bouncing
 src/client/Hud.client.luau             All UI
 ```
