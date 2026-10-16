@@ -235,6 +235,13 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 			reflect = 0.5
 		elseif mut == "Rainbow" then
 			material = Enum.Material.Neon
+		elseif mut == "Lava" then
+			color = color:Lerp(mutation.color, 0.7)
+			material = Enum.Material.CrackedLava
+		elseif mut == "Candy" then
+			color = color:Lerp(mutation.color, 0.6)
+			material = Enum.Material.Pebble
+			reflect = 0.3
 		end
 	end
 

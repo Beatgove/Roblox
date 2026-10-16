@@ -104,6 +104,7 @@ local function buildLighting()
 	bloom.Parent = Lighting
 
 	local cc = Instance.new("ColorCorrectionEffect")
+	cc.Name = "ColorCorrection" -- the client tints this during server events
 	cc.Saturation = 0.28
 	cc.Contrast = 0.08
 	cc.Brightness = 0.02

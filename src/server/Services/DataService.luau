@@ -36,6 +36,8 @@ local function defaultData()
 		codes = {}, -- redeemed code -> true
 		luckUntil = 0, -- os.time() until which 5x dispenser luck is active
 		rolls = 0,
+		gear = { Slap = true }, -- gear key -> true once bought
+		quests = { day = -1, list = {}, bonus = false }, -- today's daily quests
 		receipts = {}, -- PurchaseId -> true (recent, for idempotent ProcessReceipt)
 		receiptOrder = {},
 	}

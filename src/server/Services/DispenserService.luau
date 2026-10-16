@@ -9,6 +9,7 @@ local ConveyorService = require(script.Parent.ConveyorService)
 local MapBuilder = require(script.Parent.MapBuilder)
 local Roller = require(script.Parent.Roller)
 local Net = require(script.Parent.Net)
+local Signals = require(script.Parent.Signals)
 
 local DispenserService = {}
 
@@ -22,6 +23,7 @@ function DispenserService.Luck(player: Player): number
 	if ConveyorService.IsRaining() then
 		luck *= Config.RainLuck
 	end
+	luck *= Roller.EventLuck()
 	return math.min(luck, Config.MaxLuck)
 end
 
@@ -35,32 +37,36 @@ function DispenserService.GiveLuck(player: Player, seconds: number)
 	Net.Fx(player, "luck", {})
 end
 
-local function roll(player: Player)
+-- free: a gift roll (no cost, no cooldown). minLuck: luck floor for that roll.
+local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 	local t = os.clock()
-	if lastRoll[player] and t - lastRoll[player] < Config.DispenserCooldown then
-		return
+	if not free and lastRoll[player] and t - lastRoll[player] < Config.DispenserCooldown then
+		return false
 	end
 	local data = DataService.Get(player)
 	if not data then
-		return
+		return false
 	end
-	local cost = PlotService.RollCost(player)
+	local cost = if free then 0 else PlotService.RollCost(player)
 	if data.cash < cost then
 		Net.Notify(player, "A roll costs " .. Util.Money(cost) .. ". Collect more cash!", "bad")
 		Net.Fx(player, "deny", {})
-		return
+		return false
 	end
 	if not PlotService.HasFreeSlot(player) then
 		Net.Notify(player, "Your pens are full! Sell a slime or rebirth for more space.", "bad")
 		Net.Fx(player, "deny", {})
-		return
+		return false
 	end
-	lastRoll[player] = t
+	if not free then
+		lastRoll[player] = t
+	end
 	data.cash -= cost
 	data.rolls += 1
 	PlotService.Sync(player)
+	Signals.Progress(player, "roll")
 
-	local luck = DispenserService.Luck(player)
+	local luck = math.max(DispenserService.Luck(player), minLuck or 1)
 	local def = Roller.Slime(luck)
 	local mut = Roller.Mutation(luck)
 	local rarity = Config.RarityByName[def.rarity]
@@ -74,8 +80,8 @@ local function roll(player: Player)
 			return
 		end
 		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut }) then
-			-- Pens filled up during the animation: refund.
-			PlotService.AddCash(player, cost)
+			-- Pens filled up during the animation: refund (a free roll pays the slime's value).
+			PlotService.AddCash(player, if free then def.price else cost)
 			Net.Notify(player, "Pens full, roll refunded.", "bad")
 			return
 		end
@@ -83,6 +89,12 @@ local function roll(player: Player)
 			Net.NotifyAll("🎰 " .. player.DisplayName .. " rolled a " .. def.rarity .. " " .. name .. " from the Dispenser!", "epic")
 		end
 	end)
+	return true
+end
+
+-- A free roll from a gift. Returns false if it couldn't happen (pens full).
+function DispenserService.FreeRoll(player: Player, minLuck: number?): boolean
+	return roll(player, true, minLuck)
 end
 
 local function oddsText(): string
@@ -96,6 +108,9 @@ local function oddsText(): string
 	table.insert(lines, "Rare and better")
 	table.insert(lines, "Mutations: Golden 5%, Diamond 1%,")
 	table.insert(lines, "Rainbow 0.2% (x2 with luck)")
+	table.insert(lines, "Events: Golden x10 in Golden Hour,")
+	table.insert(lines, "Lava 15% in Lava Storm,")
+	table.insert(lines, "Candy 8% in Candy Party")
 	return table.concat(lines, "\n")
 end
 
@@ -109,7 +124,9 @@ function DispenserService.Start()
 	prompt.MaxActivationDistance = 11
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = machine
-	prompt.Triggered:Connect(roll)
+	prompt.Triggered:Connect(function(player)
+		roll(player)
+	end)
 
 	local board = MapBuilder.OddsBoard
 	if board then

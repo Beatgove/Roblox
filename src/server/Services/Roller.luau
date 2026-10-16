@@ -44,12 +44,33 @@ function Roller.Slime(luck: number)
 	return list[rng:NextInteger(1, #list)]
 end
 
+-- The server event running right now (Config.Events key), if any.
+function Roller.ActiveEvent(): string?
+	local e = workspace:GetAttribute("Event")
+	if e and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow() then
+		return e
+	end
+	return nil
+end
+
+-- Extra luck from the current event (Lucky Hour).
+function Roller.EventLuck(): number
+	local e = Roller.ActiveEvent()
+	return if e and Config.Events[e].luck then Config.Events[e].luck else 1
+end
+
 function Roller.Mutation(luck: number): string?
 	local boost = if luck > 1 then 2 else 1
+	local event = Roller.ActiveEvent()
+	local golden = if event and Config.Events[event].goldenMult then Config.Events[event].goldenMult else 1
 	-- Rarest first so a lucky roll lands on the best mutation.
 	for i = #Config.Mutations, 1, -1 do
 		local m = Config.Mutations[i]
-		if rng:NextNumber() < m.chance * boost then
+		if m.event and m.event ~= event then
+			continue
+		end
+		local chance = m.chance * boost * (if m.name == "Golden" then golden else 1)
+		if rng:NextNumber() < chance then
 			return m.name
 		end
 	end

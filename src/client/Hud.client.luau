@@ -1,6 +1,7 @@
 -- All player-facing UI, built in code: cash HUD, luck timer, rebirth bar, shop, rebirth,
 -- codes, Slime Index, toasts and the event banner.
 
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily" } do
+for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest" } do
 	Remotes:WaitForChild(name)
 end
 
@@ -148,10 +149,10 @@ local barFill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = 
 local chips = new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 98),
-	Size = UDim2.fromOffset(600, 30),
+	Size = UDim2.fromOffset(600, 68),
 	BackgroundTransparency = 1,
 	Parent = gui,
-}, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8) }) })
+}, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8), Wraps = true }) })
 local function chip(color: Color3)
 	local f = new("Frame", { Size = UDim2.fromOffset(190, 30), BackgroundColor3 = Color3.new(1, 1, 1), Visible = false, Parent = chips }, { corner(15), stroke(COLORS.outline, 3), gradient(color, color:Lerp(Color3.new(0, 0, 0), 0.3)) })
 	local l = text({ Size = UDim2.new(1, -12, 1, -6), Position = UDim2.fromOffset(6, 3), Text = "", Parent = f })
@@ -161,11 +162,13 @@ local luckChip, luckLabel = chip(Color3.fromRGB(60, 200, 90))
 local shieldChip, shieldLabel = chip(Color3.fromRGB(230, 60, 80))
 local carryChip, carryLabel = chip(Color3.fromRGB(255, 170, 30))
 local rainChip, rainLabel = chip(Color3.fromRGB(70, 150, 255))
+local eventChip, eventLabel = chip(Color3.fromRGB(255, 150, 40))
+local boostChip, boostLabel = chip(Color3.fromRGB(255, 120, 200))
 
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 134),
+	Position = UDim2.new(0.5, 0, 0, 172),
 	Size = UDim2.new(0.9, 0, 0, 48),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	Visible = false,
@@ -392,7 +395,7 @@ player:GetAttributeChangedSignal("IndexList"):Connect(refreshIndex)
 refreshIndex()
 
 -- Daily rewards
-local daily, dailyScale = panel("🎁 Daily Rewards", Color3.fromRGB(255, 140, 60))
+local daily, dailyScale = panel("📅 Daily Rewards", Color3.fromRGB(255, 140, 60))
 local dailyInfo = text({ Position = UDim2.fromOffset(16, 60), Size = UDim2.new(1, -32, 0, 26), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "", Parent = daily })
 local dayGrid = new("Frame", { Position = UDim2.fromOffset(12, 94), Size = UDim2.new(1, -24, 1, -186), BackgroundTransparency = 1, Parent = daily }, {
 	new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 0.5, -8), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center }),
@@ -412,39 +415,165 @@ local claimBtn = button({ Size = UDim2.new(1, -40, 0, 64), Position = UDim2.new(
 	end
 end)
 
+-- Gear shop (cash)
+local gear, gearScale = panel("⚔️ Gear", Color3.fromRGB(90, 200, 255))
+local gearList = scroller(gear, new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }))
+local gearButtons = {}
+for i, key in Config.GearOrder do
+	local def = Config.Gear[key]
+	local row = new("Frame", { Size = UDim2.new(1, -8, 0, 70), BackgroundColor3 = COLORS.panel, LayoutOrder = i, Parent = gearList }, { corner(12), new("UIStroke", { Color = def.color, Thickness = 2, Transparency = 0.3 }) })
+	text({ Size = UDim2.new(0.66, -10, 0, 28), Position = UDim2.fromOffset(12, 6), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = def.color, Text = def.name, Parent = row })
+	text({ Size = UDim2.new(0.66, -10, 0, 28), Position = UDim2.fromOffset(12, 36), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.muted, Font = Enum.Font.GothamMedium, TextStrokeTransparency = 1, Text = def.desc, Parent = row })
+	gearButtons[key] = button({ Size = UDim2.new(0.3, -8, 0, 48), Position = UDim2.new(0.7, 0, 0, 11), BackgroundColor3 = COLORS.accent, Text = Util.Money(def.price), Parent = row }, function()
+		Remotes.BuyGear:FireServer(key)
+	end)
+end
+local function refreshGear()
+	local owned = {}
+	for k in string.gmatch(player:GetAttribute("GearOwned") or "", "[^,]+") do
+		owned[k] = true
+	end
+	local rebirths = player:GetAttribute("Rebirths") or 0
+	for key, b in gearButtons do
+		local def = Config.Gear[key]
+		b.Text = if owned[key] then "OWNED" elseif rebirths < def.rebirth then "🔒 Rebirth " .. def.rebirth else Util.Money(def.price)
+	end
+end
+player:GetAttributeChangedSignal("GearOwned"):Connect(refreshGear)
+player:GetAttributeChangedSignal("Rebirths"):Connect(refreshGear)
+refreshGear()
+
+-- Daily quests
+local quests, questsScale = panel("📜 Daily Quests", Color3.fromRGB(120, 230, 120))
+local questInfo = text({ Position = UDim2.fromOffset(16, 60), Size = UDim2.new(1, -32, 0, 26), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "", Parent = quests })
+local questRows = {}
+for i = 1, Config.QuestsPerDay do
+	local row = new("Frame", { Position = UDim2.fromOffset(12, 94 + (i - 1) * 96), Size = UDim2.new(1, -24, 0, 86), BackgroundColor3 = COLORS.panel, Parent = quests }, { corner(12) })
+	local title = text({ Position = UDim2.fromOffset(12, 6), Size = UDim2.new(0.66, -12, 0, 30), TextXAlignment = Enum.TextXAlignment.Left, Text = "", Parent = row })
+	local barBg = new("Frame", { Position = UDim2.fromOffset(12, 46), Size = UDim2.new(0.66, -12, 0, 22), BackgroundColor3 = Color3.fromRGB(20, 12, 35), Parent = row }, { corner(8) })
+	local fill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), Parent = barBg }, { corner(8), gradient(COLORS.accent, Color3.fromRGB(40, 170, 90)) })
+	local count = text({ Size = UDim2.fromScale(1, 1), Text = "", Parent = barBg })
+	local b = button({ Size = UDim2.new(0.3, -8, 0, 56), Position = UDim2.new(0.7, 0, 0, 15), BackgroundColor3 = COLORS.accent, Text = "CLAIM", Parent = row }, function()
+		Remotes.ClaimQuest:FireServer(i)
+	end)
+	questRows[i] = { title = title, fill = fill, count = count, button = b }
+end
+text({ Position = UDim2.new(0, 16, 1, -44), Size = UDim2.new(1, -32, 0, 26), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.gold, Text = "Finish all 3 for a BONUS: big cash + 15 min 5x Luck!", Parent = quests })
+local questsReady = 0
+local function refreshQuests()
+	local ok, list = pcall(function()
+		return HttpService:JSONDecode(player:GetAttribute("Quests") or "[]")
+	end)
+	if not ok then
+		return
+	end
+	questsReady = 0
+	for i, r in questRows do
+		local q = list[i]
+		r.title.Parent.Visible = q ~= nil
+		if q then
+			r.title.Text = q.text
+			r.fill.Size = UDim2.fromScale(math.clamp(q.progress / q.goal, 0, 1), 1)
+			r.count.Text = if q.money then Util.Money(q.progress) .. " / " .. Util.Money(q.goal) else q.progress .. " / " .. q.goal
+			local done = q.progress >= q.goal
+			r.button.Text = if q.claimed then "✅ DONE" elseif done then "CLAIM!" else "..."
+			if done and not q.claimed then
+				questsReady += 1
+			end
+		end
+	end
+end
+player:GetAttributeChangedSignal("Quests"):Connect(refreshQuests)
+refreshQuests()
+
+-- Playtime gifts
+local gifts, giftsScale = panel("🎁 Playtime Gifts", COLORS.pink)
+text({ Position = UDim2.fromOffset(16, 60), Size = UDim2.new(1, -32, 0, 26), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "Keep playing to unlock gifts! Tap one when it's ready.", Parent = gifts })
+local giftGrid = new("Frame", { Position = UDim2.fromOffset(12, 94), Size = UDim2.new(1, -24, 1, -106), BackgroundTransparency = 1, Parent = gifts }, {
+	new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 0.5, -8), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center }),
+})
+local giftCards = {}
+for i, g in Config.PlaytimeGifts do
+	local b = button({ BackgroundColor3 = COLORS.pink, Text = "", LayoutOrder = i, Parent = giftGrid }, function()
+		Remotes.ClaimGift:FireServer(i)
+	end)
+	local icon = text({ Position = UDim2.fromScale(0, 0), Size = UDim2.fromScale(1, 0.45), Text = "🎁", Parent = b })
+	local label = text({ Position = UDim2.fromScale(0, 0.45), Size = UDim2.fromScale(1, 0.25), Text = g.label, Parent = b })
+	local timer = text({ Position = UDim2.fromScale(0, 0.72), Size = UDim2.fromScale(1, 0.26), Text = "", TextColor3 = COLORS.gold, Parent = b })
+	giftCards[i] = { button = b, icon = icon, label = label, timer = timer }
+end
+local giftsReady = 0
+local function refreshGifts()
+	local done = {}
+	for k in string.gmatch(player:GetAttribute("GiftsClaimed") or "", "[^,]+") do
+		done[tonumber(k) or 0] = true
+	end
+	local elapsed = workspace:GetServerTimeNow() - (player:GetAttribute("GiftStart") or workspace:GetServerTimeNow())
+	giftsReady = 0
+	for i, g in Config.PlaytimeGifts do
+		local c = giftCards[i]
+		local left = g.minutes * 60 - elapsed
+		if done[i] then
+			c.icon.Text = "✅"
+			c.timer.Text = "Opened"
+		elseif left <= 0 then
+			c.icon.Text = "🎁"
+			c.timer.Text = "OPEN!"
+			giftsReady += 1
+		else
+			c.icon.Text = "🔒"
+			c.timer.Text = Util.Duration(left)
+		end
+	end
+end
+
 -- ===== Side buttons =====
 local side = new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.fromOffset(120, 350),
+	Size = UDim2.fromOffset(208, 284),
 	BackgroundTransparency = 1,
 	Parent = gui,
-}, { new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center }) })
+}, { new("UIGridLayout", { CellSize = UDim2.fromOffset(100, 62), CellPadding = UDim2.fromOffset(8, 10), SortOrder = Enum.SortOrder.LayoutOrder }) })
 -- Shrink the side buttons on short screens so they never hit Roblox's top-left menu.
 local sideScale = new("UIScale", { Parent = side })
 local function fitSide()
 	local h = workspace.CurrentCamera.ViewportSize.Y
-	sideScale.Scale = math.clamp((h - 150) / 350, 0.55, 1)
+	sideScale.Scale = math.clamp((h - 150) / 284, 0.5, 1)
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitSide)
 fitSide()
-local shopBtn = button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = COLORS.gold, Text = "🛒 SHOP", Parent = side }, function()
-	openPanel(shop, shopScale)
+local function sideButton(order: number, color: Color3, label: string, p: Frame, scale: UIScale)
+	return button({ BackgroundColor3 = color, Text = label, LayoutOrder = order, Parent = side }, function()
+		openPanel(p, scale)
+	end)
+end
+local function makeBadge(parent: GuiObject)
+	local b = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(26, 26), BackgroundColor3 = COLORS.bad, Visible = false, ZIndex = 3, Parent = parent }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), stroke(COLORS.outline, 2) })
+	text({ Size = UDim2.fromScale(1, 1), Text = "!", ZIndex = 3, Parent = b })
+	return b
+end
+local shopBtn = sideButton(1, COLORS.gold, "🛒 SHOP", shop, shopScale)
+sideButton(2, Color3.fromRGB(90, 200, 255), "⚔️ GEAR", gear, gearScale)
+local questsBtn = sideButton(3, Color3.fromRGB(120, 230, 120), "📜 QUESTS", quests, questsScale)
+local giftsBtn = sideButton(4, COLORS.pink, "🎁 GIFTS", gifts, giftsScale)
+sideButton(5, COLORS.purple, "🔄 REBIRTH", rebirth, rebirthScale)
+sideButton(6, COLORS.blue, "🎟️ CODES", codes, codesScale)
+sideButton(7, Color3.fromRGB(255, 120, 200), "📖 INDEX", index, indexScale)
+local dailyBtn = sideButton(8, Color3.fromRGB(255, 140, 60), "📅 DAILY", daily, dailyScale)
+local badge = makeBadge(dailyBtn)
+local questBadge = makeBadge(questsBtn)
+local giftBadge = makeBadge(giftsBtn)
+task.spawn(function()
+	while true do
+		refreshGifts()
+		giftBadge.Visible = giftsReady > 0
+		questBadge.Visible = questsReady > 0
+		local reset = (player:GetAttribute("QuestReset") or 0) - workspace:GetServerTimeNow()
+		questInfo.Text = "New quests in " .. Util.Duration(math.max(reset, 0))
+		task.wait(1)
+	end
 end)
-button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = COLORS.purple, Text = "🔄 REBIRTH", Parent = side }, function()
-	openPanel(rebirth, rebirthScale)
-end)
-button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = COLORS.blue, Text = "🎟️ CODES", Parent = side }, function()
-	openPanel(codes, codesScale)
-end)
-button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = COLORS.pink, Text = "📖 INDEX", Parent = side }, function()
-	openPanel(index, indexScale)
-end)
-local dailyBtn = button({ Size = UDim2.fromOffset(120, 62), BackgroundColor3 = Color3.fromRGB(255, 140, 60), Text = "🎁 DAILY", Parent = side }, function()
-	openPanel(daily, dailyScale)
-end)
-local badge = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(26, 26), BackgroundColor3 = COLORS.bad, Visible = false, Parent = dailyBtn }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), stroke(COLORS.outline, 2) })
-text({ Size = UDim2.fromScale(1, 1), Text = "!", Parent = badge })
 
 local function refreshDaily()
 	local day = player:GetAttribute("DailyDay") or 1
@@ -541,9 +670,24 @@ task.spawn(function()
 		local rainLeft = rainEndsAt - os.clock()
 		rainChip.Visible = rainLeft > 0
 		rainLabel.Text = "🌧️ RAIN " .. math.ceil(math.max(rainLeft, 0)) .. "s"
+		local event = workspace:GetAttribute("Event")
+		local eventLeft = (workspace:GetAttribute("EventUntil") or 0) - nowT
+		local eventDef = event and Config.Events[event]
+		eventChip.Visible = eventDef ~= nil and eventLeft > 0
+		if eventDef then
+			eventLabel.Text = eventDef.title .. " " .. Util.Duration(math.max(eventLeft, 0))
+		end
+		local boost = player:GetAttribute("Boost") or 1
+		boostChip.Visible = boost > 1.001
+		local friends = player:GetAttribute("Friends") or 0
+		boostLabel.Text = string.format("🚀 x%.2g CASH", boost) .. (if friends > 0 then " (" .. friends .. " friends)" else "")
 		if rainLeft > 0 then
 			banner.Visible = true
 			bannerText.Text = rainMsg
+		elseif eventDef and eventLeft > 0 and eventLeft > Config.EventSeconds - 12 then
+			-- Show the event banner for its first few seconds; the chip stays up after.
+			banner.Visible = true
+			bannerText.Text = eventDef.title .. "! " .. eventDef.desc
 		else
 			banner.Visible = false
 		end
@@ -551,9 +695,11 @@ task.spawn(function()
 end)
 
 Remotes.Notify.OnClientEvent:Connect(toast)
-Remotes.Banner.OnClientEvent:Connect(function(msg, seconds)
-	rainMsg = msg
-	rainEndsAt = os.clock() + seconds
+Remotes.Banner.OnClientEvent:Connect(function(msg, seconds, kind)
+	if kind ~= "event" then
+		rainMsg = msg
+		rainEndsAt = os.clock() + seconds
+	end
 	toast(msg, "epic")
 end)
 
@@ -606,6 +752,11 @@ local tips = {
 	"Claim your 🎁 DAILY reward every day. Day 7 gives the exclusive Sunny slime!",
 	"Press the red button in your base to shield it from thieves.",
 	"Try the code RELEASE in 🎟️ CODES for free cash and 5x luck!",
+	"Use your Slap Hand (hotbar) on thieves to knock your slime loose!",
+	"Open ⚔️ GEAR for Speed Coils, Traps and Tasers.",
+	"Finish 📜 QUESTS and open 🎁 GIFTS for free rewards.",
+	"Play with friends: +10% cash for every friend in your server!",
+	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 }
 if os.date("!*t").month == 10 then
 	table.insert(tips, 1, "🎃 HALLOWEEN UPDATE: Pumpkin, Ghosty and Vampire slimes until Oct 31! Code: SPOOKY")

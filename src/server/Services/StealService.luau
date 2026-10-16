@@ -11,10 +11,24 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local SlimeModel = require(script.Parent.SlimeModel)
 local Net = require(script.Parent.Net)
+local Signals = require(script.Parent.Signals)
 
 local StealService = {}
 
 local carrying: { [Player]: boolean } = {}
+-- Ends a thief's carry early (slapped, tased): the slime bounces home.
+local dropFns: { [Player]: () -> () } = {}
+
+function StealService.IsCarrying(player: Player): boolean
+	return carrying[player] == true
+end
+
+function StealService.Drop(player: Player)
+	local fn = dropFns[player]
+	if fn then
+		fn()
+	end
+end
 
 local HOP_DISTANCE = 7
 local HOP_TIME = 0.38
@@ -159,8 +173,8 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	local stage = Util.Stage(os.time() - slime.born)
 	local carried = attachToHead(char, slime, stage)
 	local marks = markThief(char)
-	local oldSpeed = humanoid.WalkSpeed
-	humanoid.WalkSpeed = Config.CarryWalkSpeed
+	-- Gear (Speed Coil) keeps a little of its boost while carrying.
+	humanoid.WalkSpeed = Config.CarryWalkSpeed + (humanoid:GetAttribute("CarryBonus") or 0)
 	thief:SetAttribute("Carrying", name)
 
 	Net.Notify(thief, "You grabbed " .. name .. "! Run back to your base!", "epic")
@@ -181,6 +195,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		finished = true
 		diedConn:Disconnect()
 		carrying[thief] = nil
+		dropFns[thief] = nil
 		if thief.Parent then
 			thief:SetAttribute("Carrying", nil)
 		end
@@ -192,7 +207,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			m:Destroy()
 		end
 		if humanoid.Parent then
-			humanoid.WalkSpeed = oldSpeed
+			humanoid.WalkSpeed = humanoid:GetAttribute("BaseSpeed") or 16
 		end
 
 		if outcome == "success" then
@@ -201,6 +216,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			if data then
 				data.steals += 1
 			end
+			Signals.Progress(thief, "steal")
 			Net.Notify(thief, "STOLEN! " .. name .. " is yours now.", "epic")
 			Net.Fx(thief, "stealWin", {})
 			if victim.Parent then
@@ -209,7 +225,10 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			end
 		elseif victim.Parent and PlotService.GetPlot(victim) then
 			if thief.Parent then
-				local reason = if outcome == "tagged" then "CAUGHT! The owner took it back!" else "You dropped the slime!"
+				local reason = if outcome == "tagged"
+					then "CAUGHT! The owner took it back!"
+					elseif outcome == "slapped" then "SLAPPED! You dropped the slime!"
+					else "You dropped the slime!"
 				Net.Notify(thief, reason, "bad")
 				Net.Fx(thief, "caught", {})
 			end
@@ -222,6 +241,10 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			-- Owner left mid-raid: the thief keeps it.
 			PlotService.AddSlime(thief, slime)
 		end
+	end
+
+	dropFns[thief] = function()
+		finish("slapped")
 	end
 
 	local started = os.clock()
@@ -254,6 +277,7 @@ function StealService.Start()
 	PlotService.StealRequested.Event:Connect(startSteal)
 	Players.PlayerRemoving:Connect(function(p)
 		carrying[p] = nil
+		dropFns[p] = nil
 	end)
 end
 

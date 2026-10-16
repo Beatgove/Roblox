@@ -17,10 +17,13 @@ end
 
 Net.NotifyEvent = remote("Notify") -- server -> client: (text, kind)
 Net.RebirthEvent = remote("Rebirth") -- client -> server: ()
-Net.BannerEvent = remote("Banner") -- server -> all: (text, seconds)
+Net.BannerEvent = remote("Banner") -- server -> all: (text, seconds, kind "rain" | "event")
 Net.FxEvent = remote("Fx") -- server -> client: (kind, data) visual/sound effects
 Net.RollEvent = remote("Roll") -- client -> server: () use the Slime Dispenser
 Net.ClaimDailyEvent = remote("ClaimDaily") -- client -> server: () claim today's login reward
+Net.BuyGearEvent = remote("BuyGear") -- client -> server: (gearKey)
+Net.ClaimGiftEvent = remote("ClaimGift") -- client -> server: (giftIndex)
+Net.ClaimQuestEvent = remote("ClaimQuest") -- client -> server: (questIndex)
 
 Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (ok, message)
 Net.RedeemCode.Name = "RedeemCode"
@@ -43,8 +46,8 @@ function Net.NotifyAll(text: string, kind: string?)
 	Net.NotifyEvent:FireAllClients(text, kind or "info")
 end
 
-function Net.Banner(text: string, seconds: number)
-	Net.BannerEvent:FireAllClients(text, seconds)
+function Net.Banner(text: string, seconds: number, kind: string?)
+	Net.BannerEvent:FireAllClients(text, seconds, kind or "rain")
 end
 
 return Net

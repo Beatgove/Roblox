@@ -15,6 +15,12 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Raiding: thieves glow red with a THIEF tag; if the owner catches them, the slime bounces its way home.
 - Effects: hopping belt slimes, bouncing pens, rarity reveals, confetti, screen flashes, camera shake, Slime Rain drops, sounds.
 - Halloween update: Pumpkin, Ghosty, Vampire spawn only in October.
+- Gear shop (cash): Slap Hand (free), Speed Coil, Gravity Coil, Slime Trap (Rebirth 1), Slime Taser (Rebirth 2). Slapping or zapping a thief knocks your slime loose and it bounces home.
+- Server events every 8 minutes: Golden Hour (Golden x10), Lava Storm (Lava mutation x3), Candy Party (Candy mutation x5), Cash Frenzy (2x income), Lucky Hour (3x luck). The world changes color and things fall from the sky.
+- Playtime gifts: 7 presents that unlock from 2 to 60 minutes into a session, including free Dispenser rolls.
+- Daily quests: 3 new goals a day (buy, roll, collect, merge, steal, slap, gifts), plus a bonus for finishing all three.
+- Friend boost (+10% cash per friend in the server, up to +50%) and Premium boost (+10%).
+- Global leaderboards by spawn: Top Earners and Top Thieves (they fill in once the game is published).
 
 Store art: `marketing/icon_512.png` (game icon) and `marketing/thumbnail_1920x1080.png` (thumbnail).
 
@@ -35,6 +41,13 @@ src/server/Services/DataService.luau   DataStore saving
 src/server/Services/DispenserService.luau  Slime Dispenser rolls and luck
 src/server/Services/CodeService.luau  Codes
 src/server/Services/Roller.luau  Rarity, slime and mutation rolls
+src/server/Services/EventService.luau  Server events (Golden Hour, Lava Storm...)
+src/server/Services/GearService.luau  Gear tools: slap, coils, trap, taser
+src/server/Services/GiftService.luau  Playtime gifts
+src/server/Services/QuestService.luau  Daily quests
+src/server/Services/BoostService.luau  Friend boost
+src/server/Services/LeaderboardService.luau  Global leaderboards
+src/server/Services/Rewards.luau  Shared reward granting
 src/client/Effects.client.luau  Particles, reveals, sounds, bouncing
 src/client/Hud.client.luau             All UI
 ```

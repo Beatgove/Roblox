@@ -63,11 +63,69 @@ Config.DispenserCooldown = 1.8
 
 -- ===== Mutations =====
 -- Rolled for every slime from the belt or dispenser. Luck doubles the chances.
+-- event = only rolls while that server event is running (see Config.Events).
 Config.Mutations = {
 	{ name = "Golden", chance = 0.05, mult = 2, color = Color3.fromRGB(255, 205, 40) },
+	{ name = "Lava", chance = 0.15, mult = 3, color = Color3.fromRGB(255, 90, 20), event = "LavaStorm" },
 	{ name = "Diamond", chance = 0.01, mult = 4, color = Color3.fromRGB(140, 240, 255) },
+	{ name = "Candy", chance = 0.08, mult = 5, color = Color3.fromRGB(255, 130, 200), event = "CandyParty" },
 	{ name = "Rainbow", chance = 0.002, mult = 8, color = Color3.fromRGB(255, 120, 255) },
 }
+
+-- ===== Server events (like weather in Grow a Garden / admin events in Steal a Brainrot) =====
+-- One random event runs every EventEverySeconds for EventSeconds. Slime Rain is separate.
+Config.EventEverySeconds = 8 * 60
+Config.EventSeconds = 3 * 60
+Config.Events = {
+	GoldenHour = { title = "✨ GOLDEN HOUR", desc = "Golden mutations x10!", goldenMult = 10, tint = Color3.fromRGB(255, 225, 150) },
+	LavaStorm = { title = "🌋 LAVA STORM", desc = "Lava slimes (x3 cash) are falling!", tint = Color3.fromRGB(255, 170, 140) },
+	CandyParty = { title = "🍬 CANDY PARTY", desc = "Candy slimes (x5 cash) are here!", tint = Color3.fromRGB(255, 200, 235) },
+	CashFrenzy = { title = "💸 CASH FRENZY", desc = "Every slime earns 2x cash!", incomeMult = 2, tint = Color3.fromRGB(190, 255, 190) },
+	LuckyHour = { title = "🍀 LUCKY HOUR", desc = "3x luck on the belt and Dispenser!", luck = 3, tint = Color3.fromRGB(200, 255, 210) },
+}
+
+-- ===== Gear (bought with cash in the GEAR menu, kept forever) =====
+-- rebirth = rebirths needed to buy it. Slap is free for everyone.
+Config.GearOrder = { "Slap", "SpeedCoil", "GravityCoil", "Trap", "Taser" }
+Config.Gear = {
+	Slap = { name = "Slap Hand", price = 0, rebirth = 0, desc = "Knock players away. Slap a thief and they drop your slime!", color = Color3.fromRGB(255, 200, 150), cooldown = 1.2, range = 9, force = 70 },
+	SpeedCoil = { name = "Speed Coil", price = 2500, rebirth = 0, desc = "Run much faster while you hold it.", color = Color3.fromRGB(90, 200, 255), walkSpeed = 28 },
+	GravityCoil = { name = "Gravity Coil", price = 8000, rebirth = 0, desc = "Jump super high while you hold it.", color = Color3.fromRGB(190, 120, 255), jumpHeight = 22 },
+	Trap = { name = "Slime Trap", price = 40000, rebirth = 1, desc = "Drop a sticky trap. Thieves who step in freeze for 4s.", color = Color3.fromRGB(120, 255, 120), cooldown = 25, freeze = 4, life = 60 },
+	Taser = { name = "Slime Taser", price = 500000, rebirth = 2, desc = "Zap a player from far away and stun them for 3s.", color = Color3.fromRGB(255, 240, 80), cooldown = 12, range = 40, stun = 3 },
+}
+
+-- ===== Playtime gifts (claim while you play; reset every visit) =====
+Config.PlaytimeGifts = {
+	{ minutes = 2, label = "Cash", cashSeconds = 60, cashMin = 150 },
+	{ minutes = 5, label = "5 min Luck", luckMinutes = 5 },
+	{ minutes = 10, label = "Big Cash", cashSeconds = 240, cashMin = 600 },
+	{ minutes = 15, label = "Free Roll", freeRoll = true },
+	{ minutes = 25, label = "Grow Boost", grow = true },
+	{ minutes = 40, label = "Huge Cash", cashSeconds = 900, cashMin = 4000 },
+	{ minutes = 60, label = "Lucky Roll", freeRoll = true, rollLuck = 5 },
+}
+
+-- ===== Daily quests (3 new ones every day) =====
+-- kind is what counts: buy (belt), roll (dispenser), collect (cash from your pad),
+-- merge, steal, slap, gift. goal scales with rebirths for "collect".
+Config.QuestsPerDay = 3
+Config.QuestPool = {
+	{ kind = "buy", goal = 8, text = "Buy %d slimes from the belt" },
+	{ kind = "roll", goal = 5, text = "Roll the Dispenser %d times" },
+	{ kind = "collect", goal = 5000, text = "Collect %s from your pad", money = true },
+	{ kind = "merge", goal = 1, text = "Merge slimes %d time" },
+	{ kind = "steal", goal = 1, text = "Steal %d slime" },
+	{ kind = "slap", goal = 5, text = "Slap players %d times" },
+	{ kind = "gift", goal = 3, text = "Open %d playtime gifts" },
+}
+Config.QuestReward = { cashSeconds = 300, cashMin = 1500, luckMinutes = 5 }
+Config.AllQuestsBonus = { cashSeconds = 900, cashMin = 5000, luckMinutes = 15 }
+
+-- ===== Boosts =====
+Config.FriendBoost = 0.1 -- +10% income per friend in the server
+Config.MaxFriendBoost = 0.5
+Config.PremiumBoost = 0.1 -- Roblox Premium members earn +10%
 
 -- ===== Merging =====
 -- Merge 3 identical slimes (same name and same stars) into one with an extra star.
@@ -204,6 +262,12 @@ end
 for _, m in Config.Mutations do
 	Config.MutationByName[m.name] = m
 end
+
+Config.EventKeys = {}
+for k in Config.Events do
+	table.insert(Config.EventKeys, k)
+end
+table.sort(Config.EventKeys)
 
 function Config.MutationMult(mut: string?): number
 	local m = mut and Config.MutationByName[mut]

@@ -9,6 +9,8 @@ local DataService = require(script.Parent.DataService)
 local Passes = require(script.Parent.Passes)
 local SlimeModel = require(script.Parent.SlimeModel)
 local Net = require(script.Parent.Net)
+local Roller = require(script.Parent.Roller)
+local Signals = require(script.Parent.Signals)
 
 local PlotService = {}
 
@@ -63,6 +65,20 @@ function PlotService.IncomeMultiplier(player: Player): number
 	end
 	if data then
 		mult *= 1 + PlotService.IndexCount(player) * Config.IndexBonusPerSlime
+	end
+	return mult * PlotService.BoostMultiplier(player)
+end
+
+-- Temporary/social boosts on top of permanent ones: friends in the server, Premium, Cash Frenzy.
+function PlotService.BoostMultiplier(player: Player): number
+	local friend = player:GetAttribute("FriendBoost")
+	local mult = 1 + (if typeof(friend) == "number" then friend else 0)
+	if player.MembershipType == Enum.MembershipType.Premium then
+		mult += Config.PremiumBoost
+	end
+	local event = Roller.ActiveEvent()
+	if event and Config.Events[event].incomeMult then
+		mult *= Config.Events[event].incomeMult
 	end
 	return mult
 end
@@ -125,6 +141,7 @@ function PlotService.Sync(player: Player)
 	player:SetAttribute("SlimeCount", #data.slimes)
 	player:SetAttribute("LuckUntil", data.luckUntil)
 	player:SetAttribute("RollCost", PlotService.RollCost(player))
+	player:SetAttribute("Boost", PlotService.BoostMultiplier(player))
 	local ids = {}
 	for id in data.index do
 		table.insert(ids, id)
@@ -330,6 +347,7 @@ function PlotService.Merge(player: Player, slot: number)
 	local name = Config.DisplayName(merged.id, merged.mut, merged.stars)
 	Net.FxAll("merge", { from = positions, to = pad and pad.Position or positions[1], color = Config.RarityByName[Config.SlimeById[merged.id].rarity].color })
 	Net.Fx(player, "merged", { name = name, stars = merged.stars })
+	Signals.Progress(player, "merge")
 	Net.Notify(player, "MERGED! " .. name .. " earns " .. Util.Money(PlotService.SlimeIncome(merged) * PlotService.IncomeMultiplier(player)) .. "/s", "epic")
 	if merged.stars >= 2 then
 		Net.NotifyAll(player.DisplayName .. " merged a " .. name .. "!", "epic")
@@ -477,6 +495,7 @@ local function setupPlotInteractions(plot: Plot)
 		local amount = math.floor(data.bank)
 		data.bank -= amount
 		PlotService.AddCash(owner, amount)
+		Signals.Progress(owner, "collect", amount)
 		Net.Fx(owner, "collect", { pos = collector.Position, amount = amount })
 		task.delay(0.5, function()
 			debounce = false
@@ -574,6 +593,7 @@ function PlotService.Start(builtPlots)
 					if Passes.Owns(player, "AutoCollect") then
 						data.cash += income
 						data.totalEarned += income
+						Signals.Progress(player, "collect", income)
 					else
 						data.bank += income
 					end

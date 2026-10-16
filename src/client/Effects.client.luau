@@ -452,6 +452,146 @@ handlers.code = function()
 	sound("Ping", 1.2, 0.8)
 end
 
+handlers.swing = function(d)
+	sound("Whoosh", 1.8, 0.3, d.pos)
+end
+handlers.slap = function(d)
+	burst(d.pos, Color3.fromRGB(255, 230, 180), 25, { speed = 20 })
+	ring(d.pos, Color3.fromRGB(255, 255, 255), 8)
+	sound("Snap", 1.5, 1, d.pos)
+end
+handlers.knock = function(d)
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if root and hum then
+		hum:ChangeState(Enum.HumanoidStateType.Freefall)
+		root.AssemblyLinearVelocity = d.dir * d.force + Vector3.new(0, d.force * 0.55, 0)
+	end
+	shake(1.2)
+	flash(Color3.fromRGB(255, 255, 255), 0.3, 0.3)
+	announce("SLAPPED!", Color3.fromRGB(255, 200, 150), nil, nil, 1)
+end
+handlers.frozen = function(d)
+	flash(Color3.fromRGB(120, 255, 140), 0.4, 0.5)
+	announce("STUCK!", Color3.fromRGB(120, 255, 140), "Frozen for " .. d.seconds .. "s", nil, d.seconds)
+	sound("Oof", 1.2, 0.6)
+end
+handlers.trapPlaced = function(d)
+	ring(d.pos, Color3.fromRGB(120, 255, 120), 8)
+	sound("Snap", 0.7, 0.6, d.pos)
+end
+handlers.trapped = function(d)
+	burst(d.pos + Vector3.new(0, 2, 0), Color3.fromRGB(120, 255, 120), 60, { speed = 14 })
+	ring(d.pos, Color3.fromRGB(120, 255, 120), 16)
+	sound("Snap", 0.5, 1, d.pos)
+end
+handlers.zap = function(d)
+	local dist = (d.to - d.from).Magnitude
+	local bolt = Instance.new("Part")
+	bolt.Anchored = true
+	bolt.CanCollide = false
+	bolt.CanQuery = false
+	bolt.Material = Enum.Material.Neon
+	bolt.Color = Color3.fromRGB(255, 240, 80)
+	bolt.Size = Vector3.new(0.35, 0.35, dist)
+	bolt.CFrame = CFrame.lookAt((d.from + d.to) / 2, d.to)
+	bolt.Parent = fxFolder
+	TweenService:Create(bolt, TweenInfo.new(0.35), { Transparency = 1, Size = Vector3.new(0.05, 0.05, dist) }):Play()
+	Debris:AddItem(bolt, 0.4)
+	burst(d.to, Color3.fromRGB(255, 240, 80), 30, { speed = 18 })
+	sound("Ping", 2.4, 0.8, d.to)
+end
+handlers.gear = function(d)
+	confetti(60)
+	announce("NEW GEAR!", Color3.fromRGB(90, 200, 255), d.name, nil, 1.6)
+	sound("Ping", 1.3, 0.8)
+end
+handlers.gift = function()
+	confetti(70)
+	flash(Color3.fromRGB(255, 120, 200), 0.3, 0.4)
+	sound("Ping", 1.5, 0.8)
+	task.delay(0.1, sound, "Ping", 1.9, 0.6)
+end
+handlers.questDone = function()
+	sound("Ping", 1.2, 0.8)
+	task.delay(0.12, sound, "Ping", 1.6, 0.8)
+end
+
+-- Server events: tint the world, announce, and drop themed things from the sky.
+local Lighting = game:GetService("Lighting")
+local defaultTint = Color3.fromRGB(255, 248, 255)
+handlers.event = function(d)
+	local def = Config.Events[d.key]
+	if not def then
+		return
+	end
+	announce(def.title .. "!", def.tint, def.desc, nil, 3)
+	flash(def.tint, 0.5, 0.8)
+	confetti(80)
+	sound("Whoosh", 0.8, 1)
+	for i = 0, 3 do
+		task.delay(0.15 * i, sound, "Ping", 0.9 + i * 0.2, 0.8)
+	end
+end
+task.spawn(function()
+	local cc = Lighting:WaitForChild("ColorCorrection", 10) or Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+	local current = ""
+	while true do
+		task.wait(1)
+		local e = workspace:GetAttribute("Event")
+		local active = e and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow() and Config.Events[e]
+		local key = if active then e else ""
+		if key ~= current and cc and cc:IsA("ColorCorrectionEffect") then
+			current = key
+			TweenService:Create(cc, TweenInfo.new(2), { TintColor = if active then active.tint else defaultTint }):Play()
+		end
+	end
+end)
+
+local EVENT_DROPS = {
+	LavaStorm = { colors = { Color3.fromRGB(255, 90, 20), Color3.fromRGB(255, 160, 40) }, size = { 18, 34 }, rate = 0.15, fire = true },
+	CandyParty = { colors = { Color3.fromRGB(255, 130, 200), Color3.fromRGB(150, 230, 255), Color3.fromRGB(255, 240, 120) }, size = { 8, 16 }, rate = 0.08 },
+	GoldenHour = { colors = { Color3.fromRGB(255, 215, 60) }, size = { 4, 10 }, rate = 0.1 },
+}
+task.spawn(function()
+	while true do
+		local e = workspace:GetAttribute("Event")
+		local style = e and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow() and EVENT_DROPS[e]
+		if not style then
+			task.wait(1)
+			continue
+		end
+		task.wait(style.rate)
+		local drop = Instance.new("Part")
+		drop.Shape = Enum.PartType.Ball
+		drop.Anchored = true
+		drop.CanCollide = false
+		drop.CanQuery = false
+		drop.Material = Enum.Material.Neon
+		drop.Color = style.colors[math.random(1, #style.colors)]
+		drop.Size = Vector3.one * (math.random(style.size[1], style.size[2]) / 10)
+		local x, z = math.random(-160, 160), math.random(-110, 110)
+		drop.Position = Vector3.new(x + 20, 90, z)
+		drop.Parent = fxFolder
+		if style.fire then
+			local f = Instance.new("Fire")
+			f.Heat = 12
+			f.Size = drop.Size.X * 2
+			f.Color = drop.Color
+			f.Parent = drop
+		end
+		local fall = math.random(15, 25) / 10
+		TweenService:Create(drop, TweenInfo.new(fall, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = Vector3.new(x, 0.5, z) }):Play()
+		task.delay(fall, function()
+			if drop.Parent then
+				burst(drop.Position, drop.Color, if style.fire then 14 else 6, { speed = 10, size = 0.9 })
+				drop:Destroy()
+			end
+		end)
+	end
+end)
+
 FxEvent.OnClientEvent:Connect(function(kind, data)
 	local h = handlers[kind]
 	if h then

@@ -10,6 +10,7 @@ local SlimeModel = require(script.Parent.SlimeModel)
 local MapBuilder = require(script.Parent.MapBuilder)
 local Roller = require(script.Parent.Roller)
 local Net = require(script.Parent.Net)
+local Signals = require(script.Parent.Signals)
 
 local ConveyorService = {}
 
@@ -28,7 +29,7 @@ local function announceIfRare(rarity, text: string)
 end
 
 local function spawnSlime()
-	local luck = if ConveyorService.IsRaining() then Config.RainLuck else 1
+	local luck = (if ConveyorService.IsRaining() then Config.RainLuck else 1) * Roller.EventLuck()
 	local def = Roller.Slime(luck)
 	local mut = Roller.Mutation(luck)
 	local rarity = Config.RarityByName[def.rarity]
@@ -78,6 +79,7 @@ local function spawnSlime()
 		model:Destroy()
 		PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut })
 		Net.Notify(player, "Bought " .. name .. "! It's in your base.", "good")
+		Signals.Progress(player, "buy")
 		announceIfRare(rarity, player.DisplayName .. " bought a " .. def.rarity .. " " .. name .. "!")
 	end)
 
@@ -115,7 +117,7 @@ function ConveyorService.StartRain(seconds: number, byName: string?)
 	rainUntil = math.max(rainUntil, t) + seconds
 	workspace:SetAttribute("RainUntil", workspace:GetServerTimeNow() + (rainUntil - t))
 	local who = if byName then byName .. " started a " else "A "
-	Net.Banner(who .. "SLIME RAIN! 5x LUCK everywhere for " .. seconds .. "s", seconds)
+	Net.Banner(who .. "SLIME RAIN! 5x LUCK everywhere for " .. seconds .. "s", seconds, "rain")
 end
 
 function ConveyorService.Start()
