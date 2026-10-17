@@ -142,7 +142,7 @@ local top = new("Frame", {
 	Parent = gui,
 }, { corner(18), stroke(COLORS.outline, 4), gradient(COLORS.bg2, COLORS.bg) })
 -- Kept small so the screen doesn't feel crowded (the bar and chips scale down together).
-local TOP_SCALE = 0.72
+local TOP_SCALE = 0.55
 local topScale = new("UIScale", { Scale = TOP_SCALE, Parent = top })
 local cashLabel = text({ Size = UDim2.new(1, -20, 0, 44), Position = UDim2.fromOffset(10, 4), TextColor3 = COLORS.accent, Text = "$0", Parent = top })
 local incomeLabel = text({ Size = UDim2.new(1, -20, 0, 20), Position = UDim2.fromOffset(10, 48), TextColor3 = COLORS.muted, Text = "+$0/s", Parent = top })
@@ -168,11 +168,11 @@ refreshLevel()
 
 local chips = new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 74),
+	Position = UDim2.new(0.5, 0, 0, 56),
 	Size = UDim2.fromOffset(600, 68),
 	BackgroundTransparency = 1,
 	Parent = gui,
-}, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6), Wraps = true }), new("UIScale", { Scale = 0.75 }) })
+}, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6), Wraps = true }), new("UIScale", { Scale = 0.6 }) })
 local function chip(color: Color3)
 	local f = new("Frame", { Size = UDim2.fromOffset(190, 30), BackgroundColor3 = Color3.new(1, 1, 1), Visible = false, Parent = chips }, { corner(15), stroke(COLORS.outline, 3), gradient(color, color:Lerp(Color3.new(0, 0, 0), 0.3)) })
 	local l = text({ Size = UDim2.new(1, -12, 1, -6), Position = UDim2.fromOffset(6, 3), Text = "", Parent = f })
@@ -197,7 +197,7 @@ local stormChip, stormLabel = chip(Color3.fromRGB(110, 90, 220))
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 132),
+	Position = UDim2.new(0.5, 0, 0, 100),
 	Size = UDim2.new(0.9, 0, 0, 48),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	Visible = false,
@@ -1454,8 +1454,8 @@ do
 		end
 		goalStep.Text = "🧭 GOAL " .. step .. " OF " .. #Config.Tutorial
 		goalText.Text = player:GetAttribute("TutorialText") or ""
-		goalScale.Scale = 0.55
-		TweenService:Create(goalScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 0.75 }):Play()
+		goalScale.Scale = 0.45
+		TweenService:Create(goalScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 0.6 }):Play()
 		if typeof(target) == "Vector3" then
 			marker.Position = target
 			marker.Parent = workspace
