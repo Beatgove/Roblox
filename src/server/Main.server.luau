@@ -35,6 +35,7 @@ local RelicService = require(Services.RelicService)
 local FishingService = require(Services.FishingService)
 local ArcadeService = require(Services.ArcadeService)
 local TowerService = require(Services.TowerService)
+local EventDropService = require(Services.EventDropService)
 local BossService = require(Services.BossService)
 
 local plots = MapBuilder.Build()
@@ -65,6 +66,7 @@ RelicService.Start()
 FishingService.Start()
 ArcadeService.Start()
 TowerService.Start()
+EventDropService.Start()
 BossService.Start()
 require(Services.DebugService).Start({
 	DataService = DataService,
@@ -78,6 +80,7 @@ require(Services.DebugService).Start({
 	BlackoutService = BlackoutService,
 	RelicService = RelicService,
 	ArcadeService = ArcadeService,
+	EventDropService = EventDropService,
 })
 
 local function makeLeaderstats(player: Player)

@@ -1228,6 +1228,7 @@ local tips = {
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
 	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",
+	"During events, boxes fall into the street. Run and grab them first! 🎁 Lucky Boxes hold free rolls and relics.",
 	"Waiting for a rare slime? Go fishing at the 🎣 Goo Pond, play 🔨 Whack-a-Slime or climb the 🗼 Sky Tower!",
 	"Equip 🔮 RELICS for combos: lots of Commons + Common Crowd = big income!",
 	"During a 🌑 BLACKOUT base locks stop working. Raid in the dark, but avoid the Gloom!",

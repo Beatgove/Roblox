@@ -599,6 +599,25 @@ handlers.relic = function(d)
 	task.delay(0.2, sound, "Ping", 1.1, 0.9)
 end
 
+-- ===== Event drops =====
+handlers.dropLand = function(d)
+	ring(d.pos - Vector3.new(0, 1.4, 0), d.color, if d.lucky then 14 else 8)
+	burst(d.pos, d.color, if d.lucky then 40 else 16, { speed = 14 })
+	sound("Snap", if d.lucky then 0.6 else 0.9, 0.5, d.pos)
+end
+handlers.dropTaken = function(d)
+	burst(d.pos, d.color, 24, { speed = 16 })
+end
+handlers.dropGrab = function(d)
+	if d.lucky then
+		confetti(90)
+		flash(d.color, 0.35, 0.5)
+	end
+	announce(d.title, d.color, d.text, nil, if d.lucky then 2.5 else 1.4)
+	popText(d.pos + Vector3.new(0, 3, 0), d.title, d.color)
+	sound("Ping", if d.lucky then 0.9 else 1.4, 0.8)
+end
+
 -- ===== Mini games =====
 handlers.fishCast = function(d)
 	burst(d.pos, Color3.fromRGB(150, 255, 180), 10, { speed = 6 })

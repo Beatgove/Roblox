@@ -54,6 +54,10 @@ function Rewards.Grant(player: Player, reward): string
 			end
 		end
 	end
+	if reward.snackKey then
+		SnackService.Give(player, reward.snackKey, 1, true)
+		table.insert(parts, Config.Snacks[reward.snackKey].icon .. " " .. reward.snackKey .. " snack")
+	end
 	if reward.relic then
 		RelicService.Give(player, nil, reward.source)
 		table.insert(parts, "a 🔮 relic")

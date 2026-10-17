@@ -84,6 +84,30 @@ Config.Events = {
 	LuckyHour = { title = "🍀 LUCKY HOUR", desc = "3x luck on the belt and Dispenser!", luck = 3, tint = Color3.fromRGB(200, 255, 210) },
 }
 
+-- Event drops: while an event (or a Blackout) runs, themed boxes fall into the street.
+-- First player to touch one gets it. A themed box can also infuse a random pen slime
+-- with the event's trait. Any event can drop a rare Lucky Box instead.
+Config.EventDrops = {
+	every = 5, perWave = 2, lifeSeconds = 25, maxPerPlayer = 8,
+	traitChance = 0.2, luckyChance = 0.08,
+	area = { x = 165, zMin = 8, zMax = 42 }, -- street between the bases, off the belt
+	themes = {
+		GoldenHour = { name = "Golden Crate", icon = "✨", color = Color3.fromRGB(255, 205, 60), material = "Metal", reward = { cashSeconds = 25, cashMin = 150 } },
+		LavaStorm = { name = "Lava Rock", icon = "🌋", color = Color3.fromRGB(255, 90, 20), material = "CrackedLava", reward = { cashSeconds = 20, cashMin = 120 } },
+		CandyParty = { name = "Candy Box", icon = "🍬", color = Color3.fromRGB(255, 130, 200), material = "SmoothPlastic", reward = { snacks = 2 } },
+		CashFrenzy = { name = "Money Bag", icon = "💸", color = Color3.fromRGB(110, 230, 110), material = "Fabric", reward = { cashSeconds = 35, cashMin = 200 } },
+		LuckyHour = { name = "Clover Box", icon = "🍀", color = Color3.fromRGB(90, 230, 110), material = "Grass", reward = { luckMinutes = 3 } },
+		Blackout = { name = "Glow Orb", icon = "🍄", color = Color3.fromRGB(110, 255, 150), material = "Neon", reward = { snackKey = "Glowcap" } },
+	},
+	-- Odds inside a Lucky Box (shown on pickup in the notification).
+	lucky = {
+		{ label = "Free Slime Roll", weight = 50, reward = { freeRoll = true } },
+		{ label = "Big Cash", weight = 30, reward = { cashSeconds = 120, cashMin = 800 } },
+		{ label = "Lucky Roll (3x luck)", weight = 15, reward = { freeRoll = true, rollLuck = 3 } },
+		{ label = "Relic", weight = 5, reward = { relic = true, source = "a Lucky Box" } },
+	},
+}
+
 -- ===== Traits (like Steal a Brainrot) =====
 -- Extra tags on a slime that stack with each other (their multipliers add up) and
 -- multiply with mutations. Some roll on new slimes; event ones also strike slimes

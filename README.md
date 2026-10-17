@@ -35,6 +35,7 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Blackout: every 25 minutes the lights go out for 90 seconds. Free base locks stop working (bought shields and the Rookie Shield still hold), you get a flashlight, pen slimes glow, and the Gloom drifts through the street. If it touches you, you drop what you carry and wake up at home.
 - Base Relics: 12 rule-changing charms (Common Crowd, Star Polish, Insurance, Sticky Floor, Lucky Charm, Quick Fuse...). Equip 3, they float above your base, and they reset on rebirth so every run is a new combo. Income relics add up, never multiply.
 - Bases: 4 per side with gardens between them. Every base starts with a wood floor, posts, glowing entrance pillars, a rug and hedges, and gets nicer at rebirths 1-10, 12, 15, 20 and 25 (stone, flowers, lanterns, a gate, crystals, marble and gold, fireflies, banners, party lights, sparkles, a golden statue, a floating crown, a glowing floor, rainbow trim).
+- Event drops: during every event themed boxes fall into the street and the first player to touch one gets it (Golden Crates, Lava Rocks, Candy Boxes with snacks, Money Bags, Clover Boxes with luck, and Glow Orbs with Glowcap snacks in a Blackout). Themed boxes can also give one of your pen slimes the event's trait. 8% are 🎁 Lucky Boxes (free roll 50%, big cash 30%, lucky roll 15%, relic 5%). Up to 8 pickups per player per event.
 - Mini games at the ends of the street, for while you wait on a slime:
   - 🎣 Goo Pond: cast from one of 8 decks, wait for the bite, tap REEL in time. Catches are cash, snacks, luck, a free roll or (1%) a relic; odds are on the board.
   - 🔨 Whack-a-Slime: 2 machines, 30-second rounds. Click or tap slimes (golden = 3, bombs = -2). Score pays cash, 20+ adds a snack, 30+ adds luck. Server record on the screen.
@@ -83,6 +84,7 @@ src/server/Services/DebugService.luau  Studio-only test commands (ServerStorage.
 src/server/Services/FishingService.luau  Goo Pond fishing
 src/server/Services/ArcadeService.luau  Whack-a-Slime
 src/server/Services/TowerService.luau  Sky Tower obby
+src/server/Services/EventDropService.luau  Themed boxes that fall during events
 src/server/Services/Signals.luau  Progress events shared by quests, XP and the Index
 src/client/Effects.client.luau  Particles, reveals, sounds, bouncing
 src/client/Hud.client.luau             All UI
