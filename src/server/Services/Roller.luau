@@ -24,12 +24,18 @@ function Roller.Rarity(luck: number)
 	return Config.Rarities[1]
 end
 
--- Slimes of a rarity that can spawn right now (seasonal ones only in their month).
+local function stormOn(): boolean
+	return workspace:GetAttribute("Event") == "SlimeStorm" and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow()
+end
+
+-- Slimes of a rarity that can spawn right now (seasonal ones only in their month,
+-- storm ones only during the Slime Storm).
 function Roller.Spawnable(rarityName: string)
 	local month = os.date("!*t").month
+	local storm = stormOn()
 	local list = {}
 	for _, s in Config.Slimes do
-		if s.rarity == rarityName and (s.season == nil or s.season == month) then
+		if s.rarity == rarityName and (s.season == nil or s.season == month) and (not s.storm or storm) then
 			table.insert(list, s)
 		end
 	end
@@ -41,6 +47,18 @@ function Roller.Slime(luck: number)
 	repeat
 		list = Roller.Spawnable(Roller.Rarity(luck).name)
 	until #list > 0
+	-- During the Storm, storm slimes show up often so everyone has a real shot at one.
+	if stormOn() and rng:NextNumber() < Config.Storm.stormPick then
+		local storm = {}
+		for _, s in list do
+			if s.storm then
+				table.insert(storm, s)
+			end
+		end
+		if #storm > 0 then
+			return storm[rng:NextInteger(1, #storm)]
+		end
+	end
 	return list[rng:NextInteger(1, #list)]
 end
 

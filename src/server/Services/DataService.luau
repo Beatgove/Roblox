@@ -48,6 +48,7 @@ local function defaultData()
 		relics = {}, -- equipped relic keys (up to Config.RelicSlots), reset on rebirth
 		relicBag = {}, -- relic key -> true, owned this run
 		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true
+		tutorial = 0, -- first-time guide step (Config.Tutorial); 99 = done
 		quests = { day = -1, list = {}, bonus = false }, -- today's daily quests
 		receipts = {}, -- PurchaseId -> true (recent, for idempotent ProcessReceipt)
 		receiptOrder = {},
@@ -55,6 +56,9 @@ local function defaultData()
 end
 
 local function reconcile(data)
+	if data.tutorial == nil then
+		data.tutorial = 99 -- saves from before the guide existed skip it
+	end
 	local def = defaultData()
 	for k, v in def do
 		if data[k] == nil then
@@ -91,15 +95,44 @@ local function withRetry(fn)
 	return false, nil
 end
 
+-- Session locking: the save carries `_lock = { job, t }`. A server only loads a save
+-- that no other live server holds (or whose lock went stale), and only writes while it
+-- still owns the lock. This stops two servers fighting over one save, which is how
+-- slimes get lost or duplicated when someone rejoins fast or hops servers.
+local JOB = if game.JobId ~= "" then game.JobId else "studio-" .. tostring(math.random(1, 1e9))
+local LOCK_STALE = Config.SaveIntervalSeconds * 3
+
+local function lockedByOther(saved): boolean
+	local lock = type(saved) == "table" and saved._lock
+	return type(lock) == "table" and lock.job ~= JOB and os.time() - (lock.t or 0) < LOCK_STALE
+end
+
 function DataService.Load(player: Player)
 	local key = "u_" .. player.UserId
 	local data
 	if store then
-		local success, result = withRetry(function()
-			return store:GetAsync(key)
-		end)
-		if success then
-			data = result and reconcile(result) or defaultData()
+		local success, result = false, nil
+		-- Wait up to ~20 s for another server to let go (it saves and unlocks on leave).
+		for attempt = 1, 8 do
+			local busy = false
+			success, result = withRetry(function()
+				return store:UpdateAsync(key, function(saved)
+					if lockedByOther(saved) and attempt < 8 then
+						busy = true
+						return nil -- leave it alone
+					end
+					saved = if type(saved) == "table" then saved else defaultData()
+					saved._lock = { job = JOB, t = os.time() }
+					return saved
+				end)
+			end)
+			if not success or not busy or not player.Parent then
+				break
+			end
+			task.wait(2.5)
+		end
+		if success and result then
+			data = reconcile(result)
 			canSave[player] = true
 		else
 			data = defaultData()
@@ -118,22 +151,40 @@ function DataService.Get(player: Player)
 	return profiles[player]
 end
 
-function DataService.Save(player: Player)
+local function write(player: Player, unlock: boolean)
 	local data = profiles[player]
 	if not data or not store or not canSave[player] then
 		return
 	end
 	data.lastOnline = os.time()
 	local key = "u_" .. player.UserId
+	local stolen = false
 	withRetry(function()
-		store:UpdateAsync(key, function()
+		store:UpdateAsync(key, function(saved)
+			local lock = type(saved) == "table" and saved._lock
+			if type(lock) == "table" and lock.job ~= JOB then
+				stolen = true
+				return nil -- another server owns this save now; never overwrite it
+			end
+			data._lock = if unlock then nil else { job = JOB, t = os.time() }
 			return data
 		end)
 	end)
+	if stolen then
+		canSave[player] = false
+		warn("[DataService] another server took over", player.Name, "- this server stops saving them")
+		if player.Parent then
+			player:Kick("You joined Steal a Slime somewhere else. Your progress is safe there.")
+		end
+	end
+end
+
+function DataService.Save(player: Player)
+	write(player, false)
 end
 
 function DataService.Release(player: Player)
-	DataService.Save(player)
+	write(player, true)
 	profiles[player] = nil
 	canSave[player] = nil
 end

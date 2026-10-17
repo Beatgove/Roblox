@@ -163,8 +163,9 @@ function BlackoutService.Start()
 	task.spawn(function()
 		task.wait(B.firstDelay)
 		while true do
-			-- Never at the same time as the King Slime.
-			while (workspace:GetAttribute("KingUntil") or 0) > workspace:GetServerTimeNow() do
+			-- Never at the same time as the King Slime or the Slime Storm.
+			while (workspace:GetAttribute("KingUntil") or 0) > workspace:GetServerTimeNow()
+				or (workspace:GetAttribute("Event") == "SlimeStorm" and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow()) do
 				task.wait(10)
 			end
 			run()

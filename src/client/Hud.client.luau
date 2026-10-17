@@ -7,6 +7,8 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local SocialService = game:GetService("SocialService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
@@ -188,6 +190,7 @@ local nemesisChip, nemesisLabel = chip(Color3.fromRGB(140, 50, 200))
 local blackoutChip, blackoutLabel = chip(Color3.fromRGB(50, 40, 110))
 local arcadeChip, arcadeLabel = chip(Color3.fromRGB(255, 120, 200))
 local towerChip, towerLabel = chip(Color3.fromRGB(150, 120, 255))
+local stormChip, stormLabel = chip(Color3.fromRGB(110, 90, 220))
 
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
@@ -845,7 +848,7 @@ end)
 local side = new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.fromOffset(208, 428),
+	Size = UDim2.fromOffset(208, 494),
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, { new("UIGridLayout", { CellSize = UDim2.fromOffset(100, 62), CellPadding = UDim2.fromOffset(8, 10), SortOrder = Enum.SortOrder.LayoutOrder }) })
@@ -853,7 +856,7 @@ local side = new("Frame", {
 local sideScale = new("UIScale", { Parent = side })
 local function fitSide()
 	local h = workspace.CurrentCamera.ViewportSize.Y
-	sideScale.Scale = math.clamp((h - 150) / 428, 0.5, 1)
+	sideScale.Scale = math.clamp((h - 150) / 494, 0.5, 1)
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitSide)
 fitSide()
@@ -879,6 +882,15 @@ sideButton(9, Color3.fromRGB(120, 255, 160), "⬆️ UPGRADE", upgrades, upgrade
 local fuseSideBtn = sideButton(10, FUSE_COLOR, "🧪 FUSE", fuse, fuseScale)
 sideButton(11, SNACK_COLOR, "🍽️ SNACKS", snacksPanel, snacksScale)
 sideButton(12, RELIC_COLOR, "🔮 RELICS", relicsPanel, relicsScale)
+-- Invite friends: everyone earns +10% cash per friend in the server.
+button({ BackgroundColor3 = Color3.fromRGB(80, 200, 255), Text = "💌 INVITE", LayoutOrder = 13, Parent = side }, function()
+	local ok, can = pcall(SocialService.CanSendGameInviteAsync, SocialService, player)
+	if ok and can then
+		pcall(SocialService.PromptGameInvite, SocialService, player)
+	else
+		toast("Invites aren't available on this account right now.", "bad")
+	end
+end)
 local fuseBadge = makeBadge(fuseSideBtn)
 local badge = makeBadge(dailyBtn)
 local questBadge = makeBadge(questsBtn)
@@ -1098,6 +1110,7 @@ end)
 
 local rainEndsAt = 0
 local rainMsg = ""
+local rainKind = "rain"
 task.spawn(function()
 	while true do
 		task.wait(0.25)
@@ -1112,9 +1125,14 @@ task.spawn(function()
 		carryChip.Visible = carrying ~= nil
 		carryLabel.Text = "🏃 RUN HOME!"
 		local rainLeft = rainEndsAt - os.clock()
-		rainChip.Visible = rainLeft > 0
-		rainLabel.Text = "🌧️ RAIN " .. math.ceil(math.max(rainLeft, 0)) .. "s"
 		local event = workspace:GetAttribute("Event")
+		rainChip.Visible = rainLeft > 0 and rainKind == "rain"
+		local stormIn = (workspace:GetAttribute("NextStorm") or 0) - nowT
+		stormChip.Visible = stormIn > 0 and event ~= "SlimeStorm"
+		if stormIn > 0 then
+			stormLabel.Text = "⛈️ STORM in " .. (if stormIn >= 86400 then string.format("%dd %dh", stormIn // 86400, (stormIn % 86400) // 3600) else Util.Duration(stormIn))
+		end
+		rainLabel.Text = "🌧️ RAIN " .. math.ceil(math.max(rainLeft, 0)) .. "s"
 		local eventLeft = (workspace:GetAttribute("EventUntil") or 0) - nowT
 		local eventDef = event and Config.Events[event]
 		eventChip.Visible = eventDef ~= nil and eventLeft > 0
@@ -1153,7 +1171,7 @@ task.spawn(function()
 		if rainLeft > 0 then
 			banner.Visible = true
 			bannerText.Text = rainMsg
-		elseif eventDef and eventLeft > 0 and eventLeft > Config.EventSeconds - 12 then
+		elseif eventDef and eventLeft > 0 and nowT - (workspace:GetAttribute("EventStart") or 0) < 12 then
 			-- Show the event banner for its first few seconds; the chip stays up after.
 			banner.Visible = true
 			bannerText.Text = eventDef.title .. "! " .. eventDef.desc
@@ -1168,6 +1186,7 @@ Remotes.Banner.OnClientEvent:Connect(function(msg, seconds, kind)
 	if kind ~= "event" then
 		rainMsg = msg
 		rainEndsAt = os.clock() + seconds
+		rainKind = kind
 	end
 	toast(msg, "epic")
 end)
@@ -1224,7 +1243,8 @@ local tips = {
 	"Use your Slap Hand (hotbar) on thieves to knock your slime loose!",
 	"Open ⚔️ GEAR for Speed Coils, Traps and Tasers.",
 	"Finish 📜 QUESTS and open 🎁 GIFTS for free rewards.",
-	"Play with friends: +10% cash for every friend in your server!",
+	"Tap 💌 INVITE: you get +10% cash for every friend in your server!",
+	"⛈️ The SLIME STORM hits every Wednesday and Saturday. Storm-only slimes, 3x luck and 2x cash!",
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
 	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",
@@ -1244,10 +1264,91 @@ local tips = {
 if os.date("!*t").month == 10 then
 	table.insert(tips, 1, "🎃 HALLOWEEN UPDATE: Pumpkin, Ghosty and Vampire slimes until Oct 31! Code: SPOOKY")
 end
+-- Tips trickle in one at a time (after the first-time guide), instead of a wall of toasts.
 task.spawn(function()
 	task.wait(3)
 	for _, tip in tips do
-		toast(tip, "info")
-		task.wait(4.5)
+		while player:GetAttribute("TutorialStep") do
+			task.wait(1)
+		end
+		toast("💡 " .. tip, "info")
+		task.wait(40)
 	end
 end)
+
+-- ===== First-time guide: pinned goal + an arrow to the spot =====
+local goal = new("Frame", {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 228),
+	Size = UDim2.new(0.9, 0, 0, 58),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	Visible = false,
+	Parent = gui,
+}, { corner(14), stroke(COLORS.outline, 4), gradient(Color3.fromRGB(255, 210, 80), Color3.fromRGB(255, 140, 40)), new("UISizeConstraint", { MaxSize = Vector2.new(480, 58) }) })
+local goalStep = text({ Position = UDim2.fromOffset(10, 4), Size = UDim2.new(1, -20, 0, 16), Text = "", Parent = goal })
+local goalText = text({ Position = UDim2.fromOffset(10, 20), Size = UDim2.new(1, -20, 0, 34), Text = "", Parent = goal })
+local goalScale = new("UIScale", { Parent = goal })
+
+local marker = new("Part", { Name = "GuideMarker", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, Transparency = 1, Size = Vector3.one })
+local markerAtt = new("Attachment", { Parent = marker })
+local markerGui = new("BillboardGui", { Size = UDim2.fromOffset(90, 90), StudsOffset = Vector3.new(0, 7, 0), AlwaysOnTop = true, Parent = marker })
+text({ Size = UDim2.fromScale(1, 1), Text = "⬇️", TextStrokeTransparency = 1, Parent = markerGui })
+local beam = new("Beam", {
+	Attachment1 = markerAtt,
+	Color = ColorSequence.new(Color3.fromRGB(255, 220, 80)),
+	LightEmission = 1,
+	Width0 = 0.6,
+	Width1 = 0.6,
+	FaceCamera = true,
+	Texture = "rbxasset://textures/particles/sparkles_main.dds",
+	TextureMode = Enum.TextureMode.Static,
+	TextureLength = 3,
+	TextureSpeed = 2,
+	Transparency = NumberSequence.new(0.2),
+	Parent = marker,
+})
+
+local function refreshGoal()
+	local step = player:GetAttribute("TutorialStep")
+	local target = player:GetAttribute("TutorialTarget")
+	goal.Visible = step ~= nil
+	if not step then
+		marker.Parent = nil
+		return
+	end
+	goalStep.Text = "🧭 GOAL " .. step .. " OF " .. #Config.Tutorial
+	goalText.Text = player:GetAttribute("TutorialText") or ""
+	goalScale.Scale = 0.7
+	TweenService:Create(goalScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	if typeof(target) == "Vector3" then
+		marker.Position = target
+		marker.Parent = workspace
+	else
+		marker.Parent = nil
+	end
+end
+for _, attr in { "TutorialStep", "TutorialTarget" } do
+	player:GetAttributeChangedSignal(attr):Connect(refreshGoal)
+end
+refreshGoal()
+RunService.RenderStepped:Connect(function()
+	-- Panels sit in the middle of the screen: tuck the goal card away while one is open.
+	local panelOpen = false
+	for _, pnl in panels do
+		panelOpen = panelOpen or pnl.Visible
+	end
+	goal.Visible = player:GetAttribute("TutorialStep") ~= nil and not panelOpen
+	if not marker.Parent then
+		return
+	end
+	markerGui.StudsOffset = Vector3.new(0, 7 + math.sin(os.clock() * 5) * 1, 0)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local att = root and root:FindFirstChild("GuideAttachment")
+	if root and not att then
+		att = new("Attachment", { Name = "GuideAttachment", Position = Vector3.new(0, -2.5, 0), Parent = root })
+	end
+	beam.Attachment0 = att :: Attachment?
+	-- Hide the trail once you're standing on the spot.
+	beam.Enabled = root ~= nil and ((root :: BasePart).Position - marker.Position).Magnitude > 8
+end)
+

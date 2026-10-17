@@ -5,7 +5,7 @@ A collect-and-steal tycoon for Roblox. Why this game: see [RESEARCH.md](RESEARCH
 Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every second and grow bigger (even offline), raid other bases to steal theirs, shield your own, rebirth for permanent multipliers.
 
 **What's in it**
-- 28 slimes across 9 rarities (Common to Secret, plus code-only Exclusives), each with its own look: crowns, wings, halos, horns, antennae, auras and glow.
+- 31 slimes across 9 rarities (Common to Secret, plus code-only Exclusives), each with its own look: crowns, wings, halos, horns, antennae, auras and glow.
 - Mutations: Golden (x2), Lava (x3, Lava Storm), Diamond (x4), Candy (x5, Candy Party), Rainbow (x8).
 - Traits (stack up to 3, multipliers add up): Sparkly, Spooky (October), and event traits Midas, Meteor, Sugar, Rich, Clover. During an event, meteors strike slimes already in your pens and can give them that event's trait.
 - Slime Dispenser: pay cash for a random slime, odds shown on the board next to it. 5x Luck boosts Rare+ odds (free for 10 minutes for new players, from codes, during Slime Rain, or bought).
@@ -40,6 +40,11 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
   - 🎣 Goo Pond: cast from one of 8 decks, wait for the bite, tap REEL in time. Catches are cash, snacks, luck, a free roll or (1%) a relic; odds are on the board.
   - 🔨 Whack-a-Slime: 2 machines, 30-second rounds. Click or tap slimes (golden = 3, bombs = -2). Score pays cash, 20+ adds a snack, 30+ adds luck. Server record on the screen.
   - 🗼 Sky Tower: a 38-step spiral jumping course with bounce pads. Touch the start pad, reach the chest at the top for a prize (every 15 min, 10% relic chance). Fastest climb is shown.
+- ⛈️ Weekly Slime Storm: every Wednesday 23:00 UTC and Saturday 17:00 UTC (7 PM / 1 PM US Eastern), on every server at once, for 20 minutes. Storm-only slimes (Stormy, Thunderbolt, Tempest), 3x luck, 2x cash, ⚡ Charged trait strikes (x5), Storm Crates in the street, the King Slime, rain and lightning. Warnings at 10, 5 and 1 minute, and a countdown chip in the HUD. Change the times in `Config.Storm`.
+- First-time guide: new players get 3 pinned goals with a glowing arrow (buy a slime, collect cash, lock the base), then a free roll. Tips after that come one at a time.
+- Friends: 💌 INVITE button opens Roblox's invite screen.
+- Save safety: each save is locked to one server, so fast rejoins and server hops can't lose or duplicate slimes.
+- Analytics: onboarding funnel (joined, bought, collected, locked, done) and events for steals, rebirths, mini games, the King, fusing and evolving. See them in Creator Hub > Analytics once the game is live.
 - Global leaderboards by spawn: Top Earners and Top Thieves (they fill in once the game is published).
 
 Store art: `marketing/icon_512.png` (game icon) and `marketing/thumbnail_1920x1080.png` (thumbnail).
@@ -85,6 +90,9 @@ src/server/Services/FishingService.luau  Goo Pond fishing
 src/server/Services/ArcadeService.luau  Whack-a-Slime
 src/server/Services/TowerService.luau  Sky Tower obby
 src/server/Services/EventDropService.luau  Themed boxes that fall during events
+src/server/Services/StormService.luau  Weekly Slime Storm schedule
+src/server/Services/TutorialService.luau  First-time guide
+src/server/Services/Analytics.luau  Creator Hub analytics events
 src/server/Services/Signals.luau  Progress events shared by quests, XP and the Index
 src/client/Effects.client.luau  Particles, reveals, sounds, bouncing
 src/client/Hud.client.luau             All UI

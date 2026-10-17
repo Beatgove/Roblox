@@ -657,6 +657,7 @@ local function setupPlotInteractions(plot: Plot)
 			Net.Notify(who, "⚡ The power is out! Locks don't work during the Blackout.", "bad")
 			Net.Fx(who, "deny", {})
 		elseif PlotService.Lock(who, seconds) then
+			Signals.Progress(who, "lock")
 			Net.Notify(who, "Base locked for " .. seconds .. "s", "good")
 		else
 			local wait = math.max(plot.lockedUntil, plot.lockReadyAt) - now()

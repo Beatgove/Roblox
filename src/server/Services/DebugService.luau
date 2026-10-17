@@ -56,6 +56,10 @@ function DebugService.Start(services)
 			for _, key in Config.SnackOrder do
 				services.SnackService.Give(player, key, n or 5, true)
 			end
+		elseif cmd == "storm" then
+			services.StormService.RunNow(n)
+		elseif cmd == "tutorial" then
+			services.TutorialService.Reset(player)
 		elseif cmd == "drop" then
 			for _ = 1, n or 1 do
 				services.EventDropService.SpawnNow(if n then "GoldenHour" else (arg or "GoldenHour"))

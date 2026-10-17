@@ -673,6 +673,14 @@ handlers.towerWin = function(d)
 	sound("Ping", 0.9, 0.9)
 	task.delay(0.15, sound, "Ping", 1.2, 0.9)
 end
+handlers.tutorialStep = function()
+	sound("Ping", 1.5, 0.7)
+end
+handlers.tutorialDone = function(d)
+	confetti(90)
+	announce("🧭 YOU'RE READY!", Color3.fromRGB(255, 210, 80), d.text .. ". Now go grow, steal and rebirth!", nil, 3)
+	sound("Ping", 1.1, 0.9)
+end
 -- Bounce pads on the Sky Tower: launch upward when you land on one.
 local lastBounce = 0
 local function hookBounce(pad: Instance)
@@ -880,6 +888,58 @@ task.spawn(function()
 		end
 	end
 end)
+
+-- ===== Slime Storm =====
+-- Rain falls around the camera and lightning flashes the sky while the weekly Storm runs.
+handlers.stormStart = function()
+	flash(Color3.new(1, 1, 1), 0.8, 0.5)
+	sound("Whoosh", 0.5, 1)
+end
+do
+	local rainPart = Instance.new("Part")
+	rainPart.Name = "StormRain"
+	rainPart.Anchored = true
+	rainPart.CanCollide = false
+	rainPart.CanQuery = false
+	rainPart.CanTouch = false
+	rainPart.Transparency = 1
+	rainPart.Size = Vector3.new(70, 1, 70)
+	local rain = Instance.new("ParticleEmitter")
+	rain.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	rain.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	rain.Color = ColorSequence.new(Color3.fromRGB(210, 220, 255))
+	rain.Size = NumberSequence.new(0.6)
+	rain.Squash = NumberSequence.new(2.5)
+	rain.Transparency = NumberSequence.new(0.1)
+	rain.Lifetime = NumberRange.new(0.8, 1)
+	rain.Speed = NumberRange.new(55, 65)
+	rain.EmissionDirection = Enum.NormalId.Bottom
+	rain.Rate = 700
+	rain.LightEmission = 0.3
+	rain.Parent = rainPart
+	local nextBolt = 0
+	local wasOn = false
+	RunService.Heartbeat:Connect(function()
+		local on = workspace:GetAttribute("Event") == "SlimeStorm" and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow()
+		if on ~= wasOn then
+			-- Storm clouds: a darker, moodier sky while it runs.
+			wasOn = on
+			TweenService:Create(Lighting, TweenInfo.new(3), { ExposureCompensation = if on then -0.7 else 0 }):Play()
+		end
+		if not on then
+			rainPart.Parent = nil
+			return
+		end
+		rainPart.Parent = workspace
+		rainPart.CFrame = CFrame.new(camera.CFrame.Position + Vector3.new(0, 28, 0))
+		if os.clock() > nextBolt then
+			nextBolt = os.clock() + 6 + math.random() * 9
+			flash(Color3.fromRGB(220, 220, 255), 0.55, 0.25)
+			task.delay(0.12, flash, Color3.fromRGB(220, 220, 255), 0.35, 0.2)
+			task.delay(0.4 + math.random(), sound, "Whoosh", 0.35, 0.8)
+		end
+	end)
+end
 
 -- ===== Blackout =====
 -- Lights out: dark world, a flashlight on you, a faint glow on every pen slime,

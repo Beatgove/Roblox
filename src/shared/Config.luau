@@ -82,6 +82,17 @@ Config.Events = {
 	CandyParty = { title = "🍬 CANDY PARTY", desc = "Candy slimes (x5 cash) are here!", tint = Color3.fromRGB(255, 200, 235) },
 	CashFrenzy = { title = "💸 CASH FRENZY", desc = "Every slime earns 2x cash!", incomeMult = 2, tint = Color3.fromRGB(190, 255, 190) },
 	LuckyHour = { title = "🍀 LUCKY HOUR", desc = "3x luck on the belt and Dispenser!", luck = 3, tint = Color3.fromRGB(200, 255, 210) },
+	-- Weekly, on a fixed schedule on every server at once (see Config.Storm). Never rolled randomly.
+	SlimeStorm = { title = "⛈️ SLIME STORM", desc = "Storm-only slimes, 3x luck, 2x cash and ⚡ Charged strikes!", luck = 3, incomeMult = 2, tint = Color3.fromRGB(190, 170, 255), scheduled = true },
+}
+
+-- The weekly Slime Storm: a big live event at fixed UTC times, so every server gets it at
+-- once and players learn to show up (like Steal a Brainrot's Admin Abuse). wday: 1 = Sunday.
+Config.Storm = {
+	times = { { wday = 4, hour = 23 }, { wday = 7, hour = 17 } }, -- Wed 7 PM and Sat 1 PM US Eastern
+	minutes = 20,
+	warnMinutes = { 10, 5, 1 },
+	stormPick = 0.5, -- during the Storm, chance a roll picks a storm slime when its rarity has one
 }
 
 -- Event drops: while an event (or a Blackout) runs, themed boxes fall into the street.
@@ -97,6 +108,7 @@ Config.EventDrops = {
 		CandyParty = { name = "Candy Box", icon = "🍬", color = Color3.fromRGB(255, 130, 200), material = "SmoothPlastic", reward = { snacks = 2 } },
 		CashFrenzy = { name = "Money Bag", icon = "💸", color = Color3.fromRGB(110, 230, 110), material = "Fabric", reward = { cashSeconds = 35, cashMin = 200 } },
 		LuckyHour = { name = "Clover Box", icon = "🍀", color = Color3.fromRGB(90, 230, 110), material = "Grass", reward = { luckMinutes = 3 } },
+		SlimeStorm = { name = "Storm Crate", icon = "⛈️", color = Color3.fromRGB(150, 140, 255), material = "Neon", reward = { cashSeconds = 45, cashMin = 300, luckMinutes = 2 } },
 		Blackout = { name = "Glow Orb", icon = "🍄", color = Color3.fromRGB(110, 255, 150), material = "Neon", reward = { snackKey = "Glowcap" } },
 	},
 	-- Odds inside a Lucky Box (shown on pickup in the notification).
@@ -122,6 +134,7 @@ Config.Traits = {
 	Sugar = { icon = "🍬", mult = 3, chance = 0.08, event = "CandyParty", color = Color3.fromRGB(255, 150, 210) },
 	Rich = { icon = "💵", mult = 2, chance = 0.1, event = "CashFrenzy", color = Color3.fromRGB(120, 255, 140) },
 	Clover = { icon = "🍀", mult = 2.5, chance = 0.08, event = "LuckyHour", color = Color3.fromRGB(90, 230, 110) },
+	Charged = { icon = "⚡", mult = 5, chance = 0.1, event = "SlimeStorm", color = Color3.fromRGB(150, 200, 255) },
 }
 -- While an event runs, every StrikeEverySeconds each pen slime has StrikeChance to get that event's trait.
 Config.TraitStrikeEverySeconds = 30
@@ -523,6 +536,7 @@ Config.Rarities = {
 
 -- extra: decorations built on the slime (crown, halo, horns, wings, antenna, leaf, ears, spikes, band, bow).
 -- season: month number it can spawn in (others keep it once owned).
+-- storm: only spawns during the weekly Slime Storm.
 Config.Slimes = {
 	{ id = "Goop", rarity = "Common", price = 25, income = 1, color = Color3.fromRGB(120, 230, 120), size = 2.6 },
 	{ id = "Dewdrop", rarity = "Common", price = 60, income = 2, color = Color3.fromRGB(120, 200, 255), size = 2.7, extra = { "antenna" } },
@@ -535,16 +549,19 @@ Config.Slimes = {
 
 	{ id = "Lava", rarity = "Rare", price = 3000, income = 55, color = Color3.fromRGB(255, 90, 20), size = 3.3, extra = { "horns" } },
 	{ id = "Frosty", rarity = "Rare", price = 7500, income = 120, color = Color3.fromRGB(190, 240, 255), size = 3.4, extra = { "spikes" } },
+	{ id = "Stormy", rarity = "Rare", price = 12000, income = 260, color = Color3.fromRGB(120, 130, 200), size = 3.4, extra = { "antenna", "ears" }, storm = true },
 	{ id = "Zappy", rarity = "Rare", price = 15000, income = 220, color = Color3.fromRGB(255, 240, 60), size = 3.4, extra = { "antenna" } },
 
 	{ id = "Toxic", rarity = "Epic", price = 25000, income = 350, color = Color3.fromRGB(170, 255, 0), size = 3.6, extra = { "spikes" } },
 	{ id = "Galaxy", rarity = "Epic", price = 60000, income = 750, color = Color3.fromRGB(90, 40, 200), size = 3.7, extra = { "halo" } },
 	{ id = "Ghosty", rarity = "Epic", price = 90000, income = 1100, color = Color3.fromRGB(235, 235, 255), size = 3.8, season = 10 },
+	{ id = "Thunderbolt", rarity = "Epic", price = 120000, income = 2000, color = Color3.fromRGB(255, 255, 120), size = 3.8, extra = { "spikes", "antenna" }, storm = true },
 	{ id = "Ninja", rarity = "Epic", price = 150000, income = 1600, color = Color3.fromRGB(50, 50, 60), size = 3.7, extra = { "band" } },
 
 	{ id = "Golden", rarity = "Legendary", price = 250000, income = 2500, color = Color3.fromRGB(255, 200, 40), size = 4, extra = { "crown" } },
 	{ id = "Rainbow", rarity = "Legendary", price = 600000, income = 5500, color = Color3.fromRGB(255, 100, 255), size = 4.1, extra = { "halo" } },
 	{ id = "Vampire", rarity = "Legendary", price = 1200000, income = 10000, color = Color3.fromRGB(140, 0, 30), size = 4.3, extra = { "horns", "wings" }, season = 10 },
+	{ id = "Tempest", rarity = "Legendary", price = 1500000, income = 18000, color = Color3.fromRGB(80, 60, 200), size = 4.4, extra = { "wings", "halo" }, storm = true },
 	{ id = "Dragon", rarity = "Legendary", price = 2000000, income = 15000, color = Color3.fromRGB(40, 180, 90), size = 4.4, extra = { "horns", "wings" } },
 
 	{ id = "Void", rarity = "Mythic", price = 4000000, income = 28000, color = Color3.fromRGB(30, 0, 60), size = 4.5, extra = { "horns" } },
@@ -579,8 +596,10 @@ for _, m in Config.Mutations do
 end
 
 Config.EventKeys = {}
-for k in Config.Events do
-	table.insert(Config.EventKeys, k)
+for k, e in Config.Events do
+	if not e.scheduled then
+		table.insert(Config.EventKeys, k)
+	end
 end
 table.sort(Config.EventKeys)
 
@@ -595,5 +614,13 @@ function Config.DisplayName(id: string, mut: string?, stars: number?, traits: { 
 	local name = if snack then snack.diet .. " " .. id else id
 	return (if icons ~= "" then icons .. " " else "") .. (if mut then mut .. " " .. name else name) .. Config.Stars(stars)
 end
+
+-- First-time guide: a short pinned objective with an arrow. Each step ends on a Signals kind.
+Config.Tutorial = {
+	{ kind = "buy", text = "Buy a slime! Walk to the conveyor belt and hold E on one.", alt = "roll" },
+	{ kind = "collect", text = "Your slime makes cash. Step on your green pad to collect it." },
+	{ kind = "lock", text = "Press the red button in your base to lock it from thieves." },
+}
+Config.TutorialReward = { cashMin = 400, freeRoll = true }
 
 return Config
