@@ -559,6 +559,32 @@ Config.RainDurationSeconds = 60
 -- ===== Sounds =====
 -- Built-in Roblox sounds so the game works out of the box. Swap for Creator Store
 -- sound IDs ("rbxassetid://123") any time for better audio.
+-- Background music. Every track is from Roblox's own licensed music library (uploaded by
+-- APMOfficial), so it is cleared for use in any Roblox game. The main list plays shuffled;
+-- while an event runs, its own track takes over and loops until the event ends.
+Config.MusicVolume = 0.3
+Config.Music = {
+	{ id = "rbxassetid://1842203247", name = "Happy Funk" },
+	{ id = "rbxassetid://1842801496", name = "Right Here" },
+	{ id = "rbxassetid://1842285773", name = "The Cactus Kid" },
+	{ id = "rbxassetid://1846818766", name = "Happy Whistling" },
+	{ id = "rbxassetid://1847543886", name = "Cross Country" },
+	{ id = "rbxassetid://1845736900", name = "Happy End" },
+	{ id = "rbxassetid://1845756489", name = "Town Talk" },
+}
+-- Keys match Config.Events, plus Blackout, SlimeRain and King (the Slime King boss).
+Config.EventMusic = {
+	GoldenHour = { id = "rbxassetid://9045322527", name = "Hollywood Romance" },
+	LavaStorm = { id = "rbxassetid://1838757391", name = "Evolution's Drawbacks" },
+	CandyParty = { id = "rbxassetid://9043853947", name = "Cherry Juice" },
+	CashFrenzy = { id = "rbxassetid://1836755212", name = "Get Crazy" },
+	LuckyHour = { id = "rbxassetid://1838577804", name = "Irish Dance" },
+	SlimeStorm = { id = "rbxassetid://1847041997", name = "Drowning 3" },
+	Blackout = { id = "rbxassetid://1847313950", name = "Spooky Kooky" },
+	SlimeRain = { id = "rbxassetid://1836420164", name = "Celebration Time" },
+	King = { id = "rbxassetid://9045156325", name = "Fire In The Sky" },
+}
+
 Config.Sounds = {
 	Ping = "rbxasset://sounds/electronicpingshort.wav",
 	Click = "rbxasset://sounds/button.wav",

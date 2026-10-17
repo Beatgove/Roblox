@@ -956,7 +956,7 @@ do
 		if on ~= wasOn then
 			-- Storm clouds: a darker, moodier sky while it runs.
 			wasOn = on
-			TweenService:Create(Lighting, TweenInfo.new(3), { ExposureCompensation = if on then -0.7 else 0 }):Play()
+			TweenService:Create(Lighting, TweenInfo.new(3), { ExposureCompensation = if on then -0.7 else -0.25 }):Play() -- -0.25 is the map's normal exposure
 		end
 		if not on then
 			rainPart.Parent = nil
