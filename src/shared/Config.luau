@@ -150,6 +150,79 @@ function Config.DietMult(diet: string?): number
 	return if s then s.mult else 1
 end
 
+-- ===== Base Relics (Balatro jokers / Hades boons) =====
+-- Rule-changing charms. Equip up to RelicSlots. They drop from the King Slime, bounties,
+-- quests and Index milestones, and they reset when you rebirth, so every run plays a bit
+-- differently. Income relics ADD to each other (never multiply), so combos stay fair.
+Config.RelicSlots = 3
+Config.RelicDupCashSeconds = 180 -- a duplicate relic turns into this many seconds of income
+Config.RelicDropChance = { boss = 0.5, bounty = 0.25, quest = 0.15 }
+Config.RelicIndexEvery = 5 -- a relic every 5 new Index entries
+Config.RelicRarities = {
+	Common = { color = Color3.fromRGB(170, 230, 170), weight = 60 },
+	Rare = { color = Color3.fromRGB(90, 170, 255), weight = 30 },
+	Epic = { color = Color3.fromRGB(200, 110, 255), weight = 10 },
+}
+Config.RelicOrder = { "CommonCrowd", "StarPolish", "MutantMagnet", "DietFan", "Insurance", "StickyFloor", "SlipperySlimes", "LuckyCharm", "BargainBelt", "SnackPouch", "BountyHunter", "QuickFuse" }
+Config.Relics = {
+	CommonCrowd = { name = "Common Crowd", icon = "👥", rarity = "Common", desc = "+4% income for every Common slime you own (max +40%)" },
+	StarPolish = { name = "Star Polish", icon = "⭐", rarity = "Rare", desc = "+6% income for every merged slime you own (max +60%)" },
+	MutantMagnet = { name = "Mutant Magnet", icon = "🧲", rarity = "Rare", desc = "+5% income for every mutated slime you own (max +50%)" },
+	DietFan = { name = "Diet Fan", icon = "🍽️", rarity = "Rare", desc = "+6% income for every evolved slime you own (max +60%)" },
+	Insurance = { name = "Insurance", icon = "📄", rarity = "Common", desc = "When a slime is stolen from you, get 25% of its value back" },
+	StickyFloor = { name = "Sticky Floor", icon = "🍯", rarity = "Common", desc = "Thieves carrying your slimes move 20% slower" },
+	SlipperySlimes = { name = "Slippery Slimes", icon = "🫧", rarity = "Rare", desc = "Your stolen slimes squirm twice as often" },
+	LuckyCharm = { name = "Lucky Charm", icon = "🍀", rarity = "Epic", desc = "+30% luck on the Dispenser" },
+	BargainBelt = { name = "Bargain Belt", icon = "🏷️", rarity = "Common", desc = "Belt slimes cost you 15% less" },
+	SnackPouch = { name = "Snack Pouch", icon = "🎒", rarity = "Common", desc = "Snacks drop twice as often" },
+	BountyHunter = { name = "Bounty Hunter", icon = "🤠", rarity = "Rare", desc = "Bounties you claim pay +50% (still from the thief's pocket)" },
+	QuickFuse = { name = "Quick Fuse", icon = "⚗️", rarity = "Epic", desc = "The Fuse Machine finishes twice as fast" },
+}
+
+function Config.HasRelic(data, key: string): boolean
+	if not data or not data.relics then
+		return false
+	end
+	return table.find(data.relics, key) ~= nil
+end
+
+-- Income bonus from equipped relics, added on top of 1 (0.25 = +25%).
+function Config.RelicIncomeBonus(data): number
+	if not data or not data.relics or #data.relics == 0 then
+		return 0
+	end
+	local commons, stars, muts, diets = 0, 0, 0, 0
+	for _, s in data.slimes do
+		local def = Config.SlimeById[s.id]
+		if def and def.rarity == "Common" then
+			commons += 1
+		end
+		if (s.stars or 0) > 0 then
+			stars += 1
+		end
+		if s.mut then
+			muts += 1
+		end
+		if s.diet then
+			diets += 1
+		end
+	end
+	local bonus = 0
+	if Config.HasRelic(data, "CommonCrowd") then
+		bonus += math.min(0.4, commons * 0.04)
+	end
+	if Config.HasRelic(data, "StarPolish") then
+		bonus += math.min(0.6, stars * 0.06)
+	end
+	if Config.HasRelic(data, "MutantMagnet") then
+		bonus += math.min(0.5, muts * 0.05)
+	end
+	if Config.HasRelic(data, "DietFan") then
+		bonus += math.min(0.6, diets * 0.06)
+	end
+	return bonus
+end
+
 -- ===== Fuse Machine (like Steal a Brainrot's) =====
 -- Put in 3 slimes of any kind, pay a fee, wait, get one slime whose rarity is based on
 -- the average rarity you put in. Odds are shown before you fuse.

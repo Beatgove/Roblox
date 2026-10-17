@@ -31,6 +31,7 @@ local BountyService = require(Services.BountyService)
 local NemesisService = require(Services.NemesisService)
 local SnackService = require(Services.SnackService)
 local BlackoutService = require(Services.BlackoutService)
+local RelicService = require(Services.RelicService)
 local BossService = require(Services.BossService)
 
 local plots = MapBuilder.Build()
@@ -57,6 +58,7 @@ BountyService.Start()
 NemesisService.Start()
 SnackService.Start()
 BlackoutService.Start()
+RelicService.Start()
 BossService.Start()
 require(Services.DebugService).Start({
 	DataService = DataService,
@@ -68,6 +70,7 @@ require(Services.DebugService).Start({
 	BountyService = BountyService,
 	SnackService = SnackService,
 	BlackoutService = BlackoutService,
+	RelicService = RelicService,
 })
 
 local function makeLeaderstats(player: Player)

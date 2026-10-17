@@ -11,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "HoldTight", "BuySnack", "PickSnack", "Fx" } do
+for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "HoldTight", "BuySnack", "PickSnack", "EquipRelic", "UnequipRelic", "Fx" } do
 	Remotes:WaitForChild(name)
 end
 
@@ -640,6 +640,59 @@ for _, attr in { "Snacks", "SnackPrices", "SnackPick", "DietCount" } do
 end
 refreshSnacks()
 
+-- Relics: 3 slots for rule-changing charms, plus the ones you've found this run.
+local RELIC_COLOR = Color3.fromRGB(200, 120, 255)
+local relicsPanel, relicsScale = panel("🔮 Relics", RELIC_COLOR)
+text({ Position = UDim2.fromOffset(16, 58), Size = UDim2.new(1, -32, 0, 22), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted,
+	Text = "Equip up to " .. Config.RelicSlots .. ". Find more from the King, bounties, quests and the Index. They reset on rebirth!", Parent = relicsPanel })
+local relicList = new("ScrollingFrame", { Position = UDim2.fromOffset(12, 86), Size = UDim2.new(1, -24, 1, -98), BackgroundTransparency = 1, ScrollBarThickness = 6, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), Parent = relicsPanel },
+	{ new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+local relicRows = {}
+for i, key in Config.RelicOrder do
+	local def = Config.Relics[key]
+	local color = Config.RelicRarities[def.rarity].color
+	local row = new("Frame", { Size = UDim2.new(1, -8, 0, 66), BackgroundColor3 = COLORS.panel, LayoutOrder = i, Visible = false, Parent = relicList }, { corner(12) })
+	local rowStroke = new("UIStroke", { Color = color, Thickness = 2, Transparency = 0.5, Parent = row })
+	text({ Size = UDim2.fromOffset(50, 50), Position = UDim2.fromOffset(8, 8), Text = def.icon, Parent = row })
+	text({ Size = UDim2.new(0.72, -66, 0, 26), Position = UDim2.fromOffset(64, 4), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = color, Text = def.name .. "  · " .. def.rarity, Parent = row })
+	text({ Size = UDim2.new(0.72, -66, 0, 32), Position = UDim2.fromOffset(64, 30), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.muted, Font = Enum.Font.GothamMedium, TextStrokeTransparency = 1, TextWrapped = true, Text = def.desc, Parent = row })
+	local b
+	b = button({ Size = UDim2.new(0.28, -12, 0, 48), Position = UDim2.new(0.72, 0, 0, 9), BackgroundColor3 = color, Text = "EQUIP", Parent = row }, function()
+		if b:GetAttribute("On") then
+			Remotes.UnequipRelic:FireServer(key)
+		else
+			Remotes.EquipRelic:FireServer(key)
+		end
+	end)
+	relicRows[key] = { row = row, button = b, stroke = rowStroke }
+end
+local relicEmpty = text({ Position = UDim2.new(0, 16, 0.5, -20), Size = UDim2.new(1, -32, 0, 40), TextColor3 = COLORS.muted, Text = "No relics yet. Beat the King Slime or claim a bounty!", Parent = relicsPanel })
+local function refreshRelics()
+	local ok, info = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("Relics") or "{}")
+	info = if ok and type(info) == "table" then info else {}
+	local equipped = {}
+	for _, k in info.equipped or {} do
+		equipped[k] = true
+	end
+	local owned = 0
+	for _, k in info.bag or {} do
+		owned += 1
+	end
+	local bag = {}
+	for _, k in info.bag or {} do
+		bag[k] = true
+	end
+	for key, r in relicRows do
+		r.row.Visible = bag[key] == true
+		r.button:SetAttribute("On", equipped[key] == true)
+		r.button.Text = if equipped[key] then "✅ ON" else "EQUIP"
+		r.stroke.Transparency = if equipped[key] then 0 else 0.5
+	end
+	relicEmpty.Visible = owned == 0
+end
+player:GetAttributeChangedSignal("Relics"):Connect(refreshRelics)
+refreshRelics()
+
 -- Fuse Machine: pick 3 slimes, see the fee and odds, fuse, come back later.
 local FUSE_COLOR = Color3.fromRGB(150, 255, 120)
 local fuse, fuseScale = panel("🧪 Fuse Machine", FUSE_COLOR)
@@ -823,6 +876,7 @@ local dailyBtn = sideButton(8, Color3.fromRGB(255, 140, 60), "📅 DAILY", daily
 sideButton(9, Color3.fromRGB(120, 255, 160), "⬆️ UPGRADE", upgrades, upgradesScale)
 local fuseSideBtn = sideButton(10, FUSE_COLOR, "🧪 FUSE", fuse, fuseScale)
 sideButton(11, SNACK_COLOR, "🍽️ SNACKS", snacksPanel, snacksScale)
+sideButton(12, RELIC_COLOR, "🔮 RELICS", relicsPanel, relicsScale)
 local fuseBadge = makeBadge(fuseSideBtn)
 local badge = makeBadge(dailyBtn)
 local questBadge = makeBadge(questsBtn)
@@ -1132,6 +1186,7 @@ local tips = {
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
 	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",
+	"Equip 🔮 RELICS for combos: lots of Commons + Common Crowd = big income!",
 	"During a 🌑 BLACKOUT base locks stop working. Raid in the dark, but avoid the Gloom!",
 	"Feed 5 of the same 🍽️ SNACK to a slime and it evolves into a new form that earns way more!",
 	"Buy ⬆️ UPGRADES for more income, longer shields and extra pens. They survive rebirth!",

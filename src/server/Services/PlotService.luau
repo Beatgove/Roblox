@@ -75,6 +75,7 @@ function PlotService.IncomeMultiplier(player: Player): number
 	end
 	if data then
 		mult *= 1 + PlotService.IndexCount(player) * Config.IndexBonusPerSlime
+		mult *= 1 + Config.RelicIncomeBonus(data)
 	end
 	return mult * PlotService.BoostMultiplier(player)
 end
@@ -572,11 +573,15 @@ function PlotService.Rebirth(player: Player)
 	data.cash = Config.StartingCash
 	data.bank = 0
 	data.slimes = {}
+	-- Relics are per run: a fresh set every rebirth.
+	data.relics = {}
+	data.relicBag = {}
 	PlotService.Render(player)
 	local plot = plotOf[player]
 	if plot then
 		BaseDecor.Apply(plot.model, plot.cframe, data.rebirths)
 		Net.FxAll("baseUpgrade", { pos = plot.cframe.Position })
+		Signals.Progress(player, "rebirth")
 	end
 	local unlocked
 	for _, t in BaseDecor.Tiers do
@@ -704,6 +709,10 @@ function PlotService.Release(player: Player)
 	plot.owner = nil
 	plot.lockedUntil = 0
 	plot.paidLockUntil = 0
+	local relics = plot.model:FindFirstChild("Relics")
+	if relics then
+		relics:Destroy()
+	end
 	plotOf[player] = nil
 	BaseDecor.Apply(plot.model, plot.cframe, 0)
 	setOwnerSign(plot)

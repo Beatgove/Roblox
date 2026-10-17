@@ -63,6 +63,7 @@ local function spawnSlime()
 		if not data then
 			return
 		end
+		local price = if Config.HasRelic(data, "BargainBelt") then math.floor(price * 0.85) else price
 		if data.cash < price then
 			Net.Notify(player, "Not enough cash for " .. name .. " (" .. Util.Money(price) .. ")", "bad")
 			Net.Fx(player, "deny", {})

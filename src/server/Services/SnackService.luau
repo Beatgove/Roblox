@@ -166,7 +166,7 @@ function SnackService.Start()
 	-- Drops: a chance on every roll and belt buy, and a sure thing for bigger wins.
 	Signals.Quest.Event:Connect(function(player: Player, kind: string)
 		if kind == "roll" or kind == "buy" then
-			if math.random() < Config.SnackDropChance then
+			if math.random() < Config.SnackDropChance * (if Config.HasRelic(DataService.Get(player), "SnackPouch") then 2 else 1) then
 				task.delay(1.8, function()
 					if player.Parent then
 						SnackService.Give(player)

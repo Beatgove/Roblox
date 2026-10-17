@@ -24,6 +24,9 @@ function DispenserService.Luck(player: Player): number
 		luck *= Config.RainLuck
 	end
 	luck *= Roller.EventLuck()
+	if Config.HasRelic(DataService.Get(player), "LuckyCharm") then
+		luck *= 1.3
+	end
 	return math.min(luck, Config.MaxLuck)
 end
 

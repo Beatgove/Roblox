@@ -200,7 +200,7 @@ local function setMovement(player: Player)
 	if not StealService.IsCarrying(player) or player:GetAttribute("RevengeCarry") then
 		hum.WalkSpeed = speed
 	else
-		hum.WalkSpeed = Config.CarryWalkSpeed + (hum:GetAttribute("CarryBonus") or 0)
+		hum.WalkSpeed = (Config.CarryWalkSpeed + (hum:GetAttribute("CarryBonus") or 0)) * (player:GetAttribute("CarrySlow") or 1)
 	end
 end
 

@@ -110,11 +110,12 @@ local function start(player: Player, slots)
 	for _, i in list do
 		table.remove(data.slimes, i)
 	end
-	data.fuse = { active = true, endsAt = os.time() + Config.FuseSeconds, result = { id = def.id, mut = mut } }
+	local seconds = if Config.HasRelic(data, "QuickFuse") then math.floor(Config.FuseSeconds / 2) else Config.FuseSeconds
+	data.fuse = { active = true, endsAt = os.time() + seconds, result = { id = def.id, mut = mut } }
 	PlotService.Render(player)
 	sync(player)
 	Net.FxAll("fuseStart", { pos = MapBuilder.FusePosition })
-	Net.Notify(player, "🧪 Fusing! Come back in " .. Util.Duration(Config.FuseSeconds) .. " to see what you get.", "epic")
+	Net.Notify(player, "🧪 Fusing! Come back in " .. Util.Duration(seconds) .. " to see what you get.", "epic")
 	Signals.Progress(player, "fuse")
 end
 

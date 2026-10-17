@@ -30,6 +30,11 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Bounties: every steal puts a WANTED bounty on the thief; slap, zap or trap them to claim it.
 - King Slime: a co-op boss every 12 minutes. Slap it with the whole server; everyone who helped gets paid and the top slapper gets a lucky roll.
 - Rookie Shield: new players can't be robbed until they've earned $3K, rebirthed or stolen themselves.
+- Nemesis: whoever steals from you twice becomes your Nemesis. Only you see the ☠️ over their head; you run 20% faster near them, their bounty pays you +50%, and stealing one back is an AVENGED! moment for the whole server.
+- Slime Snacks: 5 snacks (Berry, Pepper, Honey, Crystal, Glowcap) drop from rolls, belt buys, quests, bounties and the King, or buy them in the 🍽️ Snack Bar. Feed 5 of one kind to a slime (hold G) and it evolves into a diet form (Juicy, Spicy, Sweet, Gem, Glowing) with a new look and x1.4 to x2.2 cash. A Diet Book counts every form you've made.
+- Blackout: every 25 minutes the lights go out for 90 seconds. Free base locks stop working (bought shields and the Rookie Shield still hold), you get a flashlight, pen slimes glow, and the Gloom drifts through the street. If it touches you, you drop what you carry and wake up at home.
+- Base Relics: 12 rule-changing charms (Common Crowd, Star Polish, Insurance, Sticky Floor, Lucky Charm, Quick Fuse...). Equip 3, they float above your base, and they reset on rebirth so every run is a new combo. Income relics add up, never multiply.
+- Bases: 4 per side with gardens between them. Every base starts with a wood floor, posts, glowing entrance pillars, a rug and hedges, and gets nicer at rebirths 1-10, 12, 15, 20 and 25 (stone, flowers, lanterns, a gate, crystals, marble and gold, fireflies, banners, party lights, sparkles, a golden statue, a floating crown, a glowing floor, rainbow trim).
 - Global leaderboards by spawn: Top Earners and Top Thieves (they fill in once the game is published).
 
 Store art: `marketing/icon_512.png` (game icon) and `marketing/thumbnail_1920x1080.png` (thumbnail).
@@ -65,6 +70,12 @@ src/server/Services/LevelService.luau  XP, levels and titles
 src/server/Services/IndexService.luau  Index milestone rewards
 src/server/Services/BountyService.luau  WANTED bounties on thieves
 src/server/Services/BossService.luau  King Slime co-op boss
+src/server/Services/NemesisService.luau  Nemesis rivals
+src/server/Services/SnackService.luau  Snacks, feeding and diet evolutions
+src/server/Services/BlackoutService.luau  Blackout event and the Gloom
+src/server/Services/RelicService.luau  Base Relics
+src/server/Services/BaseDecor.luau  How bases look at each rebirth
+src/server/Services/DebugService.luau  Studio-only test commands (ServerStorage.Debug)
 src/server/Services/Signals.luau  Progress events shared by quests, XP and the Index
 src/client/Effects.client.luau  Particles, reveals, sounds, bouncing
 src/client/Hud.client.luau             All UI

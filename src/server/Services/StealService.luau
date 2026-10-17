@@ -224,6 +224,13 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		Net.Notify(thief, "🐣 You stole, so your Rookie Shield is gone. Fair's fair!", "info")
 	end
 	local rarityOrder = Config.RarityByName[Config.SlimeById[slime.id].rarity].order
+	local victimData = DataService.Get(victim)
+	local slippery = Config.HasRelic(victimData, "SlipperySlimes")
+	if not isRevenge and Config.HasRelic(victimData, "StickyFloor") then
+		humanoid.WalkSpeed *= 0.8
+		thief:SetAttribute("CarrySlow", 0.8)
+		Net.Notify(thief, "🍯 Sticky Floor! This base slows thieves down.", "bad")
+	end
 
 	Net.Notify(thief, "You grabbed " .. name .. "! Run back to your base!", "epic")
 	Net.Notify(victim, "🚨 " .. thief.DisplayName .. " is stealing your " .. name .. "! Catch them!", "bad")
@@ -248,6 +255,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		if thief.Parent then
 			thief:SetAttribute("Carrying", nil)
 			thief:SetAttribute("RevengeCarry", nil)
+			thief:SetAttribute("CarrySlow", nil)
 		end
 		local dropPos = if carried and carried.PrimaryPart then carried.PrimaryPart.Position else root.Position
 		if carried then
@@ -286,6 +294,11 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			end
 			if victim.Parent then
 				NemesisService.Record(victim, thief)
+				if Config.HasRelic(DataService.Get(victim), "Insurance") then
+					local payout = math.floor(PlotService.SellValue(slime) * 0.25)
+					PlotService.AddCash(victim, payout)
+					Net.Notify(victim, "📄 Insurance paid you " .. Util.Money(payout) .. " for the stolen slime.", "good")
+				end
 				Net.Notify(victim, thief.DisplayName .. " stole your " .. name .. (if isRevenge then " back!" else ". REVENGE: their shield can't stop you for " .. Util.Duration(Config.RevengeSeconds) .. "!"), "bad")
 				Net.Fx(victim, "stolen", {})
 				if not isRevenge then
@@ -344,7 +357,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			end
 			if not sq and os.clock() >= nextSquirm then
 				nextSquirm = os.clock() + Config.SquirmEverySeconds
-				if math.random() < Config.SquirmChance(rarityOrder) then
+				if math.random() < Config.SquirmChance(rarityOrder) * (if slippery then 2 else 1) then
 					squirmToken += 1
 					squirms[thief] = { token = squirmToken, deadline = os.clock() + Config.SquirmWindow + 0.3 }
 					Net.Fx(thief, "squirm", { token = squirmToken, window = Config.SquirmWindow })

@@ -591,6 +591,14 @@ handlers.revenge = function(d)
 	flash(Color3.fromRGB(255, 70, 70), 0.35, 0.5)
 	announce("REVENGE!", Color3.fromRGB(255, 80, 80), "Go steal one back from " .. d.name .. ". Their shield can't stop you!", nil, 3)
 end
+handlers.relic = function(d)
+	confetti(70)
+	flash(d.color, 0.35, 0.6)
+	announce(d.icon .. " NEW RELIC!", d.color, d.name .. ": " .. d.desc .. (if d.equipped then " (equipped)" else " · open 🔮 RELICS to equip"), nil, 3.5)
+	sound("Ping", 0.8, 0.9)
+	task.delay(0.2, sound, "Ping", 1.1, 0.9)
+end
+
 -- Slime Snacks
 handlers.snack = function(d)
 	sound("Ping", 1.8, 0.5)

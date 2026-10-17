@@ -88,6 +88,10 @@ function BountyService.Claim(attacker: Player, target: Player)
 		amount *= Config.Nemesis.bountyMult
 		cap *= Config.Nemesis.bountyMult
 	end
+	if Config.HasRelic(DataService.Get(attacker), "BountyHunter") then
+		amount *= 1.5
+		cap *= 1.5
+	end
 	local paid = math.floor(math.min(amount, cap, if thiefData then thiefData.cash else 0))
 	bounties[target] = nil
 	updateTag(target)
