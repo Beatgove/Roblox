@@ -447,6 +447,11 @@ handlers.daily = function(d)
 		task.delay(0.1 * i, sound, "Ping", 1 + i * 0.2, 0.8)
 	end
 end
+handlers.baseUpgrade = function(d)
+	pillar(d.pos, Color3.fromRGB(255, 215, 90))
+	burst(d.pos + Vector3.new(0, 4, 0), Color3.fromRGB(255, 215, 90), 70, { speed = 24, size = 1.4 })
+	ring(d.pos, Color3.fromRGB(255, 255, 255), 40)
+end
 handlers.milestone = function(d)
 	confetti(90)
 	flash(Color3.fromRGB(255, 120, 200), 0.35, 0.5)

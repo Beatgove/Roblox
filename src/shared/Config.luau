@@ -166,6 +166,20 @@ Config.Titles = {
 	{ level = 50, name = "Slime Legend", color = Color3.fromRGB(255, 80, 120) },
 }
 
+-- ===== Base looks: what each rebirth adds to your base (cumulative, see BaseDecor) =====
+Config.BaseTiers = {
+	{ rebirth = 1, name = "Stone floor and wall caps" },
+	{ rebirth = 2, name = "Flower boxes" },
+	{ rebirth = 3, name = "Glowing lanterns" },
+	{ rebirth = 4, name = "Grand entrance gate" },
+	{ rebirth = 5, name = "Crystal clusters" },
+	{ rebirth = 6, name = "Marble and gold" },
+	{ rebirth = 8, name = "Royal banners" },
+	{ rebirth = 10, name = "Sparkling aura" },
+	{ rebirth = 15, name = "Floating crown" },
+	{ rebirth = 25, name = "Rainbow trim" },
+}
+
 -- ===== Standout systems (from player feedback on steal games) =====
 -- Squirm: stolen slimes are slippery. While carried, they try to wriggle free and the thief
 -- has to tap HOLD ON in time or the slime bounces home. Rarer slimes squirm more.

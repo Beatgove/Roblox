@@ -320,7 +320,7 @@ local rebirthInfo = text({
 	Position = UDim2.fromOffset(20, 70),
 	Size = UDim2.new(1, -40, 1, -170),
 	TextScaled = false,
-	TextSize = 22,
+	TextSize = 20,
 	TextWrapped = true,
 	TextYAlignment = Enum.TextYAlignment.Top,
 	Font = Enum.Font.GothamBold,
@@ -856,6 +856,12 @@ local function refresh()
 		math.floor(Config.RebirthIncomeBonus * 100 * (rebirths + 1)),
 		Config.SlotsPerRebirth
 	)
+	for _, t in Config.BaseTiers do
+		if t.rebirth > rebirths then
+			rebirthInfo.Text ..= "\n🏰 Rebirth " .. t.rebirth .. " base upgrade: " .. t.name
+			break
+		end
+	end
 	-- Punch the cash bar on big gains.
 	if cash > lastCash and cash - lastCash > math.max(income * 2, 10) then
 		topScale.Scale = 1.12

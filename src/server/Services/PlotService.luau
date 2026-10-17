@@ -10,6 +10,7 @@ local DataService = require(script.Parent.DataService)
 local Passes = require(script.Parent.Passes)
 local SlimeModel = require(script.Parent.SlimeModel)
 local Net = require(script.Parent.Net)
+local BaseDecor = require(script.Parent.BaseDecor)
 local Roller = require(script.Parent.Roller)
 local Signals = require(script.Parent.Signals)
 
@@ -526,6 +527,20 @@ function PlotService.Rebirth(player: Player)
 	data.bank = 0
 	data.slimes = {}
 	PlotService.Render(player)
+	local plot = plotOf[player]
+	if plot then
+		BaseDecor.Apply(plot.model, plot.cframe, data.rebirths)
+		Net.FxAll("baseUpgrade", { pos = plot.cframe.Position })
+	end
+	local unlocked
+	for _, t in BaseDecor.Tiers do
+		if t.rebirth == data.rebirths then
+			unlocked = t.name
+		end
+	end
+	if unlocked then
+		Net.Notify(player, "🏰 Your base got an upgrade: " .. unlocked .. "!", "epic")
+	end
 	Net.Fx(player, "rebirth", { n = data.rebirths })
 	Net.Notify(player, "REBIRTH " .. data.rebirths .. "! Income is now x" .. PlotService.IncomeMultiplier(player), "epic")
 	Net.NotifyAll(player.DisplayName .. " reached Rebirth " .. data.rebirths .. "!", "epic")
@@ -604,6 +619,8 @@ function PlotService.Assign(player: Player)
 			plot.lockReadyAt = 0
 			plotOf[player] = plot
 			setOwnerSign(plot)
+			local data = DataService.Get(player)
+			BaseDecor.Apply(plot.model, plot.cframe, if data then data.rebirths else 0)
 			player:SetAttribute("PlotIndex", plot.model:GetAttribute("Index"))
 			PlotService.Render(player)
 			player.CharacterAdded:Connect(function(char)
@@ -637,6 +654,7 @@ function PlotService.Release(player: Player)
 	plot.owner = nil
 	plot.lockedUntil = 0
 	plotOf[player] = nil
+	BaseDecor.Apply(plot.model, plot.cframe, 0)
 	setOwnerSign(plot)
 end
 
