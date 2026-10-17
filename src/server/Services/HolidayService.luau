@@ -12,6 +12,7 @@ local Net = require(script.Parent.Net)
 local Rewards = require(script.Parent.Rewards)
 local MapBuilder = require(script.Parent.MapBuilder)
 local PlotService = require(script.Parent.PlotService)
+local Passes = require(script.Parent.Passes)
 
 local HolidayService = {}
 
@@ -276,7 +277,9 @@ function HolidayService.Knock(player: Player, plot)
 	end
 	knocked[player] = knocked[player] or {}
 	local last = knocked[player][plot.model] or 0
-	local wait = last + tt.cooldown - os.time()
+	-- The Candy Bucket pass halves the wait and doubles every treat.
+	local bucket = Passes.Owns(player, "CandyBucket")
+	local wait = last + (if bucket then tt.cooldown / 2 else tt.cooldown) - os.time()
 	if wait > 0 then
 		Net.Notify(player, "You already got candy here. Come back in " .. math.ceil(wait / 60) .. " min, or try another base!", "info")
 		return
@@ -300,7 +303,14 @@ function HolidayService.Knock(player: Player, plot)
 		Net.Fx(player, "boo", {})
 		Net.Notify(player, "👻 TRICK! " .. owner.DisplayName .. "'s base had a ghost in the candy bowl!", "info")
 	else
-		local got = Rewards.Grant(player, pick.reward)
+		local reward = pick.reward
+		if bucket then
+			reward = table.clone(reward)
+			reward.cashSeconds = reward.cashSeconds and reward.cashSeconds * 2
+			reward.cashMin = reward.cashMin and reward.cashMin * 2
+			reward.snacks = reward.snacks and reward.snacks * 2
+		end
+		local got = Rewards.Grant(player, reward) .. (if bucket then " (🍬 x2)" else "")
 		Net.Fx(player, "dropGrab", { title = pick.label .. "!", text = got, color = Color3.fromRGB(255, 140, 30), pos = player.Character and player.Character:GetPivot().Position or Vector3.zero, lucky = false })
 	end
 	Net.Notify(owner, "🍬 " .. player.DisplayName .. " came trick-or-treating at your base!", "info")

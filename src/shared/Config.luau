@@ -10,6 +10,8 @@ Config.GamePasses = {
 	VIP = { id = 0, name = "VIP", price = 299, desc = "+25% income, gold name tag, base lock lasts twice as long." },
 	ExtraPens = { id = 0, name = "Extra Pens", price = 149, desc = "+4 pen slots for more slimes." },
 	AutoCollect = { id = 0, name = "Auto Collect", price = 99, desc = "Cash goes straight to you, no collector needed." },
+	-- Holiday items only show in the shop while their holiday is on (Config.Holidays).
+	CandyBucket = { id = 0, name = "🍬 Candy Bucket", price = 99, desc = "Trick-or-treat: double treats and knock again twice as fast, every Halloween.", holiday = "Halloween" },
 }
 
 Config.Products = {
@@ -20,6 +22,8 @@ Config.Products = {
 	InstantLock = { id = 0, name = "Shield (5 min)", price = 39, desc = "Nobody can raid your base for 5 minutes.", kind = "Lock", seconds = 300 },
 	GrowBoost = { id = 0, name = "Grow Boost", price = 49, desc = "Every slime you own grows one stage now.", kind = "Grow" },
 	SlimeRain = { id = 0, name = "Server Slime Rain", price = 199, desc = "Start a Slime Rain for everyone. Rare slimes x5!", kind = "Rain" },
+	PumpkinNight = { id = 0, name = "🎃 Start Pumpkin Night", price = 149, desc = "Start Pumpkin Night for the whole server: Halloween slimes, 2x luck, candy drops!", kind = "Event", event = "PumpkinNight", holiday = "Halloween" },
+	HalloweenPack = { id = 0, name = "🦇 Halloween Pack", price = 199, desc = "The Batty slime + 30 minutes of 5x LUCK. Always the same, no random.", kind = "Pack", reward = { slime = "Batty", luckMinutes = 30 }, holiday = "Halloween" },
 }
 
 -- Set true to pretend you own every game pass while testing in Studio.

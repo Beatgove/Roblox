@@ -20,6 +20,7 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
   - Every 2nd server event is 🎃 Pumpkin Night: dusk sky with floating embers, its own song, 2x luck, Candy Pumpkins falling in the street and the 🎃 Haunted trait (x4). New slimes can also be 👻 Spooky (x2.5).
   - The map gets jack-o'-lanterns, giant pumpkins by the spawn, little graveyards, floating ghosts, orange and purple lights, a sunset sky and 4 spooky songs.
   - Trick-or-treat: every base door has a candy bowl. Knock on another player's base for 🍬 Treat 70% / 🍭 Big Treat 20% / 👻 Trick 10% (odds on the prompt), once per base every 5 minutes.
+  - Halloween shop (top of the shop, only while it's on): 🎃 Start Pumpkin Night for the server (149 R$), 🦇 Halloween Pack: Batty + 30 min 5x Luck (199 R$), 🍬 Candy Bucket pass: double treats and half the trick-or-treat wait (99 R$). Create them in Creator Hub and paste the IDs into `Config.Products` / `Config.GamePasses`.
   - A 🎃 HALLOWEEN chip in the HUD counts down the days left. Add the next holiday in `Config.Holidays` the same way.
 - Gear shop (cash): Slap Hand (free), Speed Coil, Gravity Coil, Slime Trap (Rebirth 1), Slime Taser (Rebirth 2). Slapping or zapping a thief knocks your slime loose and it bounces home.
 - Server events every 8 minutes: Golden Hour (Golden x10), Lava Storm (Lava mutation x3), Candy Party (Candy mutation x5), Cash Frenzy (2x income), Lucky Hour (3x luck). The world changes color and things fall from the sky.

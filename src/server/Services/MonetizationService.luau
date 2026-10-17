@@ -12,6 +12,8 @@ local PlotService = require(script.Parent.PlotService)
 local ConveyorService = require(script.Parent.ConveyorService)
 local DispenserService = require(script.Parent.DispenserService)
 local Net = require(script.Parent.Net)
+local EventService = require(script.Parent.EventService)
+local Rewards = require(script.Parent.Rewards)
 
 local MonetizationService = {}
 
@@ -39,6 +41,11 @@ local function grantProduct(player: Player, product): boolean
 		Net.Notify(player, "All your slimes grew a stage!", "epic")
 	elseif product.kind == "Rain" then
 		ConveyorService.StartRain(Config.RainDurationSeconds, player.DisplayName)
+	elseif product.kind == "Event" then
+		EventService.Run(product.event, nil, player.DisplayName)
+	elseif product.kind == "Pack" then
+		local got = Rewards.Grant(player, product.reward)
+		Net.Notify(player, product.name .. ": " .. got .. "! Thanks for the support!", "epic")
 	else
 		return false
 	end

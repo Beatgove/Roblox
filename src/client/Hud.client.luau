@@ -312,7 +312,25 @@ local function shopRow(order: number, item, isPass: boolean)
 			MarketplaceService:PromptProductPurchase(player, item.id)
 		end
 	end)
+	return row
 end
+
+-- Holiday items go at the top and only show while their holiday is on.
+local holidayRows = {}
+for i, k in { "PumpkinNight", "HalloweenPack", "CandyBucket" } do
+	local isPass = Config.GamePasses[k] ~= nil
+	local item = if isPass then Config.GamePasses[k] else Config.Products[k]
+	if item then
+		local row = shopRow(i - 10, item, isPass)
+		row.Visible = workspace:GetAttribute("Holiday") == item.holiday
+		holidayRows[row] = item.holiday
+	end
+end
+workspace:GetAttributeChangedSignal("Holiday"):Connect(function()
+	for row, holiday in holidayRows do
+		row.Visible = workspace:GetAttribute("Holiday") == holiday
+	end
+end)
 
 local order = 0
 for _, k in { "DoubleCash", "VIP", "ExtraPens", "AutoCollect" } do
