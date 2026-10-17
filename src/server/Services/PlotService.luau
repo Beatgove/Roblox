@@ -33,6 +33,7 @@ type Plot = {
 local plots: { Plot } = {}
 local plotOf: { [Player]: Plot } = {}
 local moving: { [Player]: any } = {} -- the slime (table) a player has picked up to move
+local arriving: { [any]: boolean } = {} -- slimes still walking from the belt to their pen
 
 -- Fired when a non-owner triggers a steal prompt: (thief, victim, slotIndex)
 PlotService.StealRequested = Instance.new("BindableEvent")
@@ -168,7 +169,7 @@ function PlotService.AddOrPay(player: Player, slime): boolean
 	end
 	local value = PlotService.SellValue(slime)
 	PlotService.AddCash(player, value)
-	Net.Notify(player, "Your pens were full, so your " .. slime.id .. " was sold for " .. Util.Money(value) .. ".", "info")
+	Net.Notify(player, "Your pens were full, so your " .. Config.SlimeName(slime.id) .. " was sold for " .. Util.Money(value) .. ".", "info")
 	return false
 end
 
@@ -405,7 +406,7 @@ function PlotService.Render(player: Player)
 
 	for i, slime in data.slimes do
 		local pad = plot.model.Pens:FindFirstChild("Pen" .. penOf[i])
-		if not pad then
+		if not pad or arriving[slime] then
 			continue
 		end
 		local stage = Util.Stage(now() - slime.born)
@@ -640,23 +641,142 @@ function PlotService.NextPenPosition(player: Player): Vector3?
 	return pad and pad.Position
 end
 
-function PlotService.AddSlime(player: Player, slime): boolean
+-- The route a bought slime hops along to its pen, in floor-level points: off the belt into
+-- the clear lane beside it, along to your path, up the path and through the door, then round
+-- the stairs (or up them) to the pen. Every leg stays on open floor so nothing is in the way.
+local function walkRoute(plot: Plot, pad: BasePart, from: Vector3): { Vector3 }?
+	local door = plot.model:FindFirstChild("Door") :: BasePart?
+	if not door then
+		return nil
+	end
+	local half = 34 -- MapBuilder.PlotSize / 2
+	local center = door.CFrame * CFrame.new(0, -door.Size.Y / 2, half) -- floor level, +Z points inside
+	local function at(x: number, y: number, z: number): Vector3
+		return (center * CFrame.new(x, y, z)).Position
+	end
+	local padLocal = center:PointToObjectSpace(pad.Position)
+	local laneZ = math.sign(door.Position.Z) * 9 -- between the belt and the sidewalk
+	local outside = at(0, 0, -half - 6)
+	local route = {
+		Vector3.new(from.X, 0, from.Z),
+		Vector3.new(from.X, 0, laneZ),
+		Vector3.new(outside.X, 0, laneZ),
+		outside,
+		at(0, 0, -half + 4),
+	}
+	if padLocal.Y > 5 then
+		-- Second floor: straight up the stairs in the middle, then between the two pen rows.
+		local y = 9.5 -- MapBuilder.UpperFloorY
+		table.insert(route, at(0, 0, -21))
+		table.insert(route, at(0, y, -7))
+		table.insert(route, at(0, y, 15))
+		table.insert(route, at(padLocal.X, y, 15))
+	else
+		-- Ground floor: beside the stairs, then along the gap between the two pen rows.
+		local sx = if padLocal.X < 0 then -6 else 6
+		table.insert(route, at(sx, 0, -half + 4))
+		table.insert(route, at(sx, 0, 2))
+		table.insert(route, at(padLocal.X, 0, 2))
+	end
+	table.insert(route, pad.Position + Vector3.new(0, 0.2, 0))
+	return route
+end
+
+-- Debug: the route a slime would take from a point to one of this player's pens.
+function PlotService.WalkRoute(player: Player, pen: number, from: Vector3): { Vector3 }?
+	local plot = plotOf[player]
+	local pad = plot and plot.model.Pens:FindFirstChild("Pen" .. pen) :: BasePart?
+	return if plot and pad then walkRoute(plot, pad, from) else nil
+end
+
+local function walkIn(player: Player, plot: Plot, slime, pad: BasePart, from: Vector3)
+	local route = walkRoute(plot, pad, from)
+	if not route then
+		return false
+	end
+	local model = SlimeModel.Create(slime.id, 1, slime.mut, slime.stars, slime.traits, slime.diet)
+	local height = model.PrimaryPart.Size.Y / 2
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.CanCollide = false
+			p.CanQuery = false
+			p.CanTouch = false
+		end
+	end
+	model.Name = "Walking" .. slime.id
+	local lengths, total = {}, 0
+	for i = 2, #route do
+		lengths[i] = (route[i] - route[i - 1]).Magnitude
+		total += lengths[i]
+	end
+	local duration = math.clamp(total / 24, 4, 12)
+	model:PivotTo(CFrame.new(route[1] + Vector3.new(0, height, 0)))
+	model.Parent = workspace
+	task.spawn(function()
+		local t0 = os.clock()
+		while model.Parent do
+			local dist = math.min((os.clock() - t0) / duration, 1) * total
+			local i = 2
+			while i < #route and dist > lengths[i] do
+				dist -= lengths[i]
+				i += 1
+			end
+			local a, b = route[i - 1], route[i]
+			local pos = a:Lerp(b, if lengths[i] > 0 then math.min(dist / lengths[i], 1) else 1)
+			local hop = math.abs(math.sin((os.clock() - t0) * 9)) * 1.2
+			if i == 2 then
+				-- A big jump off the belt, clear over its side rail.
+				hop += math.sin(math.pi * math.min(dist / math.max(lengths[i], 0.1), 1)) * 3
+			end
+			local flat = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+			local look = if flat.Magnitude > 0.1 then CFrame.lookAt(pos, pos + flat) else CFrame.new(pos)
+			model:PivotTo(look + Vector3.new(0, height + hop, 0))
+			if os.clock() - t0 >= duration then
+				break
+			end
+			task.wait(1 / 30)
+		end
+		model:Destroy()
+		arriving[slime] = nil
+		if player.Parent then
+			PlotService.Render(player)
+			local rarity = Config.RarityByName[Config.SlimeById[slime.id].rarity]
+			Net.FxAll("land", { pos = pad.Position, color = rarity.color, big = rarity.order >= 5 })
+		end
+	end)
+	return true
+end
+
+-- from: where the slime was bought; it hops from there to its pen instead of appearing in it.
+function PlotService.AddSlime(player: Player, slime, from: Vector3?): boolean
 	local data = DataService.Get(player)
 	if not data or not PlotService.HasFreeSlot(player) then
 		return false
 	end
 	slime.pen = nil -- a new (or stolen) slime takes the lowest free pen
 	table.insert(data.slimes, slime)
+	local plot = plotOf[player]
+	if from and plot then
+		arriving[slime] = true -- keep it out of the pen while it walks
+	end
 	PlotService.Render(player)
 	local pad = PlotService.PadFor(player, #data.slimes)
+	local walking = false
+	if arriving[slime] then
+		walking = plot ~= nil and pad ~= nil and walkIn(player, plot, slime, pad, from :: Vector3)
+		if not walking then
+			arriving[slime] = nil
+			PlotService.Render(player)
+		end
+	end
 	local rarity = Config.RarityByName[Config.SlimeById[slime.id].rarity]
-	if pad then
+	if pad and not walking then
 		Net.FxAll("land", { pos = pad.Position, color = rarity.color, big = rarity.order >= 5 })
 	end
 	if not data.index[slime.id] then
 		data.index[slime.id] = true
 		PlotService.Sync(player)
-		Net.Notify(player, "📖 NEW! " .. slime.id .. " added to your Slime Index (+1% income)", "epic")
+		Net.Notify(player, "📖 NEW! " .. Config.SlimeName(slime.id) .. " added to your Slime Index (+1% income)", "epic")
 		Signals.Progress(player, "index", PlotService.IndexCount(player))
 	end
 	return true
@@ -681,7 +801,7 @@ function PlotService.Sell(player: Player, slot: number)
 	PlotService.RemoveSlime(player, slot)
 	local value = PlotService.SellValue(slime)
 	PlotService.AddCash(player, value)
-	Net.Notify(player, "Sold " .. slime.id .. " for " .. Util.Money(value), "good")
+	Net.Notify(player, "Sold " .. Config.SlimeName(slime.id) .. " for " .. Util.Money(value), "good")
 end
 
 function PlotService.Lock(player: Player, seconds: number, ignoreCooldown: boolean?)

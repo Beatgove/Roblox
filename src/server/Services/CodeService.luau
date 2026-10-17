@@ -53,7 +53,7 @@ local function redeem(player: Player, raw: any): (boolean, string)
 	end
 	if code.slime then
 		PlotService.AddSlime(player, { id = code.slime, born = os.time() })
-		Net.Fx(player, "reveal", { name = code.slime, rarity = Config.SlimeById[code.slime].rarity })
+		Net.Fx(player, "reveal", { name = Config.SlimeName(code.slime), rarity = Config.SlimeById[code.slime].rarity })
 		table.insert(parts, code.slime .. " slime")
 	end
 	Net.Fx(player, "code", {})

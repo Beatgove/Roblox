@@ -287,7 +287,7 @@ local function rollSpin(d)
 	while os.clock() - t0 < 1.4 do
 		local s = names[math.random(1, #names)]
 		textToken += 1
-		bigText.Text = s.id
+		bigText.Text = s.name or s.id
 		bigText.TextColor3 = rarityColor(s.rarity)
 		bigText.TextTransparency = 0
 		bigText.TextStrokeTransparency = 0
@@ -309,6 +309,43 @@ handlers.buy = function(d)
 	burst(d.pos, d.color, 25 + d.order * 8)
 	ring(d.pos, d.color, 10 + d.order * 2)
 	sound("Ping", 1 + d.order * 0.05, 0.5, d.pos)
+end
+-- A bought slime says its name (Roblox text-to-speech, loaded by the server's SlimeVoices).
+-- The buyer hears it fully; anyone close by hears it quieter.
+do
+	local voiceOut: AudioDeviceOutput? = nil
+	handlers.voice = function(d)
+		local folder = ReplicatedStorage:FindFirstChild("SlimeVoices")
+		local tts: any = folder and folder:FindFirstChild(d.id)
+		if not tts then
+			return
+		end
+		local volume = 1.5
+		if d.buyer ~= player.UserId then
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			local dist = if root and d.pos then (root.Position - d.pos).Magnitude else math.huge
+			if dist > 80 then
+				return
+			end
+			volume = 1 - dist / 80
+		end
+		if not voiceOut then
+			local out = Instance.new("AudioDeviceOutput")
+			out.Name = "SlimeVoiceOutput"
+			out.Parent = SoundService
+			voiceOut = out
+		end
+		if not tts:FindFirstChild("VoiceWire") then
+			local wire = Instance.new("Wire")
+			wire.Name = "VoiceWire"
+			wire.SourceInstance = tts
+			wire.TargetInstance = voiceOut
+			wire.Parent = tts
+		end
+		tts.Volume = volume
+		tts.TimePosition = 0
+		tts:Play()
+	end
 end
 handlers.reveal = function(d)
 	if not d.quiet then

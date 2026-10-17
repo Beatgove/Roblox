@@ -77,7 +77,7 @@ local function infuse(player: Player, eventKey: string): string?
 		Net.FxAll("strike", { pos = pad.Position, color = def.color, icon = def.icon })
 	end
 	task.delay(0.9, PlotService.Render, player)
-	return def.icon .. " " .. s.id .. " got " .. trait .. " (x" .. def.mult .. ")"
+	return def.icon .. " " .. Config.SlimeName(s.id) .. " got " .. trait .. " (x" .. def.mult .. ")"
 end
 
 local function spawnDrop(eventKey: string)

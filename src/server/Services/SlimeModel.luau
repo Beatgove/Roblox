@@ -285,7 +285,7 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 		gui.Rarity.TextStrokeColor3 = Color3.fromRGB(255, 0, 80)
 	end
 	local icons = Config.TraitIcons(traits)
-	gui.Title.Text = (if icons ~= "" then icons .. " " else "") .. slimeId .. Config.Stars(starCount)
+	gui.Title.Text = (if icons ~= "" then icons .. " " else "") .. Config.SlimeName(slimeId) .. Config.Stars(starCount)
 	local traitList: { string } = traits or {}
 	for _, t in traitList do
 		local tdef = Config.Traits[t]
@@ -336,7 +336,7 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 	local snack = diet and Config.Snacks[diet]
 	if snack then
 		SlimeModel.ApplyDiet(model, body, diet :: string, size)
-		gui.Title.Text = (if icons ~= "" then icons .. " " else "") .. snack.diet .. " " .. slimeId .. Config.Stars(starCount)
+		gui.Title.Text = (if icons ~= "" then icons .. " " else "") .. snack.diet .. " " .. Config.SlimeName(slimeId) .. Config.Stars(starCount)
 		gui.Info.Text = Util.Money(def.income * Config.MutationMult(mut) * Config.StarMult(starCount) * Config.TraitMult(traits) * snack.mult) .. "/s"
 	end
 	return model

@@ -1,6 +1,6 @@
 -- Studio-only test hooks. In a Play test, run from the command bar (Server view):
 --   game.ServerStorage.Debug:Invoke("king")
--- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | move I,Pen | slime Id | snacks N | feed Slot | blackout | relic [Key] | arcade | tower | drop EventKey
+-- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | move I,Pen | slime Id | snacks N | feed Slot | blackout | relic [Key] | arcade | tower | drop EventKey | route X,Z | walk Id,X
 -- Never exists in live servers.
 
 local Players = game:GetService("Players")
@@ -63,8 +63,43 @@ function DebugService.Start(services)
 			services.PlotService.MoveTo(player, tonumber(b))
 			local p1, p2 = services.PlotService.PadFor(player, 1), services.PlotService.PadFor(player, 2)
 			return (if p1 then p1.Name else "-") .. " " .. (if p2 then p2.Name else "-") .. " slots " .. services.PlotService.Slots(player)
+		elseif cmd == "route" then
+			-- "route" with arg "fromX,fromZ": lists anything solid or visible a walking slime would
+			-- pass through on the way to each pen. Returns the number of hits.
+			local fx, fz = string.match(tostring(arg), "(-?[%d.]+),(-?[%d.]+)")
+			local from = Vector3.new(tonumber(fx) or 0, 0, tonumber(fz) or 0)
+			local params = OverlapParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			params.FilterDescendantsInstances = { player.Character, workspace:FindFirstChild("BeltSlimes") }
+			local hits, seen = 0, {}
+			for pen = 1, Config.MaxSlots do
+				local route = services.PlotService.WalkRoute(player, pen, from)
+				for i = 2, if route then #route else 0 do
+					local a, b = route[i - 1], route[i]
+					local len = (b - a).Magnitude
+					if len < 0.5 then
+						continue
+					end
+					-- A box as wide as a big slime, from just above the floor to head height.
+					local box = CFrame.lookAt((a + b) / 2, b) * CFrame.new(0, 2.6, 0)
+					for _, p in workspace:GetPartBoundsInBox(box, Vector3.new(4, 4, len), params) do
+						if p.Transparency < 1 and not seen[p] and p.Size.Y > 0.35 and not p:FindFirstAncestor("Slimes") and p.Name ~= "Stair" and p.Name ~= "Floor" then
+							seen[p] = true
+							hits += 1
+							print("ROUTE HIT pen", pen, "leg", i, p:GetFullName(), p.Size, p.Position)
+						end
+					end
+				end
+			end
+			return hits
 		elseif cmd == "slime" then
 			services.PlotService.AddSlime(player, { id = arg or "Goop", born = os.time() - 3600 })
+		elseif cmd == "walk" then
+			-- "walk" with arg "Id,X": a slime bought off the belt at x = X hops to its pen and says its name.
+			local id, x = string.match(tostring(arg), "(%w+),(-?[%d.]+)")
+			local from = Vector3.new(tonumber(x) or 0, 3, 0)
+			services.Net.FxAll("voice", { id = id, buyer = player.UserId, pos = from })
+			services.PlotService.AddSlime(player, { id = id or "Goop", born = os.time() }, from)
 		elseif cmd == "snacks" then
 			for _, key in Config.SnackOrder do
 				services.SnackService.Give(player, key, n or 5, true)

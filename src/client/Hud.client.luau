@@ -399,7 +399,7 @@ for _, s in Config.Slimes do
 	local r = Config.RarityByName[s.rarity]
 	local card = new("Frame", { BackgroundColor3 = COLORS.panel, LayoutOrder = s.order, Parent = grid }, { corner(12), new("UIStroke", { Color = r.color, Thickness = 2 }) })
 	local blob = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 8), Size = UDim2.fromOffset(42, 36), BackgroundColor3 = s.color, Parent = card }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), stroke(COLORS.outline, 2) })
-	local nameL = text({ Position = UDim2.fromOffset(4, 48), Size = UDim2.new(1, -8, 0, 20), Text = s.id, Parent = card })
+	local nameL = text({ Position = UDim2.fromOffset(4, 48), Size = UDim2.new(1, -8, 0, 20), Text = Config.SlimeName(s.id), Parent = card })
 	local rarL = text({ Position = UDim2.fromOffset(4, 68), Size = UDim2.new(1, -8, 0, 16), Font = Enum.Font.GothamBold, TextColor3 = r.color, TextStrokeTransparency = 1, Text = s.rarity, Parent = card })
 	cards[s.id] = { blob = blob, name = nameL, rarity = rarL, def = s }
 end

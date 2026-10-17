@@ -42,6 +42,7 @@ local StormService = require(Services.StormService)
 local SeasonService = require(Services.SeasonService)
 local Analytics = require(Services.Analytics)
 local BossService = require(Services.BossService)
+local SlimeVoices = require(Services.SlimeVoices)
 
 local plots = MapBuilder.Build()
 DataService.Start()
@@ -77,8 +78,10 @@ StormService.Start()
 SeasonService.Start()
 Analytics.Start()
 BossService.Start()
+SlimeVoices.Start()
 require(Services.DebugService).Start({
 	DataService = DataService,
+	Net = Net,
 	PlotService = PlotService,
 	BossService = BossService,
 	BaseDecor = require(Services.BaseDecor),

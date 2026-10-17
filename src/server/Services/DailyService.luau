@@ -68,7 +68,7 @@ local function claim(player: Player)
 	end
 	if reward.slime then
 		if PlotService.AddSlime(player, { id = reward.slime, born = os.time() }) then
-			Net.Fx(player, "reveal", { name = reward.slime, rarity = Config.SlimeById[reward.slime].rarity })
+			Net.Fx(player, "reveal", { name = Config.SlimeName(reward.slime), rarity = Config.SlimeById[reward.slime].rarity })
 			table.insert(parts, reward.slime .. " slime")
 		else
 			local value = Config.SlimeById[reward.slime].price

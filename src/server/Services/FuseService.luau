@@ -140,7 +140,7 @@ local function claim(player: Player)
 	Net.Fx(player, "reveal", { name = Config.DisplayName(r.id, r.mut), rarity = def.rarity, mut = r.mut })
 	Net.Notify(player, "🧪 The Fuse Machine made a " .. def.rarity .. " " .. Config.DisplayName(r.id, r.mut) .. "!", "epic")
 	if Config.RarityByName[def.rarity].order >= 5 then
-		Net.NotifyAll("🧪 " .. player.DisplayName .. " fused a " .. def.rarity .. " " .. r.id .. "!", "epic")
+		Net.NotifyAll("🧪 " .. player.DisplayName .. " fused a " .. def.rarity .. " " .. Config.SlimeName(r.id) .. "!", "epic")
 	end
 end
 

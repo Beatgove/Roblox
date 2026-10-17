@@ -77,9 +77,11 @@ local function spawnSlime()
 		claimed = true
 		data.cash -= price
 		Net.FxAll("buy", { pos = model.PrimaryPart.Position, color = rarity.color, order = rarity.order })
+		Net.FxAll("voice", { id = def.id, buyer = player.UserId, pos = model.PrimaryPart.Position })
 		Net.Fx(player, "reveal", { name = name, rarity = def.rarity, mut = mut, quiet = rarity.order < 4 and mut == nil })
+		local boughtAt = model:GetPivot().Position
 		model:Destroy()
-		PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits })
+		PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits }, boughtAt)
 		Net.Notify(player, "Bought " .. name .. "! It's in your base.", "good")
 		Signals.Progress(player, "buy")
 		announceIfRare(rarity, player.DisplayName .. " bought a " .. def.rarity .. " " .. name .. "!")

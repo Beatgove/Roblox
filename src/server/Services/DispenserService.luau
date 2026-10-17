@@ -83,12 +83,13 @@ local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 		if not player.Parent then
 			return
 		end
-		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits }) then
+		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits }, MapBuilder.DispenserPosition - Vector3.new(0, 0, 7)) then -- out of the front of the machine
 			-- Pens filled up during the animation: refund (a free roll pays the slime's value).
 			PlotService.AddCash(player, if free then PlotService.SellValue({ id = def.id, mut = mut, traits = traits }) else cost)
 			Net.Notify(player, "Pens full, roll refunded.", "bad")
 			return
 		end
+		Net.FxAll("voice", { id = def.id, buyer = player.UserId, pos = MapBuilder.DispenserPosition })
 		if rarity.order >= 5 or mut or traits then
 			Net.NotifyAll("🎰 " .. player.DisplayName .. " rolled a " .. def.rarity .. " " .. name .. " from the Dispenser!", "epic")
 		end

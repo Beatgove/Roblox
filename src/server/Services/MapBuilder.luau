@@ -571,7 +571,14 @@ local function decorate(map: Folder)
 	end
 
 	-- Walkway lamps along both sides of the belt.
-	for x = -195, 195, 30 do
+	for lampX = -195, 195, 30 do
+		-- Keep the base paths clear: bought slimes hop up them to their pens.
+		local x = lampX
+		for _, px in MapBuilder.PlotXs do
+			if math.abs(x - px) < 8 then
+				x = px + 9
+			end
+		end
 		lamp(Vector3.new(x, 0, 12), Color3.fromRGB(255, 220, 140))
 		lamp(Vector3.new(x, 0, -12), Color3.fromRGB(255, 220, 140))
 	end
