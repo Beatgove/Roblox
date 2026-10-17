@@ -643,7 +643,8 @@ end
 
 -- The route a bought slime hops along to its pen, in floor-level points: off the belt into
 -- the clear lane beside it, along to your path, up the path and through the door, then round
--- the stairs (or up them) to the pen. Every leg stays on open floor so nothing is in the way.
+-- the fountain (and up the Goo Spiral for the second storey) to the pen. Every leg stays on
+-- open floor so nothing is in the way.
 local function walkRoute(plot: Plot, pad: BasePart, from: Vector3): { Vector3 }?
 	local door = plot.model:FindFirstChild("Door") :: BasePart?
 	if not door then
@@ -664,17 +665,25 @@ local function walkRoute(plot: Plot, pad: BasePart, from: Vector3): { Vector3 }?
 		outside,
 		at(0, 0, -half + 4),
 	}
+	local sx = if padLocal.X < 0 then -7.5 else 7.5
 	if padLocal.Y > 5 then
-		-- Second floor: straight up the stairs in the middle, then between the two pen rows.
-		local y = 9.5 -- MapBuilder.UpperFloorY
-		table.insert(route, at(0, 0, -21))
-		table.insert(route, at(0, y, -7))
-		table.insert(route, at(0, y, 15))
-		table.insert(route, at(padLocal.X, y, 15))
+		-- Second storey: round the fountain, up the Goo Spiral at the back (one turn round the
+		-- column at z 27), off the top onto the right-hand floor, then between the pen rows.
+		local y = 18.7 -- BaseDecor.UpperFloorY
+		table.insert(route, at(7.5, 0, -30))
+		table.insert(route, at(7.5, 0, 18))
+		table.insert(route, at(0.5, 0, 18)) -- in front of the first step, clear of the rail posts
+		for k = 1, 24 do
+			local a = math.rad((k - 0.5) * 15) -- the middle of step k, on top of it
+			table.insert(route, at(math.sin(a) * 4, k * y / 24, 27 - math.cos(a) * 4))
+		end
+		table.insert(route, at(4, y, 22))
+		table.insert(route, at(0, y, 17))
+		table.insert(route, at(0, y, 2))
+		table.insert(route, at(padLocal.X, y, 2))
 	else
-		-- Ground floor: beside the stairs, then along the gap between the two pen rows.
-		local sx = if padLocal.X < 0 then -6 else 6
-		table.insert(route, at(sx, 0, -half + 4))
+		-- Ground floor: round the fountain, then along the gap between the two pen rows.
+		table.insert(route, at(sx, 0, -30))
 		table.insert(route, at(sx, 0, 2))
 		table.insert(route, at(padLocal.X, 0, 2))
 	end

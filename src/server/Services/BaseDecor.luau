@@ -9,6 +9,11 @@ local BaseDecor = {}
 local HALF = 34 -- MapBuilder.PlotSize / 2
 local H = 18 -- MapBuilder.WallHeight
 local DOOR = 10 -- half of MapBuilder.DoorWidth
+-- The second storey (Config.SecondFloorRebirth) stacks a whole new floor on the building:
+-- the roof and everything on it lifts by RISE, and the new floor's top is at FY.
+local RISE = 16
+local FY = H + 0.7 -- MapBuilder.UpperFloorY
+BaseDecor.UpperFloorY = FY
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 
@@ -86,6 +91,45 @@ local function applySkin(model: Model, key: string?)
 	end
 end
 
+-- Lifts the roof (and the sirens, owner sign and lock shield) up by rise to make room for the
+-- second storey, or puts them back with rise = 0. Corner posts and the shield stretch instead.
+local function raise(model: Model, cf: CFrame, rise: number)
+	local start = model:FindFirstChild("StartDecor")
+	local ceiling = start and start:FindFirstChild("Ceiling") :: BasePart?
+	if ceiling then
+		ceiling.Transparency = if rise > 0 then 1 else 0 -- the new floor's underside takes over
+	end
+	local parts = {}
+	for _, holder in { model, model:FindFirstChild("StartDecor"), model:FindFirstChild("Shield") } do
+		for _, d in (if holder then holder:GetChildren() else {}) do
+			if d:IsA("BasePart") and d.Name ~= "Ceiling" then
+				table.insert(parts, d)
+			end
+		end
+	end
+	for _, p in parts do
+		local baseCF = p:GetAttribute("BaseCF")
+		local baseSize = p:GetAttribute("BaseSize")
+		if typeof(baseCF) ~= "CFrame" or typeof(baseSize) ~= "Vector3" then
+			baseCF, baseSize = p.CFrame, p.Size
+		end
+		local bottom = cf:PointToObjectSpace(baseCF.Position).Y - baseSize.Y / 2
+		local tall = bottom < 1 and baseSize.Y >= H and (p.Name == "WallPost" or p.Name == "ShieldWall")
+		if bottom < H - 0.3 and not tall then
+			continue
+		end
+		p:SetAttribute("BaseCF", baseCF)
+		p:SetAttribute("BaseSize", baseSize)
+		if tall then
+			p.Size = baseSize + Vector3.new(0, rise, 0)
+			p.CFrame = baseCF + cf.UpVector * (rise / 2)
+		else
+			p.Size = baseSize
+			p.CFrame = baseCF + cf.UpVector * rise
+		end
+	end
+end
+
 local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 	remember(model)
 	local old = model:FindFirstChild("Decor")
@@ -97,6 +141,9 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 	end
 	restyle(model, "Floor")
 	restyle(model, "Wall")
+	local rise = if rebirths >= Config.SecondFloorRebirth then RISE else 0
+	local TOP = H + rise -- the top of the walls, where the roof sits
+	raise(model, cf, rise)
 	-- 20: golden pen pedestals (reset to marble below that, so a lower rebirth looks right)
 	local pens = model:FindFirstChild("Pens")
 	for _, pad in (if pens then pens:GetChildren() else {}) do
@@ -135,7 +182,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		local mid = (w.from + w.to) / 2
 		local len = (w.to - w.from).Magnitude + 1.4
 		local alongX = math.abs(w.to.X - w.from.X) > 0.1
-		part(folder, { Name = "Cap", Size = if alongX then Vector3.new(len, 0.4, 1.4) else Vector3.new(1.4, 0.4, len), CFrame = at(mid.X, H + 0.2, mid.Z), Color = Color3.fromRGB(215, 210, 220), Material = Enum.Material.SmoothPlastic })
+		part(folder, { Name = "Cap", Size = if alongX then Vector3.new(len, 0.4, 1.4) else Vector3.new(1.4, 0.4, len), CFrame = at(mid.X, TOP + 0.2, mid.Z), Color = Color3.fromRGB(215, 210, 220), Material = Enum.Material.SmoothPlastic })
 	end
 
 	-- 2: flower boxes along the inside of the walls
@@ -162,14 +209,14 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 	-- 3: lanterns on the front corners and halfway down the sides (the back corners have towers)
 	if rebirths >= 3 then
 		for _, c in { Vector3.new(-HALF, 0, -HALF), Vector3.new(HALF, 0, -HALF), Vector3.new(-HALF, 0, 0), Vector3.new(HALF, 0, 0) } do
-			local lamp = part(folder, { Name = "Lantern", Size = Vector3.new(1.8, 2, 1.8), CFrame = at(c.X, H + 3.4, c.Z), Color = Color3.fromRGB(255, 220, 140), Material = Enum.Material.Neon })
+			local lamp = part(folder, { Name = "Lantern", Size = Vector3.new(1.8, 2, 1.8), CFrame = at(c.X, TOP + 3.4, c.Z), Color = Color3.fromRGB(255, 220, 140), Material = Enum.Material.Neon })
 			CollectionService:AddTag(lamp, "Pulse")
 			local pl = Instance.new("PointLight")
 			pl.Color = Color3.fromRGB(255, 210, 140)
 			pl.Range = 18
 			pl.Brightness = 1.5
 			pl.Parent = lamp
-			part(folder, { Name = "LanternRoof", Size = Vector3.new(2.4, 0.4, 2.4), CFrame = at(c.X, H + 4.6, c.Z), Color = Color3.fromRGB(60, 45, 70), Material = Enum.Material.Metal })
+			part(folder, { Name = "LanternRoof", Size = Vector3.new(2.4, 0.4, 2.4), CFrame = at(c.X, TOP + 4.6, c.Z), Color = Color3.fromRGB(60, 45, 70), Material = Enum.Material.Metal })
 		end
 	end
 
@@ -300,19 +347,19 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		local crownFolder = Instance.new("Model")
 		crownFolder.Name = "Crown"
 		crownFolder.Parent = folder
-		part(crownFolder, { Name = "CrownBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 9, 9), CFrame = at(0, H + 36, 6) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
+		part(crownFolder, { Name = "CrownBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 9, 9), CFrame = at(0, TOP + 36, 6) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
 		for k = 0, 5 do
 			local a = k / 6 * math.pi * 2
-			part(crownFolder, { Name = "Spike", Size = Vector3.new(1, 3.4, 1), CFrame = at(math.cos(a) * 3.8, H + 38.6, 6 + math.sin(a) * 3.8), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
-			part(crownFolder, { Name = "Gem", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.1, CFrame = at(math.cos(a) * 3.8, H + 40.6, 6 + math.sin(a) * 3.8), Color = theme, Material = Enum.Material.Neon })
+			part(crownFolder, { Name = "Spike", Size = Vector3.new(1, 3.4, 1), CFrame = at(math.cos(a) * 3.8, TOP + 38.6, 6 + math.sin(a) * 3.8), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
+			part(crownFolder, { Name = "Gem", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.1, CFrame = at(math.cos(a) * 3.8, TOP + 40.6, 6 + math.sin(a) * 3.8), Color = theme, Material = Enum.Material.Neon })
 		end
 		-- Spin around the crown's own upright axis.
-		crownFolder.WorldPivot = at(0, H + 38, 6)
+		crownFolder.WorldPivot = at(0, TOP + 38, 6)
 		CollectionService:AddTag(crownFolder, "Spin")
 	end
 
 	-- ===== The big building upgrades =====
-	local RY = H + 1.2 -- top of the roof
+	local RY = TOP + 1.2 -- top of the roof
 	local muted = theme:Lerp(Color3.fromRGB(200, 200, 205), 0.45)
 	local function tree(x: number, z: number, y: number, s: number)
 		part(folder, { Name = "RoofTrunk", Size = Vector3.new(0.9, 4 * s, 0.9) , CFrame = at(x, y + 2 * s, z), Color = Color3.fromRGB(110, 75, 55), Material = Enum.Material.Wood })
@@ -358,9 +405,9 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 
 	-- 5: an indoor fountain at the end of the red carpet
 	if rebirths >= 5 then
-		part(folder, { Name = "IndoorFountain", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 11, 11), CFrame = at(0, 0.7, HALF - 13) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(235, 232, 240), Material = Enum.Material.Marble })
-		part(folder, { Name = "IndoorWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 9.6, 9.6), CFrame = at(0, 1.35, HALF - 13) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(110, 190, 235), Material = Enum.Material.Glass, Transparency = 0.3 })
-		local spout = part(folder, { Name = "Spout", Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, 1.4, 1.4), CFrame = at(0, 2.6, HALF - 13) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+		part(folder, { Name = "IndoorFountain", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 11, 11), CFrame = at(0, 0.7, -20) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(235, 232, 240), Material = Enum.Material.Marble })
+		part(folder, { Name = "IndoorWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 9.6, 9.6), CFrame = at(0, 1.35, -20) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(110, 190, 235), Material = Enum.Material.Glass, Transparency = 0.3 })
+		local spout = part(folder, { Name = "Spout", Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, 1.4, 1.4), CFrame = at(0, 2.6, -20) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
 		local e = Instance.new("ParticleEmitter")
 		e.Color = ColorSequence.new(Color3.fromRGB(190, 230, 255))
 		e.Size = NumberSequence.new(0.4, 0.1)
@@ -374,51 +421,138 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		e.Parent = spout
 	end
 
-	-- 4: a second floor with stairs up the middle; it holds pens 9 to 16
+	-- 4: a whole second storey on top of the building, like Steal a Brainrot's floors, holding
+	-- pens 9 to 16 in the same layout as downstairs. You get up there on the Goo Spiral: a
+	-- staircase of wobbly green jelly winding round a bubbling goo column at the back.
 	if rebirths >= Config.SecondFloorRebirth then
-		local FY = 9.5 -- MapBuilder.UpperFloorY, the top of the upper floor
 		local inner = HALF - 0.6
-		local front = -8 -- the upper floor runs from here to the back wall
-		local wood = Color3.fromRGB(196, 150, 108)
 		local function solid(props)
 			local p = part(folder, props)
 			p.CanCollide = true
 			p.CanQuery = true
 			return p
 		end
-		solid({ Name = "UpperFloor", Size = Vector3.new(inner * 2, 0.8, inner - front), CFrame = at(0, FY - 0.4, (inner + front) / 2), Color = wood, Material = Enum.Material.WoodPlanks })
-		part(folder, { Name = "UpperRug", Size = Vector3.new(11, 0.08, inner - front - 2), CFrame = at(0, FY + 0.04, (inner + front) / 2 + 1), Color = Color3.fromRGB(200, 40, 60), Material = Enum.Material.Fabric })
-		-- Stairs from the entrance hall up to the front edge of the upper floor.
-		local steps, bottom = 15, -20
-		local run = (front - bottom) / steps
-		for k = 1, steps do
-			local z0 = bottom + (k - 1) * run
-			solid({ Name = "Stair", Size = Vector3.new(8, k * 0.6, front - z0), CFrame = at(0, 0.5 + k * 0.3, (z0 + front) / 2), Color = Color3.fromRGB(200, 195, 205), Material = Enum.Material.Marble })
-			part(folder, { Name = "StairCarpet", Size = Vector3.new(5, 0.06, run), CFrame = at(0, 0.53 + k * 0.6, z0 + run / 2), Color = Color3.fromRGB(200, 40, 60), Material = Enum.Material.Fabric })
+		local start = model:FindFirstChild("StartDecor")
+		local ceiling = start and start:FindFirstChild("Ceiling") :: BasePart?
+		local ceilingColor = if ceiling then ceiling.Color else Color3.fromRGB(150, 140, 130)
+		-- The floor, with an opening over the left half of the spiral (x -7.5..0.6, z 20..back).
+		local HX0, HX1, HZ = -7.5, 0.6, 20
+		for _, r in {
+			{ -inner, inner, -inner, HZ },
+			{ -inner, HX0, HZ, inner },
+			{ HX1, inner, HZ, inner },
+		} do
+			local w, d = r[2] - r[1], r[4] - r[3]
+			local cx, cz = (r[1] + r[2]) / 2, (r[3] + r[4]) / 2
+			solid({ Name = "UpperFloor", Size = Vector3.new(w, 0.8, d), CFrame = at(cx, FY - 0.4, cz), Color = Color3.fromRGB(196, 150, 108), Material = Enum.Material.WoodPlanks })
+			part(folder, { Name = "UpperCeiling", Size = Vector3.new(w, 0.1, d), CFrame = at(cx, FY - 0.85, cz), Color = ceilingColor, Material = Enum.Material.SmoothPlastic })
+		end
+		part(folder, { Name = "UpperRug", Size = Vector3.new(11, 0.08, HZ + inner - 2), CFrame = at(0, FY + 0.04, (HZ - inner) / 2), Color = Color3.fromRGB(200, 40, 60), Material = Enum.Material.Fabric })
+		-- Walls all round, with windows, an inner lining and lights in the new ceiling. A band
+		-- closes the gap between the old wall tops and the new walls.
+		local wallColor = muted
+		for _, b in {
+			{ Vector3.new(HALF * 2 + 1.4, 0.8, 1.4), Vector3.new(0, 0, -HALF) },
+			{ Vector3.new(HALF * 2 + 1.4, 0.8, 1.4), Vector3.new(0, 0, HALF) },
+			{ Vector3.new(1.4, 0.8, HALF * 2 + 1.4), Vector3.new(-HALF, 0, 0) },
+			{ Vector3.new(1.4, 0.8, HALF * 2 + 1.4), Vector3.new(HALF, 0, 0) },
+		} do
+			solid({ Name = "FloorBand", Size = b[1], CFrame = at(b[2].X, H + 0.35, b[2].Z), Color = theme:Lerp(Color3.fromRGB(40, 35, 50), 0.6), Material = Enum.Material.SmoothPlastic })
+		end
+		for _, w in {
+			{ Vector3.new(HALF * 2 + 1, RISE - 0.7, 1), Vector3.new(0, 0, -HALF) },
+			{ Vector3.new(HALF * 2 + 1, RISE - 0.7, 1), Vector3.new(0, 0, HALF) },
+			{ Vector3.new(1, RISE - 0.7, HALF * 2 + 1), Vector3.new(-HALF, 0, 0) },
+			{ Vector3.new(1, RISE - 0.7, HALF * 2 + 1), Vector3.new(HALF, 0, 0) },
+		} do
+			local y = FY + (RISE - 0.7) / 2
+			solid({ Name = "UpperWall", Size = w[1], CFrame = at(w[2].X, y, w[2].Z), Color = wallColor, Material = Enum.Material.SmoothPlastic })
+			local inset = -math.sign(w[2].X + w[2].Z) * 0.6
+			local liner = if w[1].X > w[1].Z then Vector3.new(w[1].X - 2.4, w[1].Y, 0.2) else Vector3.new(0.2, w[1].Y, w[1].Z - 2.4)
+			local pos = if w[1].X > w[1].Z then Vector3.new(0, y, w[2].Z + inset) else Vector3.new(w[2].X + inset, y, 0)
+			part(folder, { Name = "UpperLining", Size = liner, CFrame = at(pos.X, pos.Y, pos.Z), Color = Color3.fromRGB(194, 182, 168), Material = Enum.Material.SmoothPlastic })
 		end
 		for _, sx in { -1, 1 } do
-			-- Handrails up the stairs.
-			local a, b = Vector3.new(sx * 4.2, 3.6, bottom), Vector3.new(sx * 4.2, FY + 3, front)
-			part(folder, { Name = "StairRail", Size = Vector3.new(0.4, 0.4, (b - a).Magnitude), CFrame = CFrame.lookAt((cf * CFrame.new(a)).Position, (cf * CFrame.new(b)).Position) * CFrame.new(0, 0, -(b - a).Magnitude / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
-			-- Railing along the front edge of the upper floor, open where the stairs arrive.
-			local len = inner - 4
-			local x = sx * (4 + len / 2)
-			solid({ Name = "Railing", Size = Vector3.new(len, 0.4, 0.4), CFrame = at(x, FY + 3, front + 0.2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
-			part(folder, { Name = "RailingGlass", Size = Vector3.new(len, 2.8, 0.15), CFrame = at(x, FY + 1.5, front + 0.2), Color = Color3.fromRGB(190, 225, 245), Material = Enum.Material.Glass, Transparency = 0.6 }).CanCollide = true
-			for px = 4, inner, 4 do
-				part(folder, { Name = "RailPost", Size = Vector3.new(0.4, 3, 0.4), CFrame = at(sx * px, FY + 1.5, front + 0.2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+			for _, z in { -20, 0, 20 } do
+				part(folder, { Name = "UpperWindowFrame", Size = Vector3.new(1.7, 6.4, 8.4), CFrame = at(sx * HALF, FY + 7, z), Color = Color3.fromRGB(214, 211, 206), Material = Enum.Material.SmoothPlastic })
+				part(folder, { Name = "UpperWindow", Size = Vector3.new(1.9, 5.4, 7.4), CFrame = at(sx * HALF, FY + 7, z), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.35 })
 			end
-			-- Soft lights under the upper floor so the downstairs pens aren't in the dark.
-			for _, z in { 2, 16, 28 } do
-				local lamp = part(folder, { Name = "UnderLight", Size = Vector3.new(3, 0.2, 3), CFrame = at(sx * 16, FY - 0.9, z), Color = Color3.fromRGB(255, 250, 240), Material = Enum.Material.SmoothPlastic })
+		end
+		for _, x in { -12, 12 } do
+			part(folder, { Name = "UpperWindowFrame", Size = Vector3.new(10.4, 6.4, 1.7), CFrame = at(x, FY + 7, -HALF), Color = Color3.fromRGB(214, 211, 206), Material = Enum.Material.SmoothPlastic })
+			part(folder, { Name = "UpperWindow", Size = Vector3.new(9.4, 5.4, 1.9), CFrame = at(x, FY + 7, -HALF), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.35 })
+		end
+		part(folder, { Name = "UpperTopCeiling", Size = Vector3.new(inner * 2, 0.2, inner * 2), CFrame = at(0, TOP - 0.1, 0), Color = ceilingColor, Material = Enum.Material.SmoothPlastic })
+		for _, x in { -16, 16 } do
+			for _, z in { -20, 0, 20 } do
+				local lamp = part(folder, { Name = "UpperLight", Size = Vector3.new(4, 0.3, 4), CFrame = at(x, TOP - 0.3, z), Color = Color3.fromRGB(255, 250, 240), Material = Enum.Material.SmoothPlastic })
 				local pl = Instance.new("PointLight")
-				pl.Range = 16
-				pl.Brightness = 0.3
+				pl.Range = 20
+				pl.Brightness = 0.2
 				pl.Shadows = true
 				pl.Color = Color3.fromRGB(255, 245, 225)
 				pl.Parent = lamp
 			end
 		end
+		-- The Goo Spiral: 24 jelly steps, one full turn round a goo column at (0, 27). It starts
+		-- facing the door and comes out on the right-hand floor at the top.
+		local goo = Color3.fromRGB(110, 235, 130)
+		local steps, cz = 24, 27
+		local column = solid({ Name = "GooColumn", Shape = Enum.PartType.Cylinder, Size = Vector3.new(FY + 2, 3, 3), CFrame = at(0, (FY + 2) / 2, cz) * CFrame.Angles(0, 0, math.pi / 2), Color = goo, Material = Enum.Material.Glass, Transparency = 0.3 })
+		local bubbles = Instance.new("ParticleEmitter")
+		bubbles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		bubbles.Color = ColorSequence.new(Color3.fromRGB(200, 255, 210))
+		bubbles.Size = NumberSequence.new(0.3, 0.1)
+		bubbles.Lifetime = NumberRange.new(2, 3)
+		bubbles.Rate = 12
+		bubbles.Speed = NumberRange.new(4, 6)
+		bubbles.EmissionDirection = Enum.NormalId.Right -- the cylinder's axis points up
+		bubbles.LightEmission = 0.4
+		bubbles.Parent = column
+		local glow = Instance.new("PointLight")
+		glow.Color = goo
+		glow.Range = 12
+		glow.Brightness = 0.5
+		glow.Shadows = true
+		glow.Parent = column
+		for k = 1, steps do
+			local a = math.rad((k - 0.5) * 360 / steps)
+			local dir = Vector3.new(math.sin(a), 0, -math.cos(a))
+			local mid = Vector3.new(0, 0, cz) + dir * 4
+			local turn = CFrame.lookAt(Vector3.zero, dir)
+			local y = k * FY / steps
+			solid({ Name = "GooStep", Size = Vector3.new(2.3, 0.8, 5), CFrame = at(mid.X, y - 0.4, mid.Z) * turn, Color = goo:Lerp(Color3.fromRGB(80, 200, 255), k / steps * 0.5), Material = Enum.Material.SmoothPlastic, Transparency = 0.15 })
+			-- A glowing jelly edge and a little rail post on the outside of every other step.
+			local edge = Vector3.new(0, 0, cz) + dir * 6.5
+			part(folder, { Name = "GooEdge", Size = Vector3.new(2.3, 0.2, 0.3), CFrame = at(edge.X, y + 0.05, edge.Z) * turn, Color = Color3.fromRGB(170, 255, 180), Material = Enum.Material.Neon })
+			if k % 2 == 0 then
+				solid({ Name = "GooPost", Size = Vector3.new(0.35, 3, 0.35), CFrame = at(edge.X, y + 1.5, edge.Z), Color = goo, Material = Enum.Material.Glass, Transparency = 0.2 })
+			end
+		end
+		-- Railings round the opening upstairs, leaving the way off the top step open.
+		for _, r in {
+			{ Vector3.new(0.4, 3, inner - HZ), Vector3.new(HX0, FY + 1.5, (HZ + inner) / 2) },
+			{ Vector3.new(HX1 - HX0 - 3.5, 3, 0.4), Vector3.new(HX0 + (HX1 - HX0 - 3.5) / 2, FY + 1.5, HZ) },
+			{ Vector3.new(0.4, 3, inner - 26), Vector3.new(HX1, FY + 1.5, (26 + inner) / 2) },
+		} do
+			part(folder, { Name = "GooRailGlass", Size = r[1], CFrame = at(r[2].X, r[2].Y, r[2].Z), Color = Color3.fromRGB(190, 255, 205), Material = Enum.Material.Glass, Transparency = 0.6 }).CanCollide = true
+			part(folder, { Name = "GooRailTop", Size = Vector3.new(math.max(r[1].X, 0.5), 0.3, math.max(r[1].Z, 0.5)), CFrame = at(r[2].X, FY + 3.1, r[2].Z), Color = Color3.fromRGB(120, 255, 150), Material = Enum.Material.Neon })
+		end
+		-- A sign at the bottom so nobody misses the way up.
+		local sign = part(folder, { Name = "GooSign", Size = Vector3.new(6, 1.6, 0.3), CFrame = at(5.5, 5.5, cz - 7) , Color = Color3.fromRGB(40, 90, 50), Material = Enum.Material.SmoothPlastic })
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.Parent = sign
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Text = "⬆ GOO SPIRAL ⬆  2nd floor"
+		label.TextScaled = true
+		label.Font = Enum.Font.FredokaOne
+		label.TextColor3 = Color3.fromRGB(190, 255, 200)
+		label.Parent = gui
 	end
 
 	-- 7: a penthouse on the roof, so your base stands taller than everyone else's
@@ -493,6 +627,19 @@ end
 function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number, skin: string?)
 	applyTiers(model, cf, rebirths)
 	applySkin(model, skin)
+	-- The second storey matches the ground floor's walls and floor (skin and tier styles).
+	local decor = model:FindFirstChild("Decor")
+	local wall = model:FindFirstChild("Wall") :: BasePart?
+	local floorPart = model:FindFirstChild("Floor") :: BasePart?
+	for _, d in (if decor then decor:GetChildren() else {}) do
+		if d:IsA("BasePart") then
+			local src = if d.Name == "UpperWall" then wall elseif d.Name == "UpperFloor" then floorPart else nil
+			if src then
+				d.Color = src.Color
+				d.Material = src.Material
+			end
+		end
+	end
 end
 
 -- The next tier this player will unlock, for the Rebirth menu.

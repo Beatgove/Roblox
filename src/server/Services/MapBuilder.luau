@@ -20,10 +20,10 @@ MapBuilder.PlotZ = 84
 -- Two rows of pens down each side of the aisle, front row first.
 local PEN_X = { -25, -15, 15, 25 }
 local PEN_Z = { -8, 12 }
--- The second floor (built by BaseDecor at Config.SecondFloorRebirth) holds pens 9 to 16, so the
--- pens are split evenly between the two floors.
-local UPPER_Y = 9.5
-local UPPER_Z = { 6, 24 }
+-- The second storey (built by BaseDecor at Config.SecondFloorRebirth) holds pens 9 to 16 in the
+-- same layout as downstairs, on a floor whose top is at UPPER_Y.
+local UPPER_Y = 18.7 -- BaseDecor.UpperFloorY
+local UPPER_Z = PEN_Z
 MapBuilder.UpperFloorY = UPPER_Y
 local THEMES = {
 	Color3.fromRGB(255, 90, 140),

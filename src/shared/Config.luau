@@ -333,7 +333,7 @@ Config.BaseTiers = {
 	{ rebirth = 1, name = "Stone floor and wall caps" },
 	{ rebirth = 2, name = "Rooftop garden and flower boxes" },
 	{ rebirth = 3, name = "Sweeping searchlights and lanterns" },
-	{ rebirth = 4, name = "A second floor with stairs and a grand gate" },
+	{ rebirth = 4, name = "A whole second storey, the Goo Spiral and a grand gate" },
 	{ rebirth = 5, name = "Indoor fountain and crystals" },
 	{ rebirth = 6, name = "Marble and gold" },
 	{ rebirth = 7, name = "A penthouse on your roof" },
