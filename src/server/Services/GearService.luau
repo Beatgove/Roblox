@@ -13,6 +13,7 @@ local Signals = require(script.Parent.Signals)
 local BountyService = require(script.Parent.BountyService)
 local BossService = require(script.Parent.BossService)
 local Net = require(script.Parent.Net)
+local MapBuilder = require(script.Parent.MapBuilder)
 
 local GearService = {}
 
@@ -86,6 +87,29 @@ local function hitThief(attacker: Player, target: Player)
 	end
 end
 
+local setMovement: (Player) -> ()
+
+-- Knocks one player away with a slap weapon's force and effects.
+local function slapHit(player: Player, target: Player, from: Vector3, def, main: boolean)
+	local tRoot = rootOf(target)
+	if not tRoot then
+		return
+	end
+	local dir = (tRoot.Position - from) * Vector3.new(1, 0, 1)
+	dir = if dir.Magnitude > 0.1 then dir.Unit else Vector3.new(1, 0, 0)
+	Net.FxAll("slap", { pos = tRoot.Position, color = def.color })
+	Net.Fx(target, "knock", { dir = dir, force = if main then def.force else def.force * 0.6, up = def.up, text = if main then nil else "SHOCKWAVE!" })
+	hitThief(player, target)
+	if def.freeze then
+		task.delay(0.35, freeze, target, def.freeze)
+	end
+	local hum = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
+	if def.slow and hum then
+		hum.WalkSpeed *= def.slow
+		task.delay(def.slowFor or 2, setMovement, target)
+	end
+end
+
 local function useSlap(player: Player, def)
 	if not ready(player, "Slap", def.cooldown) then
 		return
@@ -106,12 +130,35 @@ local function useSlap(player: Player, def)
 	if not target or not tRoot then
 		return
 	end
-	local dir = (tRoot.Position - root.Position) * Vector3.new(1, 0, 1)
-	dir = if dir.Magnitude > 0.1 then dir.Unit else root.CFrame.LookVector
-	Net.FxAll("slap", { pos = tRoot.Position })
-	Net.Fx(target, "knock", { dir = dir, force = def.force })
+	slapHit(player, target, root.Position, def, true)
 	Signals.Progress(player, "slap")
-	hitThief(player, target)
+	-- Shockwave: knocks everyone else near the target too.
+	if def.aoe then
+		Net.FxAll("shockwave", { pos = tRoot.Position, radius = def.aoe, color = def.color })
+		for _, other in Players:GetPlayers() do
+			local r = other ~= player and other ~= target and rootOf(other)
+			if r and (r.Position - tRoot.Position).Magnitude <= def.aoe then
+				slapHit(player, other, tRoot.Position, def, false)
+			end
+		end
+	end
+	-- Chain lightning: jumps to the nearest other player.
+	if def.chain then
+		local best, bestDist = nil, def.chain
+		for _, other in Players:GetPlayers() do
+			local r = other ~= player and other ~= target and rootOf(other)
+			local d = r and (r.Position - tRoot.Position).Magnitude
+			if r and d and d < bestDist then
+				best, bestDist = other, d
+			end
+		end
+		local bRoot = best and rootOf(best)
+		if best and bRoot then
+			Net.FxAll("zap", { from = tRoot.Position, to = bRoot.Position })
+			hitThief(player, best)
+			freeze(best, 1)
+		end
+	end
 end
 
 local function useTrap(player: Player, def)
@@ -184,7 +231,7 @@ local function useTaser(player: Player, def)
 	freeze(target, def.stun)
 end
 
-local function setMovement(player: Player)
+function setMovement(player: Player)
 	local char = player.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if not hum then
@@ -219,6 +266,53 @@ local function makeTool(player: Player, key: string): Tool
 	handle.CanCollide = false
 	handle.Massless = true
 	handle.Parent = tool
+	-- Slap weapons get their own shape (glove, paddle, bat, mallet, scepter) on top of the handle.
+	if def.look then
+		handle.Size = Vector3.new(0.5, 0.5, 2.2)
+		handle.Material = Enum.Material.SmoothPlastic
+		handle.Color = Color3.fromRGB(90, 70, 60)
+		tool.GripPos = Vector3.new(0, 0, 0.6)
+		local head = Instance.new("Part")
+		head.Name = "Head"
+		head.CanCollide = false
+		head.Massless = true
+		head.Color = def.color
+		head.Material = Enum.Material.SmoothPlastic
+		if def.look == "glove" then
+			head.Shape = Enum.PartType.Ball
+			head.Size = Vector3.new(1.9, 1.6, 2)
+		elseif def.look == "paddle" then
+			head.Size = Vector3.new(2, 0.35, 2.2)
+		elseif def.look == "bat" then
+			head.Shape = Enum.PartType.Cylinder
+			head.Size = Vector3.new(2.6, 1.1, 1.1)
+		elseif def.look == "mallet" then
+			head.Size = Vector3.new(2.4, 1.4, 1.4)
+		else -- scepter: a gem on a gold rod
+			head.Shape = Enum.PartType.Ball
+			head.Size = Vector3.one * 1.3
+			head.Material = Enum.Material.Neon
+		end
+		local offset = if def.look == "bat" then CFrame.new(0, 0, -2.2) * CFrame.Angles(0, math.pi / 2, 0) else CFrame.new(0, 0, -1.9)
+		head.CFrame = handle.CFrame * offset
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = handle
+		weld.Part1 = head
+		weld.Parent = head
+		head.Parent = tool
+		if (Config.Gear[key].rebirth or 0) >= 3 then
+			local sparkle = Instance.new("ParticleEmitter")
+			sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			sparkle.Color = ColorSequence.new(def.color)
+			sparkle.LightEmission = 1
+			sparkle.Size = NumberSequence.new(0.35, 0)
+			sparkle.Lifetime = NumberRange.new(0.5, 0.9)
+			sparkle.Rate = 12
+			sparkle.Speed = NumberRange.new(1, 2)
+			sparkle.SpreadAngle = Vector2.new(180, 180)
+			sparkle.Parent = head
+		end
+	end
 	local light = Instance.new("PointLight")
 	light.Color = def.color
 	light.Range = 6
@@ -231,7 +325,7 @@ local function makeTool(player: Player, key: string): Tool
 		task.defer(setMovement, player)
 	end)
 	tool.Activated:Connect(function()
-		if key == "Slap" then
+		if def.slap then
 			useSlap(player, def)
 		elseif key == "Trap" then
 			useTrap(player, def)
@@ -259,8 +353,27 @@ function GearService.Give(player: Player)
 			end
 		end
 	end
+	-- Only the best slap you own goes in the hotbar; older ones are put away.
+	local bestSlap = "Slap"
+	for _, key in Config.SlapOrder do
+		if data.gear[key] then
+			bestSlap = key
+		end
+	end
+	for _, container in { backpack, player.Character } do
+		if container then
+			for _, t in container:GetChildren() do
+				local k = t:IsA("Tool") and t:GetAttribute("Gear")
+				if k and Config.Gear[k] and Config.Gear[k].slap and k ~= bestSlap then
+					t:Destroy()
+					have[k] = nil
+				end
+			end
+		end
+	end
 	for _, key in Config.GearOrder do
-		if data.gear[key] and not have[key] then
+		local def = Config.Gear[key]
+		if data.gear[key] and not have[key] and (not def.slap or key == bestSlap) then
 			makeTool(player, key).Parent = backpack
 		end
 	end
@@ -314,6 +427,20 @@ end
 
 function GearService.Start()
 	Net.BuyGearEvent.OnServerEvent:Connect(buy)
+	-- The Slap Shop counter opens the Gear menu.
+	if MapBuilder.SlapShop then
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "ShopPrompt"
+		prompt.ActionText = "Browse slaps & gear"
+		prompt.ObjectText = "🥊 Slap Shop"
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 12
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = MapBuilder.SlapShop
+		prompt.Triggered:Connect(function(player)
+			Net.Fx(player, "openGear", {})
+		end)
+	end
 	Players.PlayerRemoving:Connect(function(p)
 		cooldowns[p] = nil
 		if traps[p] then

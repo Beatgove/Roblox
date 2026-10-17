@@ -391,6 +391,97 @@ local function buildFuseMachine(map: Folder)
 end
 
 -- Trees, lamps, crystals and flowers so the world feels alive.
+-- The 🥊 Slap Shop: a little market stall with a striped awning, a giant glove on the roof,
+-- a slime shopkeeper behind the counter and every slap weapon on display (locked ones say
+-- which rebirth they need). The counter's prompt opens the Gear menu (GearService).
+MapBuilder.SlapShopPosition = Vector3.new(120, 0, -34)
+local function buildSlapShop(map: Folder)
+	local Config = require(game.ReplicatedStorage.Shared.Config)
+	local model = Instance.new("Model")
+	model.Name = "SlapShop"
+	-- Local -Z faces the belt.
+	local cf = CFrame.new(MapBuilder.SlapShopPosition) * CFrame.Angles(0, math.pi, 0)
+	local W, D, H = 30, 18, 12
+	local wood = Color3.fromRGB(150, 100, 65)
+	local cream = Color3.fromRGB(250, 244, 232)
+	local red = Color3.fromRGB(215, 60, 70)
+	local function add(props): Part
+		props.CastShadow = props.CastShadow or false
+		local p = part(props)
+		p.Parent = model
+		return p
+	end
+	add({ Name = "ShopFloor", Size = Vector3.new(W, 0.4, D), CFrame = cf * CFrame.new(0, 0.2, 0), Color = Color3.fromRGB(196, 150, 108), Material = Enum.Material.WoodPlanks })
+	for _, w in {
+		{ Vector3.new(W, H, 1), Vector3.new(0, H / 2, D / 2) },
+		{ Vector3.new(1, H, D), Vector3.new(-W / 2, H / 2, 0) },
+		{ Vector3.new(1, H, D), Vector3.new(W / 2, H / 2, 0) },
+	} do
+		add({ Name = "ShopWall", Size = w[1], CFrame = cf * CFrame.new(w[2]), Color = cream, Material = Enum.Material.SmoothPlastic })
+	end
+	add({ Name = "ShopRoof", Size = Vector3.new(W + 2, 1, D + 2), CFrame = cf * CFrame.new(0, H + 0.5, 0), Color = red, Material = Enum.Material.SmoothPlastic })
+	for _, x in { -W / 2, W / 2 } do
+		add({ Name = "ShopPost", Size = Vector3.new(1.4, H, 1.4), CFrame = cf * CFrame.new(x, H / 2, -D / 2), Color = wood, Material = Enum.Material.Wood })
+	end
+	-- Striped awning over the open front.
+	local stripes = 10
+	for i = 0, stripes - 1 do
+		local x = -W / 2 + (i + 0.5) * W / stripes
+		add({ Name = "Awning", Size = Vector3.new(W / stripes, 0.3, 6), CFrame = cf * CFrame.new(x, H - 1.2, -D / 2 - 2.4) * CFrame.Angles(math.rad(-22), 0, 0), Color = if i % 2 == 0 then red else Color3.new(1, 1, 1), Material = Enum.Material.Fabric })
+	end
+	-- Big sign above the awning.
+	local sign = add({ Name = "ShopSign", Size = Vector3.new(20, 4, 0.6), CFrame = cf * CFrame.new(0, H + 3, -D / 2 + 0.4), Color = Color3.fromRGB(40, 30, 60), Material = Enum.Material.SmoothPlastic })
+	signGui(sign, Enum.NormalId.Front, "🥊 SLAP SHOP", "ShopGui")
+	-- A giant boxing glove bobbing on the roof.
+	local glove = add({ Name = "GiantGlove", Shape = Enum.PartType.Ball, Size = Vector3.new(8, 7, 9), CFrame = cf * CFrame.new(0, H + 9, 3), Color = red, Material = Enum.Material.SmoothPlastic })
+	CollectionService:AddTag(glove, "Float")
+	add({ Name = "GloveCuff", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3, 5, 5), CFrame = cf * CFrame.new(0, H + 2.5, 3) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic })
+
+	-- Counter and shopkeeper.
+	local counter = add({ Name = "Counter", Size = Vector3.new(14, 3.4, 2.4), CFrame = cf * CFrame.new(0, 1.9, 1), Color = wood, Material = Enum.Material.WoodPlanks, CanCollide = true })
+	add({ Name = "CounterTop", Size = Vector3.new(14.6, 0.3, 3), CFrame = cf * CFrame.new(0, 3.75, 1), Color = cream, Material = Enum.Material.Marble })
+	local keeper = add({ Name = "Shopkeeper", Shape = Enum.PartType.Ball, Size = Vector3.new(4.4, 3.8, 4.4), CFrame = cf * CFrame.new(0, 5.4, 4.2), Color = Color3.fromRGB(255, 150, 90), Material = Enum.Material.SmoothPlastic })
+	for _, sx in { -1, 1 } do
+		add({ Name = "KeeperEye", Shape = Enum.PartType.Ball, Size = Vector3.new(0.7, 1, 0.4), CFrame = keeper.CFrame * CFrame.new(sx * 0.9, 0.3, -2.05), Color = Color3.fromRGB(30, 25, 30), Material = Enum.Material.SmoothPlastic })
+	end
+	add({ Name = "KeeperBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 4.2, 4.2), CFrame = keeper.CFrame * CFrame.new(0, 1.3, 0) * CFrame.Angles(0, 0, math.pi / 2), Color = red, Material = Enum.Material.Fabric })
+	billboard(keeper, 4, "Slapsmith Sam", Vector2.new(8, 1.6))
+
+	-- Every slap on display along the walls, cheapest by the door.
+	local spots = {}
+	for i = 0, 3 do
+		table.insert(spots, CFrame.new(-W / 2 + 1.6, 0, -6 + i * 4) * CFrame.Angles(0, -math.pi / 2, 0))
+	end
+	for i = 0, 3 do
+		table.insert(spots, CFrame.new(W / 2 - 1.6, 0, 6 - i * 4) * CFrame.Angles(0, math.pi / 2, 0))
+	end
+	table.insert(spots, CFrame.new(-10, 0, D / 2 - 1.8))
+	for i, key in Config.SlapOrder do
+		local def = Config.Gear[key]
+		local spot = spots[i]
+		if not spot then
+			break
+		end
+		local at = cf * spot
+		add({ Name = "DisplayStand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3, 2, 2), CFrame = at * CFrame.new(0, 1.5, 0) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(60, 50, 80), Material = Enum.Material.SmoothPlastic })
+		local shape = if def.look == "bat" or def.look == "mallet" then Enum.PartType.Block elseif def.look == "paddle" then Enum.PartType.Block else Enum.PartType.Ball
+		local size = if def.look == "bat" then Vector3.new(0.9, 3, 0.9) elseif def.look == "mallet" then Vector3.new(2.2, 1.4, 1.4) elseif def.look == "paddle" then Vector3.new(2, 2.2, 0.4) else Vector3.new(1.8, 1.6, 1.8)
+		local item = add({ Name = "Display_" .. key, Shape = shape, Size = size, CFrame = at * CFrame.new(0, 4.2, 0), Color = def.color, Material = if def.look == "scepter" then Enum.Material.Neon else Enum.Material.SmoothPlastic, CanCollide = false })
+		CollectionService:AddTag(item, "Float")
+		local label = billboard(item, 1.8, def.name .. (if def.rebirth > 0 then "\n🔒 Rebirth " .. def.rebirth else ""), Vector2.new(3.6, 1.3))
+		label.TextColor3 = def.color
+		label.Parent.MaxDistance = 24
+	end
+	-- Crates and barrels outside.
+	for _, c in { { -W / 2 - 2.5, -D / 2 + 3 }, { W / 2 + 2.5, -D / 2 + 1 }, { W / 2 + 2.6, -D / 2 + 4.2 } } do
+		add({ Name = "Crate", Size = Vector3.new(3, 3, 3), CFrame = cf * CFrame.new(c[1], 1.5, c[2]) * CFrame.Angles(0, math.rad(15), 0), Color = wood, Material = Enum.Material.WoodPlanks, CanCollide = true })
+	end
+	add({ Name = "Barrel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.4, 2.6, 2.6), CFrame = cf * CFrame.new(-W / 2 - 2.4, 1.7, -D / 2 - 0.6) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(120, 80, 50), Material = Enum.Material.Wood, CanCollide = true })
+
+	model.Parent = map
+	MapBuilder.SlapShop = counter
+end
+
 local function decorate(map: Folder)
 	local deco = Instance.new("Folder")
 	deco.Name = "Decor"
@@ -638,9 +729,111 @@ local function decorate(map: Folder)
 		part({ Name = "Hill", Shape = Enum.PartType.Ball, Size = Vector3.new(r, r * 0.6, r), Position = pos, Color = Color3.fromRGB(100, 175, 85):Lerp(Color3.fromRGB(80, 150, 90), rng:NextNumber()), Material = Enum.Material.Grass }).Parent = deco
 	end
 	-- A few mushrooms and rocks dotted round the squares near the belt.
-	for _, p in { Vector3.new(-110, 0, 30), Vector3.new(110, 0, -30), Vector3.new(-200, 0, 34), Vector3.new(200, 0, -34), Vector3.new(0, 0, -40) } do
+	for _, p in { Vector3.new(-110, 0, 30), Vector3.new(85, 0, -44), Vector3.new(-200, 0, 34), Vector3.new(200, 0, -34), Vector3.new(0, 0, -40) } do
 		mushroom(p, 0.9)
 		rock(p + Vector3.new(7, 0, 3))
+	end
+
+	-- Bunting flags strung across the street between the lamp posts.
+	local flagColors = { Color3.fromRGB(255, 110, 140), Color3.fromRGB(255, 215, 90), Color3.fromRGB(110, 200, 255), Color3.fromRGB(140, 230, 130) }
+	for _, x in { -150, -90, -30, 30, 90, 150 } do
+		part({ Name = "BuntingRope", Size = Vector3.new(0.12, 0.12, 24), Position = Vector3.new(x, 9.4, 0), Color = Color3.fromRGB(240, 240, 240), Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+		for k = 0, 10 do
+			local z = -11 + k * 2.2
+			local sag = -1.6 * (1 - (z / 12) ^ 2)
+			part({ Name = "BuntingFlag", Size = Vector3.new(0.1, 1.2, 1.2), CFrame = CFrame.new(x, 8.6 + sag, z) * CFrame.Angles(math.rad(45), 0, 0), Color = flagColors[k % #flagColors + 1], Material = Enum.Material.Fabric, CanCollide = false, CastShadow = false }).Parent = deco
+		end
+	end
+
+	-- A rainbow arch over the middle of the belt, above the spawn.
+	local rainbow = { Color3.fromRGB(240, 90, 90), Color3.fromRGB(250, 160, 70), Color3.fromRGB(250, 220, 90), Color3.fromRGB(120, 210, 110), Color3.fromRGB(90, 160, 240), Color3.fromRGB(160, 110, 230) }
+	for band, color in rainbow do
+		local r = 34 - band * 1.6
+		for k = 0, 23 do
+			local a = k / 24 * math.pi
+			local a2 = (k + 1) / 24 * math.pi
+			local p1 = Vector3.new(0, math.sin(a) * r, math.cos(a) * r)
+			local p2 = Vector3.new(0, math.sin(a2) * r, math.cos(a2) * r)
+			part({ Name = "Rainbow", Size = Vector3.new(1.6, 1.6, (p2 - p1).Magnitude + 0.2), CFrame = CFrame.lookAt((p1 + p2) / 2, p2), Color = color, Material = Enum.Material.SmoothPlastic, CanCollide = false, CastShadow = false }).Parent = deco
+		end
+	end
+	for _, z in { -34, 34 } do
+		for k = 1, 5 do
+			part({ Name = "RainbowCloud", Shape = Enum.PartType.Ball, Size = Vector3.one * (7 - k * 0.6), Position = Vector3.new((k - 3) * 3, 1.6 + (k % 2), z), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+		end
+	end
+
+	-- White picket fences along the sidewalks, with gaps for the paths.
+	for _, side in { 1, -1 } do
+		for x = -200, 200, 4 do
+			local nearPath = false
+			for _, px in MapBuilder.PlotXs do
+				nearPath = nearPath or math.abs(x - px) < 9
+			end
+			if not nearPath and math.abs(x) > 8 then
+				part({ Name = "Picket", Size = Vector3.new(0.5, 2.6, 0.3), Position = Vector3.new(x, 1.3, side * 19.4), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic }).Parent = deco
+				part({ Name = "FenceRail", Size = Vector3.new(4, 0.3, 0.2), Position = Vector3.new(x + 2, 1.7, side * 19.4), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+			end
+		end
+	end
+
+	-- Flower meadows and darker grass patches in the open fields.
+	local meadowCenters = {}
+	for _, side in { 1, -1 } do
+		for _, x in { -225, -110, 0, 110, 225 } do
+			table.insert(meadowCenters, Vector3.new(x, 0, side * 36))
+		end
+		table.insert(meadowCenters, Vector3.new(-280, 0, side * 90))
+		table.insert(meadowCenters, Vector3.new(280, 0, side * 110))
+	end
+	for _, c in meadowCenters do
+		if (c - Vector3.new(110, 0, 32)).Magnitude < 20 or (c - Vector3.new(-110, 0, -32)).Magnitude < 20 or (c - MapBuilder.SlapShopPosition).Magnitude < 30 or (c - MapBuilder.DispenserPosition).Magnitude < 20 then
+			continue
+		end
+		part({ Name = "GrassPatch", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.1, 20, 16), CFrame = CFrame.new(c + Vector3.new(0, 0.03, 0)) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(90, 165, 75), Material = Enum.Material.Grass, CanCollide = false, CastShadow = false }).Parent = deco
+		for _ = 1, 14 do
+			local p = c + Vector3.new(rng:NextNumber(-8, 8), 0, rng:NextNumber(-6, 6))
+			part({ Name = "Stalk", Size = Vector3.new(0.2, 1.4, 0.2), Position = p + Vector3.new(0, 0.7, 0), Color = Color3.fromRGB(70, 150, 60), Material = Enum.Material.Grass, CanCollide = false, CastShadow = false }).Parent = deco
+			part({ Name = "MeadowFlower", Shape = Enum.PartType.Ball, Size = Vector3.one * rng:NextNumber(0.8, 1.2), Position = p + Vector3.new(0, 1.5, 0), Color = leafColors[rng:NextInteger(1, #leafColors)], Material = Enum.Material.SmoothPlastic, CanCollide = false, CastShadow = false }).Parent = deco
+		end
+	end
+
+	-- Floating islands with trees and waterfalls high above the hills.
+	for i, c in { Vector3.new(-250, 95, 170), Vector3.new(240, 110, -180), Vector3.new(300, 85, 150), Vector3.new(-310, 105, -140) } do
+		local r = 16 + i * 2
+		part({ Name = "IslandTop", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3, r * 2, r * 2), CFrame = CFrame.new(c) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(105, 185, 90), Material = Enum.Material.Grass }).Parent = deco
+		for k = 1, 3 do
+			part({ Name = "IslandRock", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 2 - k * r * 0.5, r * 0.7, r * 2 - k * r * 0.5), Position = c - Vector3.new(0, k * r * 0.35, 0), Color = Color3.fromRGB(140, 115, 95):Lerp(Color3.fromRGB(110, 100, 105), k / 3), Material = Enum.Material.Slate }).Parent = deco
+		end
+		tree(c + Vector3.new(r * 0.3, 1.5, r * 0.2))
+		tree(c + Vector3.new(-r * 0.4, 1.5, -r * 0.1))
+		part({ Name = "Waterfall", Size = Vector3.new(5, c.Y, 0.6), Position = Vector3.new(c.X + r - 1, c.Y / 2, c.Z), Color = Color3.fromRGB(150, 210, 245), Material = Enum.Material.Glass, Transparency = 0.35, CanCollide = false, CastShadow = false }).Parent = deco
+	end
+
+	-- Hot air balloons drifting over the map.
+	for i, c in { Vector3.new(-180, 70, 120), Vector3.new(60, 85, 150), Vector3.new(200, 75, 100), Vector3.new(-60, 90, -150), Vector3.new(170, 80, -130) } do
+		local color = flagColors[(i - 1) % #flagColors + 1]
+		local balloon = part({ Name = "Balloon", Shape = Enum.PartType.Ball, Size = Vector3.new(16, 19, 16), Position = c, Color = color, Material = Enum.Material.SmoothPlastic, CanCollide = false })
+		balloon.Parent = deco
+		part({ Name = "BalloonStripe", Shape = Enum.PartType.Ball, Size = Vector3.new(16.3, 5, 16.3), Position = c, Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+		part({ Name = "Basket", Size = Vector3.new(4, 3, 4), Position = c - Vector3.new(0, 14, 0), Color = Color3.fromRGB(150, 100, 60), Material = Enum.Material.WoodPlanks, CanCollide = false }).Parent = deco
+		for _, o in { Vector3.new(1.8, 0, 1.8), Vector3.new(-1.8, 0, 1.8), Vector3.new(1.8, 0, -1.8), Vector3.new(-1.8, 0, -1.8) } do
+			part({ Name = "BalloonRope", Size = Vector3.new(0.15, 6, 0.15), Position = c - Vector3.new(0, 10, 0) + o, Color = Color3.fromRGB(90, 70, 50), Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+		end
+	end
+
+	-- Benches and planters along the sidewalks.
+	for _, side in { 1, -1 } do
+		for x = -180, 180, 30 do
+			local clear = true
+			for _, px in MapBuilder.PlotXs do
+				clear = clear and math.abs(x + 15 - px) > 10
+			end
+			if clear then
+				part({ Name = "StreetBench", Size = Vector3.new(5, 0.5, 1.6), Position = Vector3.new(x + 15, 1.5, side * 17), Color = Color3.fromRGB(150, 100, 65), Material = Enum.Material.WoodPlanks }).Parent = deco
+				part({ Name = "BenchBack", Size = Vector3.new(5, 1.4, 0.3), Position = Vector3.new(x + 15, 2.4, side * 17.8), Color = Color3.fromRGB(150, 100, 65), Material = Enum.Material.WoodPlanks }).Parent = deco
+			end
+		end
 	end
 end
 
@@ -921,9 +1114,10 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	sign.Parent = plot
 	local board = Instance.new("BillboardGui")
 	board.Name = "OwnerGui"
-	board.Size = UDim2.fromScale(60, 12) -- studs, so it reads like a giant sign in the world
+	board.Size = UDim2.fromScale(44, 9) -- studs, so it reads like a giant sign in the world
 	board.LightInfluence = 0
 	board.MaxDistance = 2000
+	board.Enabled = false -- PlotService turns it on once someone owns the base
 	board.Parent = sign
 	local panel = Instance.new("Frame")
 	panel.Name = "Panel"
@@ -1014,6 +1208,7 @@ function MapBuilder.Build()
 	decorate(map)
 	buildDispenser(map)
 	buildFuseMachine(map)
+	buildSlapShop(map)
 
 	local plots = {}
 	local xs = MapBuilder.PlotXs

@@ -459,7 +459,7 @@ for i, key in Config.GearOrder do
 	local def = Config.Gear[key]
 	local row = new("Frame", { Size = UDim2.new(1, -8, 0, 70), BackgroundColor3 = COLORS.panel, LayoutOrder = i, Parent = gearList }, { corner(12), new("UIStroke", { Color = def.color, Thickness = 2, Transparency = 0.3 }) })
 	text({ Size = UDim2.new(0.66, -10, 0, 28), Position = UDim2.fromOffset(12, 6), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = def.color, Text = def.name, Parent = row })
-	text({ Size = UDim2.new(0.66, -10, 0, 28), Position = UDim2.fromOffset(12, 36), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.muted, Font = Enum.Font.GothamMedium, TextStrokeTransparency = 1, Text = def.desc, Parent = row })
+	text({ Size = UDim2.new(0.66, -10, 0, 28), Position = UDim2.fromOffset(12, 36), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.muted, Font = Enum.Font.GothamMedium, TextStrokeTransparency = 1, Text = def.desc .. (if def.slap then "  ·  Power " .. def.force .. " · Reach " .. def.range else ""), TextWrapped = true, Parent = row })
 	gearButtons[key] = button({ Size = UDim2.new(0.3, -8, 0, 48), Position = UDim2.new(0.7, 0, 0, 11), BackgroundColor3 = COLORS.accent, Text = Util.Money(def.price), Parent = row }, function()
 		Remotes.BuyGear:FireServer(key)
 	end)
@@ -936,6 +936,9 @@ refreshFuseState()
 Remotes.Fx.OnClientEvent:Connect(function(kind)
 	if kind == "openFuse" and not fuse.Visible then
 		openPanel(fuse, fuseScale)
+	end
+	if kind == "openGear" and not gear.Visible then
+		openPanel(gear, gearScale)
 	end
 end)
 

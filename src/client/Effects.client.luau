@@ -489,8 +489,8 @@ handlers.swing = function(d)
 	sound("Whoosh", 1.8, 0.3, d.pos)
 end
 handlers.slap = function(d)
-	burst(d.pos, Color3.fromRGB(255, 230, 180), 25, { speed = 20 })
-	ring(d.pos, Color3.fromRGB(255, 255, 255), 8)
+	burst(d.pos, d.color or Color3.fromRGB(255, 230, 180), 25, { speed = 20 })
+	ring(d.pos, d.color or Color3.fromRGB(255, 255, 255), 8)
 	sound("Snap", 1.5, 1, d.pos)
 end
 handlers.knock = function(d)
@@ -499,11 +499,15 @@ handlers.knock = function(d)
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if root and hum then
 		hum:ChangeState(Enum.HumanoidStateType.Freefall)
-		root.AssemblyLinearVelocity = d.dir * d.force + Vector3.new(0, d.force * 0.55, 0)
+		root.AssemblyLinearVelocity = d.dir * d.force + Vector3.new(0, d.force * 0.55 * (d.up or 1), 0)
 	end
 	shake(1.2)
 	flash(Color3.fromRGB(255, 255, 255), 0.3, 0.3)
 	announce(d.text or "SLAPPED!", Color3.fromRGB(255, 200, 150), nil, nil, 1)
+end
+handlers.shockwave = function(d)
+	ring(d.pos, d.color or Color3.new(1, 1, 1), d.radius * 2)
+	burst(d.pos, d.color or Color3.new(1, 1, 1), 30, { speed = 30 })
 end
 handlers.frozen = function(d)
 	flash(Color3.fromRGB(120, 255, 140), 0.4, 0.5)

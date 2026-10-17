@@ -620,6 +620,8 @@ end
 local function setOwnerSign(plot: Plot)
 	local label = plot.model.Sign.OwnerGui.Text
 	label.Text = if plot.owner then plot.owner.DisplayName .. "'s Base" else "Empty Base"
+	-- Only bases with an owner get the big floating sign, so empty bases don't clutter the sky.
+	plot.model.Sign.OwnerGui.Enabled = plot.owner ~= nil
 	local facade = plot.model:FindFirstChild("FacadeSign", true)
 	local facadeText = facade and facade:FindFirstChild("Text", true) :: TextLabel?
 	if facadeText then

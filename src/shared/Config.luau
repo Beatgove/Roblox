@@ -443,9 +443,22 @@ Config.BaseSkins = {
 
 -- ===== Gear (bought with cash in the GEAR menu, kept forever) =====
 -- rebirth = rebirths needed to buy it. Slap is free for everyone.
-Config.GearOrder = { "Slap", "SpeedCoil", "GravityCoil", "Trap", "Taser" }
+-- Slap weapons (slap = true) form a ladder: you hold only the best one you own. Better slaps
+-- hit harder and further and add effects: slow (speed x for slowFor s), freeze (s), chain
+-- (also zaps the nearest other player within chain studs), aoe (knocks everyone within aoe
+-- studs of the target), up (how high the knock throws). They're sold at the 🥊 Slap Shop.
+Config.SlapOrder = { "Slap", "JellyGlove", "StickySlapper", "BubbleBat", "ThunderPaddle", "FrostMitten", "MeteorMallet", "GalaxyGauntlet", "KingScepter" }
+Config.GearOrder = { "Slap", "JellyGlove", "StickySlapper", "BubbleBat", "ThunderPaddle", "FrostMitten", "MeteorMallet", "GalaxyGauntlet", "KingScepter", "SpeedCoil", "GravityCoil", "Trap", "Taser" }
 Config.Gear = {
-	Slap = { name = "Slap Hand", price = 0, rebirth = 0, desc = "Knock players away. Slap a thief and they drop your slime!", color = Color3.fromRGB(255, 200, 150), cooldown = 1.2, range = 9, force = 70 },
+	Slap = { name = "Slap Hand", slap = true, price = 0, rebirth = 0, desc = "Knock players away. Slap a thief and they drop your slime!", color = Color3.fromRGB(255, 200, 150), cooldown = 1.2, range = 9, force = 70 },
+	JellyGlove = { name = "Jelly Glove", slap = true, price = 15000, rebirth = 0, desc = "A wobbly glove that hits harder and further.", color = Color3.fromRGB(120, 230, 160), cooldown = 1.05, range = 10, force = 95, look = "glove" },
+	StickySlapper = { name = "Sticky Slapper", slap = true, price = 60000, rebirth = 1, desc = "Covers them in goo: 50% slower for 3s.", color = Color3.fromRGB(170, 255, 90), cooldown = 1, range = 11, force = 105, slow = 0.5, slowFor = 3, look = "paddle" },
+	BubbleBat = { name = "Bubble Bat", slap = true, price = 300000, rebirth = 2, desc = "Pops a bubble round them: stuck for 1.5s.", color = Color3.fromRGB(120, 200, 255), cooldown = 1, range = 12, force = 120, freeze = 1.5, look = "bat" },
+	ThunderPaddle = { name = "Thunder Paddle", slap = true, price = 1500000, rebirth = 3, desc = "Lightning jumps to a second player nearby.", color = Color3.fromRGB(255, 235, 80), cooldown = 0.95, range = 13, force = 135, chain = 16, look = "paddle" },
+	FrostMitten = { name = "Frost Mitten", slap = true, price = 8000000, rebirth = 4, desc = "Freezes them solid for 2.5s.", color = Color3.fromRGB(190, 240, 255), cooldown = 0.95, range = 13, force = 140, freeze = 2.5, look = "glove" },
+	MeteorMallet = { name = "Meteor Mallet", slap = true, price = 200000000, rebirth = 6, desc = "Sends them flying sky-high and knocks back everyone close.", color = Color3.fromRGB(255, 120, 50), cooldown = 0.9, range = 14, force = 170, up = 1.4, aoe = 10, look = "mallet" },
+	GalaxyGauntlet = { name = "Galaxy Gauntlet", slap = true, price = 5000000000, rebirth = 8, desc = "Huge reach, big shockwave, stuck for 1.5s.", color = Color3.fromRGB(170, 110, 255), cooldown = 0.8, range = 17, force = 200, aoe = 14, freeze = 1.5, look = "glove" },
+	KingScepter = { name = "King's Scepter", slap = true, price = 3000000000000, rebirth = 12, desc = "The ultimate slap: chain lightning, shockwave and a 2s freeze.", color = Color3.fromRGB(255, 205, 60), cooldown = 0.7, range = 19, force = 230, up = 1.1, aoe = 14, chain = 20, freeze = 2, look = "scepter" },
 	SpeedCoil = { name = "Speed Coil", price = 2500, rebirth = 0, desc = "Run much faster while you hold it.", color = Color3.fromRGB(90, 200, 255), walkSpeed = 28 },
 	GravityCoil = { name = "Gravity Coil", price = 8000, rebirth = 0, desc = "Jump super high while you hold it.", color = Color3.fromRGB(190, 120, 255), jumpHeight = 22 },
 	Trap = { name = "Slime Trap", price = 40000, rebirth = 1, desc = "Drop a sticky trap. Thieves who step in freeze for 4s.", color = Color3.fromRGB(120, 255, 120), cooldown = 25, freeze = 4, life = 60 },
