@@ -217,8 +217,8 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 
 	-- 6: marble walls and floor with gold trim
 	if rebirths >= 6 then
-		restyle(model, "Floor", Color3.fromRGB(235, 230, 240), Enum.Material.Marble)
-		restyle(model, "Wall", Color3.fromRGB(245, 242, 250), Enum.Material.Marble)
+		restyle(model, "Floor", Color3.fromRGB(198, 192, 202), Enum.Material.Marble)
+		restyle(model, "Wall", Color3.fromRGB(226, 222, 230), Enum.Material.Marble)
 		restyle(model, "Trim", Color3.fromRGB(255, 205, 60), Enum.Material.Metal)
 		for _, cap in folder:GetChildren() do
 			if cap.Name == "Cap" then
@@ -374,7 +374,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		e.Parent = spout
 	end
 
-	-- 4: a second floor with stairs up the middle; it holds pens 21 to 36
+	-- 4: a second floor with stairs up the middle; it holds pens 17 to 32
 	if rebirths >= Config.SecondFloorRebirth then
 		local FY = 9.5 -- MapBuilder.UpperFloorY, the top of the upper floor
 		local inner = HALF - 0.6

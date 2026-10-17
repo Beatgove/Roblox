@@ -519,8 +519,8 @@ end
 Config.StartingCash = 50
 Config.BaseSlots = 8
 Config.SlotsPerRebirth = 2
-Config.MaxSlots = 36 -- 20 pens downstairs + 16 on the second floor
-Config.GroundSlots = 20 -- the cap until the second floor is built
+Config.MaxSlots = 32 -- 16 pens downstairs + 16 on the second floor
+Config.GroundSlots = 16 -- the cap until the second floor is built
 Config.SecondFloorRebirth = 4
 Config.ExtraPensSlots = 4
 Config.RebirthIncomeBonus = 1 -- +100% income per rebirth (x2, x3, x4...)

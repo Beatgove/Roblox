@@ -19,10 +19,11 @@ MapBuilder.PlotZ = 84
 
 -- Two rows of pens down each side of the aisle, front row first.
 local PEN_X = { -25, -15, 15, 25 }
-local PEN_Z = { -14, -4, 6, 16, 26 }
--- The second floor (built by BaseDecor at Config.SecondFloorRebirth) holds pens 21 to 36.
+local PEN_Z = { -14, -4, 6, 16 }
+-- The second floor (built by BaseDecor at Config.SecondFloorRebirth) holds pens 17 to 32, so the
+-- pens are split evenly between the two floors.
 local UPPER_Y = 9.5
-local UPPER_Z = { 0, 9, 18, 27 }
+local UPPER_Z = { 2, 11, 20, 29 }
 MapBuilder.UpperFloorY = UPPER_Y
 local THEMES = {
 	Color3.fromRGB(255, 90, 140),
@@ -94,6 +95,7 @@ local function buildLighting()
 	Lighting.Ambient = Color3.fromRGB(70, 60, 90)
 	Lighting.EnvironmentDiffuseScale = 1
 	Lighting.EnvironmentSpecularScale = 0.5
+	Lighting.ExposureCompensation = -0.15 -- a touch darker overall so nothing looks washed out
 	Lighting.GlobalShadows = true
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
@@ -939,7 +941,8 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		add({ Name = "WallPost", Size = Vector3.new(2.6, H + 1, 2.6), CFrame = cf * CFrame.new(c.X, (H + 1) / 2, c.Z), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true })
 	end
 	-- Cream walls and a light ceiling inside, so the slimes stand out.
-	local cream = Color3.fromRGB(250, 244, 232)
+	local cream = Color3.fromRGB(222, 210, 194) -- inside walls: a soft warm beige, not white
+	local ceilingColor = Color3.fromRGB(188, 178, 166)
 	for _, l in {
 		{ Vector3.new(S - 2, H - 1.6, 0.2), Vector3.new(0, 0.8 + (H - 1.6) / 2, half - 0.6) },
 		{ Vector3.new(0.2, H - 1.6, S - 2), Vector3.new(-half + 0.6, 0.8 + (H - 1.6) / 2, 0) },
@@ -949,7 +952,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	} do
 		add({ Name = "InnerWall", Size = l[1], CFrame = cf * CFrame.new(l[2]), Color = cream, Material = Enum.Material.SmoothPlastic })
 	end
-	add({ Name = "Ceiling", Size = Vector3.new(S - 1, 0.2, S - 1), CFrame = cf * CFrame.new(0, H - 0.1, 0), Color = cream, Material = Enum.Material.SmoothPlastic })
+	add({ Name = "Ceiling", Size = Vector3.new(S - 1, 0.2, S - 1), CFrame = cf * CFrame.new(0, H - 0.1, 0), Color = ceilingColor, Material = Enum.Material.SmoothPlastic })
 	-- Pillars down the outside walls break up the big flat sides.
 	for _, d in { -11.5, 11.5 } do
 		add({ Name = "WallPost", Size = Vector3.new(2, H, 1.6), CFrame = cf * CFrame.new(d, H / 2, half + 0.5), Color = dark, Material = Enum.Material.SmoothPlastic })
