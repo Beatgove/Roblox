@@ -48,6 +48,7 @@ local function defaultData()
 		relics = {}, -- equipped relic keys (up to Config.RelicSlots), reset on rebirth
 		relicBag = {}, -- relic key -> true, owned this run
 		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true
+		season = { id = "", xp = 0, claimed = {} }, -- Slime Season track (resets monthly)
 		tutorial = 0, -- first-time guide step (Config.Tutorial); 99 = done
 		quests = { day = -1, list = {}, bonus = false }, -- today's daily quests
 		receipts = {}, -- PurchaseId -> true (recent, for idempotent ProcessReceipt)

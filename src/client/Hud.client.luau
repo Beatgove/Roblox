@@ -698,6 +698,65 @@ end
 player:GetAttributeChangedSignal("Relics"):Connect(refreshRelics)
 refreshRelics()
 
+-- Slime Season lives in its own block (this script is near Luau's 200-local limit).
+local seasonUI: { [string]: any } = {}
+do
+	-- Slime Season: free monthly reward track.
+	local SEASON_COLOR = Color3.fromRGB(255, 200, 70)
+	local seasonPanel, seasonScale = panel("🌟 Slime Season", SEASON_COLOR)
+	local seasonInfo = text({ Position = UDim2.fromOffset(16, 58), Size = UDim2.new(1, -32, 0, 22), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "", Parent = seasonPanel })
+	local seasonBarBack = new("Frame", { Position = UDim2.fromOffset(16, 84), Size = UDim2.new(1, -32, 0, 14), BackgroundColor3 = Color3.fromRGB(20, 12, 35), Parent = seasonPanel }, { corner(7) })
+	local seasonBarFill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), Parent = seasonBarBack }, { corner(7), gradient(SEASON_COLOR, Color3.fromRGB(255, 130, 40)) })
+	local seasonList = new("ScrollingFrame", { Position = UDim2.fromOffset(12, 106), Size = UDim2.new(1, -24, 1, -118), BackgroundTransparency = 1, ScrollBarThickness = 6, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), Parent = seasonPanel },
+		{ new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	local seasonRows = {}
+	for i, t in Config.Season.tiers do
+		local final = i == #Config.Season.tiers
+		local row = new("Frame", { Size = UDim2.new(1, -8, 0, 48), BackgroundColor3 = COLORS.panel, LayoutOrder = i, Parent = seasonList }, { corner(10) })
+		local rowStroke = new("UIStroke", { Color = if final then SEASON_COLOR else COLORS.muted, Thickness = 2, Transparency = 0.5, Parent = row })
+		text({ Size = UDim2.fromOffset(70, 36), Position = UDim2.fromOffset(8, 6), TextColor3 = SEASON_COLOR, Text = "TIER " .. i, Parent = row })
+		text({ Size = UDim2.new(0.72, -86, 0, 32), Position = UDim2.fromOffset(84, 8), TextXAlignment = Enum.TextXAlignment.Left, Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, Text = t.label, Parent = row })
+		local b = button({ Size = UDim2.new(0.28, -12, 0, 36), Position = UDim2.new(0.72, 0, 0, 6), BackgroundColor3 = SEASON_COLOR, Text = "🔒", Parent = row }, function()
+			Remotes.ClaimSeason:FireServer(i)
+		end)
+		seasonRows[i] = { button = b, stroke = rowStroke }
+	end
+	local function refreshSeason()
+		local ok, info = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("Season") or "{}")
+		info = if ok and type(info) == "table" then info else {}
+		local xp = info.xp or 0
+		local per = Config.Season.tierXP
+		local unlocked = math.min(xp // per, #Config.Season.tiers)
+		local claimed = {}
+		for _, k in info.claimed or {} do
+			claimed[k] = true
+		end
+		local left = (info.endsAt or 0) - os.time()
+		local ends = if left >= 86400 then (left // 86400) .. " days" else Util.Duration(math.max(left, 0))
+		seasonInfo.Text = "Tier " .. unlocked .. " of " .. #Config.Season.tiers .. " · " .. (xp % per) .. "/" .. per .. " XP to next · ends in " .. ends
+		seasonBarFill.Size = UDim2.fromScale(if unlocked >= #Config.Season.tiers then 1 else (xp % per) / per, 1)
+		local ready = 0
+		for i, r in seasonRows do
+			if claimed[i] then
+				r.button.Text = "✅"
+				r.stroke.Transparency = 0.7
+			elseif i <= unlocked then
+				r.button.Text = "CLAIM"
+				r.stroke.Transparency = 0
+				ready += 1
+			else
+				r.button.Text = "🔒"
+				r.stroke.Transparency = 0.5
+			end
+		end
+		if seasonUI.badge then
+			seasonUI.badge.Visible = ready > 0
+		end
+	end
+	player:GetAttributeChangedSignal("Season"):Connect(refreshSeason)
+	seasonUI.panel, seasonUI.scale, seasonUI.color, seasonUI.refresh = seasonPanel, seasonScale, SEASON_COLOR, refreshSeason
+end
+
 -- Fuse Machine: pick 3 slimes, see the fee and odds, fuse, come back later.
 local FUSE_COLOR = Color3.fromRGB(150, 255, 120)
 local fuse, fuseScale = panel("🧪 Fuse Machine", FUSE_COLOR)
@@ -882,8 +941,10 @@ sideButton(9, Color3.fromRGB(120, 255, 160), "⬆️ UPGRADE", upgrades, upgrade
 local fuseSideBtn = sideButton(10, FUSE_COLOR, "🧪 FUSE", fuse, fuseScale)
 sideButton(11, SNACK_COLOR, "🍽️ SNACKS", snacksPanel, snacksScale)
 sideButton(12, RELIC_COLOR, "🔮 RELICS", relicsPanel, relicsScale)
+seasonUI.badge = makeBadge(sideButton(13, seasonUI.color, "🌟 SEASON", seasonUI.panel, seasonUI.scale))
+seasonUI.refresh()
 -- Invite friends: everyone earns +10% cash per friend in the server.
-button({ BackgroundColor3 = Color3.fromRGB(80, 200, 255), Text = "💌 INVITE", LayoutOrder = 13, Parent = side }, function()
+button({ BackgroundColor3 = Color3.fromRGB(80, 200, 255), Text = "💌 INVITE", LayoutOrder = 14, Parent = side }, function()
 	local ok, can = pcall(SocialService.CanSendGameInviteAsync, SocialService, player)
 	if ok and can then
 		pcall(SocialService.PromptGameInvite, SocialService, player)
@@ -1244,6 +1305,7 @@ local tips = {
 	"Open ⚔️ GEAR for Speed Coils, Traps and Tasers.",
 	"Finish 📜 QUESTS and open 🎁 GIFTS for free rewards.",
 	"Tap 💌 INVITE: you get +10% cash for every friend in your server!",
+	"🌟 Play to earn Season XP and claim free rewards in 🌟 SEASON. Tier 30 is the exclusive Starling slime!",
 	"⛈️ The SLIME STORM hits every Wednesday and Saturday. Storm-only slimes, 3x luck and 2x cash!",
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
@@ -1276,79 +1338,81 @@ task.spawn(function()
 	end
 end)
 
--- ===== First-time guide: pinned goal + an arrow to the spot =====
-local goal = new("Frame", {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 228),
-	Size = UDim2.new(0.9, 0, 0, 58),
-	BackgroundColor3 = Color3.new(1, 1, 1),
-	Visible = false,
-	Parent = gui,
-}, { corner(14), stroke(COLORS.outline, 4), gradient(Color3.fromRGB(255, 210, 80), Color3.fromRGB(255, 140, 40)), new("UISizeConstraint", { MaxSize = Vector2.new(480, 58) }) })
-local goalStep = text({ Position = UDim2.fromOffset(10, 4), Size = UDim2.new(1, -20, 0, 16), Text = "", Parent = goal })
-local goalText = text({ Position = UDim2.fromOffset(10, 20), Size = UDim2.new(1, -20, 0, 34), Text = "", Parent = goal })
-local goalScale = new("UIScale", { Parent = goal })
+do
+	-- ===== First-time guide: pinned goal + an arrow to the spot =====
+	local goal = new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 228),
+		Size = UDim2.new(0.9, 0, 0, 58),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Visible = false,
+		Parent = gui,
+	}, { corner(14), stroke(COLORS.outline, 4), gradient(Color3.fromRGB(255, 210, 80), Color3.fromRGB(255, 140, 40)), new("UISizeConstraint", { MaxSize = Vector2.new(480, 58) }) })
+	local goalStep = text({ Position = UDim2.fromOffset(10, 4), Size = UDim2.new(1, -20, 0, 16), Text = "", Parent = goal })
+	local goalText = text({ Position = UDim2.fromOffset(10, 20), Size = UDim2.new(1, -20, 0, 34), Text = "", Parent = goal })
+	local goalScale = new("UIScale", { Parent = goal })
 
-local marker = new("Part", { Name = "GuideMarker", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, Transparency = 1, Size = Vector3.one })
-local markerAtt = new("Attachment", { Parent = marker })
-local markerGui = new("BillboardGui", { Size = UDim2.fromOffset(90, 90), StudsOffset = Vector3.new(0, 7, 0), AlwaysOnTop = true, Parent = marker })
-text({ Size = UDim2.fromScale(1, 1), Text = "⬇️", TextStrokeTransparency = 1, Parent = markerGui })
-local beam = new("Beam", {
-	Attachment1 = markerAtt,
-	Color = ColorSequence.new(Color3.fromRGB(255, 220, 80)),
-	LightEmission = 1,
-	Width0 = 0.6,
-	Width1 = 0.6,
-	FaceCamera = true,
-	Texture = "rbxasset://textures/particles/sparkles_main.dds",
-	TextureMode = Enum.TextureMode.Static,
-	TextureLength = 3,
-	TextureSpeed = 2,
-	Transparency = NumberSequence.new(0.2),
-	Parent = marker,
-})
+	local marker = new("Part", { Name = "GuideMarker", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, Transparency = 1, Size = Vector3.one })
+	local markerAtt = new("Attachment", { Parent = marker })
+	local markerGui = new("BillboardGui", { Size = UDim2.fromOffset(90, 90), StudsOffset = Vector3.new(0, 7, 0), AlwaysOnTop = true, Parent = marker })
+	text({ Size = UDim2.fromScale(1, 1), Text = "⬇️", TextStrokeTransparency = 1, Parent = markerGui })
+	local beam = new("Beam", {
+		Attachment1 = markerAtt,
+		Color = ColorSequence.new(Color3.fromRGB(255, 220, 80)),
+		LightEmission = 1,
+		Width0 = 0.6,
+		Width1 = 0.6,
+		FaceCamera = true,
+		Texture = "rbxasset://textures/particles/sparkles_main.dds",
+		TextureMode = Enum.TextureMode.Static,
+		TextureLength = 3,
+		TextureSpeed = 2,
+		Transparency = NumberSequence.new(0.2),
+		Parent = marker,
+	})
 
-local function refreshGoal()
-	local step = player:GetAttribute("TutorialStep")
-	local target = player:GetAttribute("TutorialTarget")
-	goal.Visible = step ~= nil
-	if not step then
-		marker.Parent = nil
-		return
+	local function refreshGoal()
+		local step = player:GetAttribute("TutorialStep")
+		local target = player:GetAttribute("TutorialTarget")
+		goal.Visible = step ~= nil
+		if not step then
+			marker.Parent = nil
+			return
+		end
+		goalStep.Text = "🧭 GOAL " .. step .. " OF " .. #Config.Tutorial
+		goalText.Text = player:GetAttribute("TutorialText") or ""
+		goalScale.Scale = 0.7
+		TweenService:Create(goalScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		if typeof(target) == "Vector3" then
+			marker.Position = target
+			marker.Parent = workspace
+		else
+			marker.Parent = nil
+		end
 	end
-	goalStep.Text = "🧭 GOAL " .. step .. " OF " .. #Config.Tutorial
-	goalText.Text = player:GetAttribute("TutorialText") or ""
-	goalScale.Scale = 0.7
-	TweenService:Create(goalScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
-	if typeof(target) == "Vector3" then
-		marker.Position = target
-		marker.Parent = workspace
-	else
-		marker.Parent = nil
+	for _, attr in { "TutorialStep", "TutorialTarget" } do
+		player:GetAttributeChangedSignal(attr):Connect(refreshGoal)
 	end
+	refreshGoal()
+	RunService.RenderStepped:Connect(function()
+		-- Panels sit in the middle of the screen: tuck the goal card away while one is open.
+		local panelOpen = false
+		for _, pnl in panels do
+			panelOpen = panelOpen or pnl.Visible
+		end
+		goal.Visible = player:GetAttribute("TutorialStep") ~= nil and not panelOpen
+		if not marker.Parent then
+			return
+		end
+		markerGui.StudsOffset = Vector3.new(0, 7 + math.sin(os.clock() * 5) * 1, 0)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local att = root and root:FindFirstChild("GuideAttachment")
+		if root and not att then
+			att = new("Attachment", { Name = "GuideAttachment", Position = Vector3.new(0, -2.5, 0), Parent = root })
+		end
+		beam.Attachment0 = att :: Attachment?
+		-- Hide the trail once you're standing on the spot.
+		beam.Enabled = root ~= nil and ((root :: BasePart).Position - marker.Position).Magnitude > 8
+	end)
 end
-for _, attr in { "TutorialStep", "TutorialTarget" } do
-	player:GetAttributeChangedSignal(attr):Connect(refreshGoal)
-end
-refreshGoal()
-RunService.RenderStepped:Connect(function()
-	-- Panels sit in the middle of the screen: tuck the goal card away while one is open.
-	local panelOpen = false
-	for _, pnl in panels do
-		panelOpen = panelOpen or pnl.Visible
-	end
-	goal.Visible = player:GetAttribute("TutorialStep") ~= nil and not panelOpen
-	if not marker.Parent then
-		return
-	end
-	markerGui.StudsOffset = Vector3.new(0, 7 + math.sin(os.clock() * 5) * 1, 0)
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local att = root and root:FindFirstChild("GuideAttachment")
-	if root and not att then
-		att = new("Attachment", { Name = "GuideAttachment", Position = Vector3.new(0, -2.5, 0), Parent = root })
-	end
-	beam.Attachment0 = att :: Attachment?
-	-- Hide the trail once you're standing on the spot.
-	beam.Enabled = root ~= nil and ((root :: BasePart).Position - marker.Position).Magnitude > 8
-end)
 

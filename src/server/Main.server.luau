@@ -38,6 +38,7 @@ local TowerService = require(Services.TowerService)
 local EventDropService = require(Services.EventDropService)
 local TutorialService = require(Services.TutorialService)
 local StormService = require(Services.StormService)
+local SeasonService = require(Services.SeasonService)
 local Analytics = require(Services.Analytics)
 local BossService = require(Services.BossService)
 
@@ -72,6 +73,7 @@ TowerService.Start()
 EventDropService.Start()
 TutorialService.Start()
 StormService.Start()
+SeasonService.Start()
 Analytics.Start()
 BossService.Start()
 require(Services.DebugService).Start({
@@ -89,6 +91,7 @@ require(Services.DebugService).Start({
 	EventDropService = EventDropService,
 	TutorialService = TutorialService,
 	StormService = StormService,
+	SeasonService = SeasonService,
 })
 
 local function makeLeaderstats(player: Player)
@@ -134,6 +137,7 @@ local function onPlayerAdded(player: Player)
 	end
 	PlotService.Assign(player)
 	TutorialService.OnPlayer(player)
+	SeasonService.OnPlayer(player)
 	MonetizationService.OnPlayer(player)
 	GearService.OnPlayer(player)
 	GiftService.OnPlayer(player)

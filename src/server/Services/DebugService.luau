@@ -56,6 +56,8 @@ function DebugService.Start(services)
 			for _, key in Config.SnackOrder do
 				services.SnackService.Give(player, key, n or 5, true)
 			end
+		elseif cmd == "season" then
+			services.SeasonService.AddXP(player, n or 500)
 		elseif cmd == "storm" then
 			services.StormService.RunNow(n)
 		elseif cmd == "tutorial" then

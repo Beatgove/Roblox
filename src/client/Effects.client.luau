@@ -681,6 +681,14 @@ handlers.tutorialDone = function(d)
 	announce("🧭 YOU'RE READY!", Color3.fromRGB(255, 210, 80), d.text .. ". Now go grow, steal and rebirth!", nil, 3)
 	sound("Ping", 1.1, 0.9)
 end
+handlers.seasonTier = function(d)
+	announce("🌟 SEASON TIER " .. d.tier .. "!", Color3.fromRGB(255, 200, 70), "Open 🌟 SEASON to claim your reward.", nil, 2)
+	sound("Ping", 1.6, 0.8)
+end
+handlers.seasonClaim = function()
+	confetti(40)
+	sound("Ping", 1.3, 0.7)
+end
 -- Bounce pads on the Sky Tower: launch upward when you land on one.
 local lastBounce = 0
 local function hookBounce(pad: Instance)

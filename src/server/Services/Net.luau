@@ -33,6 +33,7 @@ Net.PickSnackEvent = remote("PickSnack") -- client -> server: (snackKey) which s
 Net.EquipRelicEvent = remote("EquipRelic") -- client -> server: (relicKey)
 Net.ReelEvent = remote("Reel") -- client -> server: (token) reel in a fish after a bite
 Net.UnequipRelicEvent = remote("UnequipRelic") -- client -> server: (relicKey)
+Net.ClaimSeasonEvent = remote("ClaimSeason") -- client -> server: (tier)
 
 Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (ok, message)
 Net.RedeemCode.Name = "RedeemCode"

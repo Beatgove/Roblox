@@ -577,6 +577,7 @@ Config.Slimes = {
 
 	{ id = "Codey", rarity = "Exclusive", price = 1500, income = 40, color = Color3.fromRGB(0, 230, 230), size = 3.2, extra = { "antenna", "bow" } },
 	{ id = "Sunny", rarity = "Exclusive", price = 20000, income = 400, color = Color3.fromRGB(255, 230, 80), size = 3.5, extra = { "halo", "ears" } },
+	{ id = "Starling", rarity = "Exclusive", price = 40000, income = 800, color = Color3.fromRGB(120, 170, 255), size = 3.7, extra = { "halo", "wings" } },
 	{ id = "PumpkinKing", rarity = "Exclusive", price = 50000, income = 900, color = Color3.fromRGB(255, 120, 0), size = 3.8, extra = { "crown", "leaf" } },
 }
 
@@ -622,5 +623,31 @@ Config.Tutorial = {
 	{ kind = "lock", text = "Press the red button in your base to lock it from thieves." },
 }
 Config.TutorialReward = { cashMin = 400, freeRoll = true }
+
+-- Slime Season: a free monthly reward track (UTC calendar month). Season XP comes from
+-- playing; every Config.Season.tierXP unlocks the next tier. Tier 30 is the season slime.
+Config.Season = {
+	tierXP = 100,
+	points = { quest = 40, bounty = 30, boss = 50, minigame = 15, steal = 20, avenge = 30, rebirth = 120, evolve = 40, fuse = 25, merge = 15, gift = 10, buy = 3, roll = 3 },
+	slime = "Starling",
+	tiers = {},
+}
+for i = 1, 30 do
+	local t
+	if i == 30 then
+		t = { label = "🌟 Starling slime (season exclusive)", reward = { slime = "Starling" } }
+	elseif i % 10 == 0 then
+		t = { label = "🔮 Relic", reward = { relic = true, source = "the Slime Season" } }
+	elseif i % 5 == 0 then
+		t = { label = "🎰 Lucky roll (3x luck)", reward = { freeRoll = true, rollLuck = 3 } }
+	elseif i % 3 == 0 then
+		t = { label = "🍽️ 2 snacks", reward = { snacks = 2 } }
+	elseif i % 2 == 0 then
+		t = { label = "🍀 5 min 5x luck", reward = { luckMinutes = 5 } }
+	else
+		t = { label = "💰 Cash (" .. (i + 1) .. " min of income)", reward = { cashSeconds = (i + 1) * 60, cashMin = 200 * i } }
+	end
+	Config.Season.tiers[i] = t
+end
 
 return Config
