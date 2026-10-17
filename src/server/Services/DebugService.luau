@@ -1,6 +1,6 @@
 -- Studio-only test hooks. In a Play test, run from the command bar (Server view):
 --   game.ServerStorage.Debug:Invoke("king")
--- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | move I,Pen | slime Id | snacks N | feed Slot | blackout | relic [Key] | arcade | tower | drop EventKey | route X,Z | walk Id,X
+-- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | move I,Pen | slime Id | snacks N | feed Slot | blackout | relic [Key] | arcade | tower | drop EventKey | route X,Z | walk Id,X | holiday Key|off|calendar | knock
 -- Never exists in live servers.
 
 local Players = game:GetService("Players")
@@ -45,6 +45,16 @@ function DebugService.Start(services)
 			services.LevelService.AddXP(player, n or 500)
 		elseif cmd == "event" then
 			services.EventService.Run(arg or "LavaStorm", 60)
+		elseif cmd == "holiday" then
+			services.HolidayService.Force(if arg == "calendar" then nil else arg)
+		elseif cmd == "knock" then
+			-- Trick-or-treat at the first other base that has an owner (or the player's own).
+			for _, plot in services.PlotService.AllPlots() do
+				if plot.owner then
+					services.HolidayService.Knock(player, plot)
+					break
+				end
+			end
 		elseif cmd == "fuse" then
 			if data.fuse.active then
 				data.fuse.endsAt = os.time()

@@ -679,6 +679,31 @@ handlers.dropGrab = function(d)
 	sound("Ping", if d.lucky then 0.9 else 1.4, 0.8)
 end
 
+-- Trick-or-treat "Trick": a ghost pops up in your face.
+handlers.boo = function()
+	local face = Instance.new("TextLabel")
+	face.AnchorPoint = Vector2.new(0.5, 0.5)
+	face.Position = UDim2.fromScale(0.5, 0.5)
+	face.Size = UDim2.fromScale(0.5, 0.5)
+	face.BackgroundTransparency = 1
+	face.TextScaled = true
+	face.Text = "👻"
+	face.Parent = screen
+	local scale = Instance.new("UIScale")
+	scale.Scale = 0.1
+	scale.Parent = face
+	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.4 }):Play()
+	flash(Color3.new(1, 1, 1), 0.6, 0.6)
+	shake(1.2)
+	sound("Oof", 0.7, 0.9)
+	announce("BOO!", Color3.fromRGB(220, 200, 255), "👻 It was a TRICK! Try another base.", nil, 1.6)
+	task.delay(0.9, function()
+		TweenService:Create(face, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
+		TweenService:Create(scale, TweenInfo.new(0.4), { Scale = 2.2 }):Play()
+	end)
+	Debris:AddItem(face, 1.5)
+end
+
 -- ===== Mini games =====
 handlers.fishCast = function(d)
 	burst(d.pos, Color3.fromRGB(150, 255, 180), 10, { speed = 6 })

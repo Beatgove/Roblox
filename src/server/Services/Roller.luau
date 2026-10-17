@@ -28,14 +28,20 @@ local function stormOn(): boolean
 	return workspace:GetAttribute("Event") == "SlimeStorm" and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow()
 end
 
+-- The holiday on right now (Config.Holidays key), if any. HolidayService sets it.
+function Roller.Holiday(): string?
+	return workspace:GetAttribute("Holiday")
+end
+
 -- Slimes of a rarity that can spawn right now (seasonal ones only in their month,
--- storm ones only during the Slime Storm).
+-- holiday ones only during their holiday, storm ones only during the Slime Storm).
 function Roller.Spawnable(rarityName: string)
 	local month = os.date("!*t").month
 	local storm = stormOn()
+	local holiday = Roller.Holiday()
 	local list = {}
 	for _, s in Config.Slimes do
-		if s.rarity == rarityName and (s.season == nil or s.season == month) and (not s.storm or storm) then
+		if s.rarity == rarityName and (s.season == nil or s.season == month) and (s.holiday == nil or s.holiday == holiday) and (not s.storm or storm) then
 			table.insert(list, s)
 		end
 	end
@@ -57,6 +63,23 @@ function Roller.Slime(luck: number)
 		end
 		if #storm > 0 then
 			return storm[rng:NextInteger(1, #storm)]
+		end
+	end
+	-- During a holiday its slimes turn up often, and even more during its own event.
+	local holiday = Roller.Holiday()
+	local h = holiday and Config.Holidays[holiday]
+	if h then
+		local pick = if Roller.ActiveEvent() == h.event then h.eventPick else h.pick
+		if rng:NextNumber() < pick then
+			local special = {}
+			for _, s in list do
+				if s.holiday == holiday then
+					table.insert(special, s)
+				end
+			end
+			if #special > 0 then
+				return special[rng:NextInteger(1, #special)]
+			end
 		end
 	end
 	return list[rng:NextInteger(1, #list)]
@@ -99,9 +122,10 @@ end
 function Roller.Traits(): { string }?
 	local event = Roller.ActiveEvent()
 	local month = os.date("!*t").month
+	local holiday = Roller.Holiday()
 	local out = {}
 	for name, t in Config.Traits do
-		if (t.event == nil or t.event == event) and (t.month == nil or t.month == month) and rng:NextNumber() < t.chance then
+		if (t.event == nil or t.event == event) and (t.month == nil or t.month == month) and (t.holiday == nil or t.holiday == holiday) and rng:NextNumber() < t.chance then
 			table.insert(out, name)
 		end
 	end

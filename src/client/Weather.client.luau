@@ -1,7 +1,8 @@
 -- Event weather: every event changes the sky to match it. The clouds, the air colour, the
 -- time of day and something falling or floating around the camera all blend in when the
 -- event starts and blend back out when it ends. The Slime Storm's rain and lightning and the
--- Blackout's darkness live in Effects.client; this adds their clouds on top.
+-- Blackout's darkness live in Effects.client; this adds their clouds on top. During a holiday
+-- (Halloween...) its own sky shows whenever no event is running.
 
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
@@ -75,6 +76,18 @@ local PROFILES = {
 		clouds = { Cover = 0.75, Density = 0.6, Color = Color3.fromRGB(200, 240, 210) },
 		air = { Color = Color3.fromRGB(205, 240, 220), Decay = Color3.fromRGB(110, 170, 150), Haze = 0.9 },
 	},
+	PumpkinNight = {
+		clouds = { Cover = 0.8, Density = 0.7, Color = Color3.fromRGB(110, 70, 120) },
+		air = { Color = Color3.fromRGB(240, 150, 90), Decay = Color3.fromRGB(110, 40, 120), Haze = 1.6 },
+		time = 18.6,
+		fall = { texture = SPARKLE, color = seq(Color3.fromRGB(255, 150, 40), Color3.fromRGB(170, 90, 255)), rate = 70, speed = 2.5, size = 0.4, light = 0.7, rise = true },
+	},
+	-- Holidays: how the sky looks all holiday long when no event is running.
+	Halloween = {
+		clouds = { Cover = 0.7, Density = 0.6, Color = Color3.fromRGB(190, 140, 200) },
+		air = { Color = Color3.fromRGB(235, 175, 150), Decay = Color3.fromRGB(120, 60, 140), Haze = 1.4 },
+		time = 17.7,
+	},
 	King = {
 		clouds = { Cover = 0.9, Density = 0.85, Color = Color3.fromRGB(85, 55, 105) },
 		air = { Color = Color3.fromRGB(175, 130, 200), Decay = Color3.fromRGB(80, 30, 90), Haze = 1.8 },
@@ -123,6 +136,10 @@ local function wantedMode(): string?
 	end
 	if (workspace:GetAttribute("RainUntil") or 0) > now then
 		return "SlimeRain"
+	end
+	local holiday = workspace:GetAttribute("Holiday")
+	if holiday and PROFILES[holiday] then
+		return holiday
 	end
 	return nil
 end

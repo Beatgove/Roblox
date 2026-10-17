@@ -117,6 +117,17 @@ local function oddsText(): string
 	table.insert(lines, "Lava 15% in Lava Storm,")
 	table.insert(lines, "Candy 8% in Candy Party")
 	table.insert(lines, "Traits: Sparkly 3%, event traits 6-10%")
+	-- Holiday slimes: within the rolled rarity, how often the roll is one of them.
+	for key, h in Config.Holidays do
+		table.insert(lines, h.title .. ": " .. math.floor(h.pick * 100) .. "% of a roll is a holiday")
+		table.insert(lines, "slime if its rarity has one (" .. math.floor(h.eventPick * 100) .. "% in")
+		table.insert(lines, Config.Events[h.event].title .. ")")
+		for name, t in Config.Traits do
+			if t.holiday == key then
+				table.insert(lines, name .. " trait " .. math.floor(t.chance * 100) .. "% while it's on")
+			end
+		end
+	end
 	return table.concat(lines, "\n")
 end
 

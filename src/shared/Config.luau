@@ -84,6 +84,35 @@ Config.Events = {
 	LuckyHour = { title = "🍀 LUCKY HOUR", desc = "3x luck on the belt and Dispenser!", luck = 3, tint = Color3.fromRGB(200, 255, 210) },
 	-- Weekly, on a fixed schedule on every server at once (see Config.Storm). Never rolled randomly.
 	SlimeStorm = { title = "⛈️ SLIME STORM", desc = "Storm-only slimes, 3x luck, 2x cash and ⚡ Charged strikes!", luck = 3, incomeMult = 2, tint = Color3.fromRGB(190, 170, 255), scheduled = true },
+	-- Holiday events only roll while their holiday is on (see Config.Holidays).
+	PumpkinNight = { title = "🎃 PUMPKIN NIGHT", desc = "Halloween slimes everywhere, 2x luck and 🎃 Haunted slimes (x4 cash)!", luck = 2, tint = Color3.fromRGB(255, 175, 120), holiday = "Halloween" },
+}
+
+-- Holidays: special events on the calendar (UTC dates; `to` is the first day after it ends).
+-- While one is on, its slimes (Config.Slimes `holiday`) show up on the belt and Dispenser,
+-- the map gets dressed up, the music changes, and every `eventEvery`th server event is the
+-- holiday's own event. Add the next holiday here (Christmas, Easter...) the same way.
+Config.Holidays = {
+	Halloween = {
+		title = "🎃 HALLOWEEN",
+		desc = "Spooky slimes on the belt, 🎃 Pumpkin Night events and trick-or-treat at every base!",
+		from = { month = 10, day = 17 },
+		to = { month = 11, day = 2 },
+		event = "PumpkinNight",
+		eventEvery = 2,
+		pick = 0.3, -- chance a roll picks a holiday slime when its rarity has one
+		eventPick = 0.6, -- the same chance during the holiday's own event
+		-- Knock on any other player's base door once every `cooldown` seconds per base.
+		-- The odds are shown on the door prompt.
+		trickOrTreat = {
+			cooldown = 300,
+			outcomes = {
+				{ label = "🍬 Treat", weight = 70, reward = { cashSeconds = 20, cashMin = 150 } },
+				{ label = "🍭 Big Treat", weight = 20, reward = { cashSeconds = 40, cashMin = 300, snacks = 1 } },
+				{ label = "👻 Trick", weight = 10, trick = true },
+			},
+		},
+	},
 }
 
 -- The weekly Slime Storm: a big live event at fixed UTC times, so every server gets it at
@@ -110,6 +139,7 @@ Config.EventDrops = {
 		LuckyHour = { name = "Clover Box", icon = "🍀", color = Color3.fromRGB(90, 230, 110), material = "Grass", reward = { luckMinutes = 3 } },
 		SlimeStorm = { name = "Storm Crate", icon = "⛈️", color = Color3.fromRGB(150, 140, 255), material = "Neon", reward = { cashSeconds = 45, cashMin = 300, luckMinutes = 2 } },
 		Blackout = { name = "Glow Orb", icon = "🍄", color = Color3.fromRGB(110, 255, 150), material = "Neon", reward = { snackKey = "Glowcap" } },
+		PumpkinNight = { name = "Candy Pumpkin", icon = "🎃", color = Color3.fromRGB(255, 130, 20), material = "SmoothPlastic", reward = { cashSeconds = 30, cashMin = 200, snacks = 1 } },
 	},
 	-- Odds inside a Lucky Box (shown on pickup in the notification).
 	lucky = {
@@ -125,10 +155,12 @@ Config.EventDrops = {
 -- multiply with mutations. Some roll on new slimes; event ones also strike slimes
 -- already in your pens while that event runs (a meteor hits it, candy rains on it...).
 -- chance = when rolling a new slime. event = only during that event. month = only that month.
+-- holiday = only while that holiday is on (Config.Holidays).
 Config.MaxTraits = 3
 Config.Traits = {
 	Sparkly = { icon = "✨", mult = 1.5, chance = 0.03, color = Color3.fromRGB(255, 255, 200) },
-	Spooky = { icon = "👻", mult = 2.5, chance = 0.05, month = 10, color = Color3.fromRGB(200, 120, 255) },
+	Spooky = { icon = "👻", mult = 2.5, chance = 0.05, holiday = "Halloween", color = Color3.fromRGB(200, 120, 255) },
+	Haunted = { icon = "🎃", mult = 4, chance = 0.08, event = "PumpkinNight", color = Color3.fromRGB(255, 140, 30) },
 	Midas = { icon = "👑", mult = 3, chance = 0.08, event = "GoldenHour", color = Color3.fromRGB(255, 210, 60) },
 	Meteor = { icon = "☄️", mult = 4, chance = 0.06, event = "LavaStorm", color = Color3.fromRGB(255, 110, 40) },
 	Sugar = { icon = "🍬", mult = 3, chance = 0.08, event = "CandyParty", color = Color3.fromRGB(255, 150, 210) },
@@ -583,6 +615,17 @@ Config.EventMusic = {
 	Blackout = { id = "rbxassetid://1847313950", name = "Spooky Kooky" },
 	SlimeRain = { id = "rbxassetid://1836420164", name = "Celebration Time" },
 	King = { id = "rbxassetid://9045156325", name = "Fire In The Sky" },
+	PumpkinNight = { id = "rbxassetid://1836009678", name = "Fast Paced Halloween" },
+}
+
+-- Holiday playlists: replace Config.Music while the holiday is on (no event running).
+Config.HolidayMusic = {
+	Halloween = {
+		{ id = "rbxassetid://1836009626", name = "Halloween Horrors Waltz" },
+		{ id = "rbxassetid://139190190976686", name = "Halloween Music Box" },
+		{ id = "rbxassetid://1837467198", name = "Night of the Ghouls" },
+		{ id = "rbxassetid://1838592691", name = "Halloween Night" },
+	},
 }
 
 Config.Sounds = {
@@ -608,8 +651,10 @@ Config.Rarities = {
 	{ name = "Exclusive", weight = 0, color = Color3.fromRGB(0, 255, 230) }, -- codes only
 }
 
--- extra: decorations built on the slime (crown, halo, horns, wings, antenna, leaf, ears, spikes, band, bow).
+-- extra: decorations built on the slime (crown, halo, horns, wings, antenna, leaf, ears, spikes, band, bow,
+-- witchhat, batwings, fangs, jackface).
 -- season: month number it can spawn in (others keep it once owned).
+-- holiday: only spawns while that holiday is on (Config.Holidays); owners keep it forever.
 -- storm: only spawns during the weekly Slime Storm.
 Config.Slimes = {
 	{ id = "Goop", name = "Goopini Goopala", rarity = "Common", price = 25, income = 1, color = Color3.fromRGB(120, 230, 120), size = 2.6 },
@@ -619,27 +664,29 @@ Config.Slimes = {
 
 	{ id = "Minty", name = "Mintolini Freschino", rarity = "Uncommon", price = 400, income = 10, color = Color3.fromRGB(150, 255, 210), size = 3, extra = { "ears" } },
 	{ id = "Bubblegum", name = "Bubbaloo Gommarella", rarity = "Uncommon", price = 900, income = 20, color = Color3.fromRGB(255, 140, 200), size = 3.1, extra = { "bow" } },
-	{ id = "Pumpkin", name = "Zucchino Pumpkinello", rarity = "Uncommon", price = 1500, income = 32, color = Color3.fromRGB(255, 130, 20), size = 3.2, extra = { "leaf" }, season = 10 },
+	{ id = "Pumpkin", name = "Zucchino Pumpkinello", rarity = "Uncommon", price = 1500, income = 32, color = Color3.fromRGB(255, 130, 20), size = 3.2, extra = { "leaf", "jackface" }, holiday = "Halloween" },
 
 	{ id = "Lava", name = "Lavarino Bollentino", rarity = "Rare", price = 3000, income = 55, color = Color3.fromRGB(255, 90, 20), size = 3.3, extra = { "horns" } },
 	{ id = "Frosty", name = "Frostolo Brrrrino", rarity = "Rare", price = 7500, income = 120, color = Color3.fromRGB(190, 240, 255), size = 3.4, extra = { "spikes" } },
 	{ id = "Stormy", name = "Nuvolone Tempestino", rarity = "Rare", price = 12000, income = 260, color = Color3.fromRGB(120, 130, 200), size = 3.4, extra = { "antenna", "ears" }, storm = true },
+	{ id = "Batty", name = "Pipistrellino Svolazzone", rarity = "Rare", price = 10000, income = 200, color = Color3.fromRGB(95, 70, 120), size = 3.4, extra = { "ears", "batwings", "fangs" }, holiday = "Halloween" },
 	{ id = "Zappy", name = "Zappadoodle Zappazap", rarity = "Rare", price = 15000, income = 220, color = Color3.fromRGB(255, 240, 60), size = 3.4, extra = { "antenna" } },
 
 	{ id = "Toxic", name = "Toxicolli Bleghissimo", rarity = "Epic", price = 25000, income = 350, color = Color3.fromRGB(170, 255, 0), size = 3.6, extra = { "spikes" } },
 	{ id = "Galaxy", name = "Galassio Stellarino", rarity = "Epic", price = 60000, income = 750, color = Color3.fromRGB(90, 40, 200), size = 3.7, extra = { "halo" } },
-	{ id = "Ghosty", name = "Boo Boo Fantasmino", rarity = "Epic", price = 90000, income = 1100, color = Color3.fromRGB(235, 235, 255), size = 3.8, season = 10 },
+	{ id = "Ghosty", name = "Boo Boo Fantasmino", rarity = "Epic", price = 90000, income = 1100, color = Color3.fromRGB(235, 235, 255), size = 3.8, holiday = "Halloween" },
 	{ id = "Thunderbolt", name = "Tuono Tuono Boltaccio", rarity = "Epic", price = 120000, income = 2000, color = Color3.fromRGB(255, 255, 120), size = 3.8, extra = { "spikes", "antenna" }, storm = true },
 	{ id = "Ninja", name = "Ninjarino Shhhhini", rarity = "Epic", price = 150000, income = 1600, color = Color3.fromRGB(50, 50, 60), size = 3.7, extra = { "band" } },
 
 	{ id = "Golden", name = "Goldoni Ricchissimo", rarity = "Legendary", price = 250000, income = 2500, color = Color3.fromRGB(255, 200, 40), size = 4, extra = { "crown" } },
 	{ id = "Rainbow", name = "Arcobalenino Sparkalala", rarity = "Legendary", price = 600000, income = 5500, color = Color3.fromRGB(255, 100, 255), size = 4.1, extra = { "halo" } },
-	{ id = "Vampire", name = "Vampirelli Bitebite", rarity = "Legendary", price = 1200000, income = 10000, color = Color3.fromRGB(140, 0, 30), size = 4.3, extra = { "horns", "wings" }, season = 10 },
+	{ id = "Vampire", name = "Vampirelli Bitebite", rarity = "Legendary", price = 1200000, income = 10000, color = Color3.fromRGB(140, 0, 30), size = 4.3, extra = { "fangs", "batwings" }, holiday = "Halloween" },
 	{ id = "Tempest", name = "Uraganino Tempestoso", rarity = "Legendary", price = 1500000, income = 18000, color = Color3.fromRGB(80, 60, 200), size = 4.4, extra = { "wings", "halo" }, storm = true },
 	{ id = "Dragon", name = "Draghettino Fiammifero", rarity = "Legendary", price = 2000000, income = 15000, color = Color3.fromRGB(40, 180, 90), size = 4.4, extra = { "horns", "wings" } },
 
 	{ id = "Void", name = "Vuotolino Nullissimo", rarity = "Mythic", price = 4000000, income = 28000, color = Color3.fromRGB(30, 0, 60), size = 4.5, extra = { "horns" } },
 	{ id = "Angel", name = "Angelino Halollo", rarity = "Mythic", price = 9000000, income = 60000, color = Color3.fromRGB(255, 255, 230), size = 4.6, extra = { "wings", "halo" } },
+	{ id = "Witchy", name = "Streghina Pozionella", rarity = "Mythic", price = 12000000, income = 85000, color = Color3.fromRGB(130, 220, 90), size = 4.6, extra = { "witchhat" }, holiday = "Halloween" },
 	{ id = "Phoenix", name = "Fenicino Fuocobello", rarity = "Mythic", price = 20000000, income = 120000, color = Color3.fromRGB(255, 110, 30), size = 4.8, extra = { "wings", "crown" } },
 
 	{ id = "Cosmic", name = "Cosmolino Universone", rarity = "Divine", price = 60000000, income = 320000, color = Color3.fromRGB(60, 90, 255), size = 5, extra = { "halo", "antenna" } },
@@ -672,7 +719,7 @@ end
 
 Config.EventKeys = {}
 for k, e in Config.Events do
-	if not e.scheduled then
+	if not e.scheduled and not e.holiday then
 		table.insert(Config.EventKeys, k)
 	end
 end

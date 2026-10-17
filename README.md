@@ -15,7 +15,12 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Daily rewards: 7-day login calendar (cash, luck, Grow Boost, and the exclusive Sunny slime on day 7). Missing a day restarts it.
 - Raiding: thieves glow red with a THIEF tag; if the owner catches them, the slime bounces its way home.
 - Effects: hopping belt slimes, bouncing pens, rarity reveals, confetti, screen flashes, camera shake, Slime Rain drops, sounds.
-- Halloween update: Pumpkin, Ghosty, Vampire spawn only in October.
+- 🎃 Holidays (`Config.Holidays`): special events on the calendar, starting with Halloween (Oct 17 to Nov 1, UTC). While it's on:
+  - Halloween slimes show up on the belt and Dispenser: Pumpkin, Batty, Ghosty, Vampire and the Mythic Witchy (30% of a roll when its rarity has one, odds on the Dispenser board). Players keep them after Halloween.
+  - Every 2nd server event is 🎃 Pumpkin Night: dusk sky with floating embers, its own song, 2x luck, Candy Pumpkins falling in the street and the 🎃 Haunted trait (x4). New slimes can also be 👻 Spooky (x2.5).
+  - The map gets jack-o'-lanterns, giant pumpkins by the spawn, little graveyards, floating ghosts, orange and purple lights, a sunset sky and 4 spooky songs.
+  - Trick-or-treat: every base door has a candy bowl. Knock on another player's base for 🍬 Treat 70% / 🍭 Big Treat 20% / 👻 Trick 10% (odds on the prompt), once per base every 5 minutes.
+  - A 🎃 HALLOWEEN chip in the HUD counts down the days left. Add the next holiday in `Config.Holidays` the same way.
 - Gear shop (cash): Slap Hand (free), Speed Coil, Gravity Coil, Slime Trap (Rebirth 1), Slime Taser (Rebirth 2). Slapping or zapping a thief knocks your slime loose and it bounces home.
 - Server events every 8 minutes: Golden Hour (Golden x10), Lava Storm (Lava mutation x3), Candy Party (Candy mutation x5), Cash Frenzy (2x income), Lucky Hour (3x luck). The world changes color and things fall from the sky.
 - Playtime gifts: 7 presents that unlock from 2 to 60 minutes into a session, including free Dispenser rolls.
@@ -109,6 +114,7 @@ src/server/Services/EventDropService.luau  Themed boxes that fall during events
 src/server/Services/PhoneAlerts.luau  Phone notifications when you get robbed
 src/server/Services/SeasonService.luau  Monthly Slime Season track
 src/server/Services/StormService.luau  Weekly Slime Storm schedule
+src/server/Services/HolidayService.luau  Holidays: dates, decorations, trick-or-treat
 src/server/Services/TutorialService.luau  First-time guide
 src/server/Services/Analytics.luau  Creator Hub analytics events
 src/server/Services/Signals.luau  Progress events shared by quests, XP and the Index

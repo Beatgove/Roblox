@@ -43,6 +43,7 @@ local SeasonService = require(Services.SeasonService)
 local Analytics = require(Services.Analytics)
 local BossService = require(Services.BossService)
 local SlimeVoices = require(Services.SlimeVoices)
+local HolidayService = require(Services.HolidayService)
 
 local plots = MapBuilder.Build()
 DataService.Start()
@@ -79,6 +80,7 @@ SeasonService.Start()
 Analytics.Start()
 BossService.Start()
 SlimeVoices.Start()
+HolidayService.Start()
 require(Services.DebugService).Start({
 	DataService = DataService,
 	Net = Net,
@@ -96,6 +98,7 @@ require(Services.DebugService).Start({
 	TutorialService = TutorialService,
 	StormService = StormService,
 	SeasonService = SeasonService,
+	HolidayService = HolidayService,
 })
 
 local function makeLeaderstats(player: Player)

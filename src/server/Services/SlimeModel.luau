@@ -136,6 +136,52 @@ local function addExtras(model: Model, body: BasePart, size: number, extras: { s
 				deco(model, body, { Name = "Bow", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.4, r * 0.3, r * 0.15), Color = Color3.fromRGB(255, 70, 150), Material = Enum.Material.SmoothPlastic },
 					CFrame.new(r * 0.35 + s * r * 0.18, r * 0.85, -r * 0.2))
 			end
+		elseif e == "witchhat" then
+			-- A floppy pointed hat: a wide brim, a cone of shrinking rings bent to one side, a band.
+			local black = Color3.fromRGB(35, 25, 45)
+			deco(model, body, { Name = "HatBrim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(r * 0.08, r * 1.9, r * 1.9), Color = black, Material = Enum.Material.Fabric },
+				CFrame.new(0, r * 0.88, 0) * CFrame.Angles(0, 0, math.pi / 2))
+			for k = 0, 5 do
+				local t = k / 6
+				local w = r * (1.05 - t * 0.85)
+				deco(model, body, { Name = "Hat", Shape = Enum.PartType.Cylinder, Size = Vector3.new(r * 0.24, w, w), Color = black, Material = Enum.Material.Fabric },
+					CFrame.new(t * t * r * 0.45, r * (1.0 + t * 1.15), 0) * CFrame.Angles(0, 0, math.pi / 2 - t * 0.5))
+			end
+			deco(model, body, { Name = "HatBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(r * 0.12, r * 1.08, r * 1.08), Color = Color3.fromRGB(150, 60, 220), Material = Enum.Material.Neon },
+				CFrame.new(0, r * 1.02, 0) * CFrame.Angles(0, 0, math.pi / 2))
+			deco(model, body, { Name = "HatBuckle", Size = Vector3.new(r * 0.22, r * 0.18, r * 0.05), Color = Color3.fromRGB(255, 210, 60), Material = Enum.Material.Metal },
+				CFrame.new(0, r * 1.02, -r * 0.55))
+		elseif e == "batwings" then
+			-- Pointy dark wings: three fingers fanning out on each side.
+			for _, s in { -1, 1 } do
+				for k = 0, 2 do
+					deco(model, body, { Name = "BatWing", Size = Vector3.new(r * (1.1 - k * 0.2), r * 0.32, r * 0.08), Color = Color3.fromRGB(45, 30, 60), Material = Enum.Material.SmoothPlastic },
+						CFrame.new(s * r * 1.2, r * (0.55 - k * 0.22), r * 0.2) * CFrame.Angles(0, s * math.rad(20), s * math.rad(35 - k * 25)))
+				end
+			end
+		elseif e == "fangs" then
+			for _, s in { -1, 1 } do
+				deco(model, body, { Name = "Fang", Size = Vector3.new(r * 0.08, r * 0.16, r * 0.06), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic },
+					CFrame.new(s * r * 0.1, -r * 0.27, -r * 0.95))
+			end
+		elseif e == "jackface" then
+			-- Pumpkin ribs and a glowing grin.
+			local rib = Color3.new(0, 0, 0):Lerp(color, 0.75)
+			for _, s in { -0.55, 0, 0.55 } do
+				deco(model, body, { Name = "Rib", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.12, r * 1.9, r * 1.2), Color = rib, Material = Enum.Material.SmoothPlastic, Transparency = 0.2 },
+					CFrame.new(s * r * 0.95, 0, 0) * CFrame.Angles(0, s * 1.1, 0))
+			end
+			for k = -2, 2 do
+				local grin = deco(model, body, { Name = "Grin", Size = Vector3.new(r * 0.13, r * (if k % 2 == 0 then 0.14 else 0.22), r * 0.05), Color = Color3.fromRGB(255, 220, 80), Material = Enum.Material.Neon },
+					CFrame.new(k * r * 0.12, -r * 0.3 + math.abs(k) * r * 0.05, -r * 0.93))
+				if k == 0 then
+					local glow = Instance.new("PointLight")
+					glow.Color = Color3.fromRGB(255, 170, 60)
+					glow.Range = r * 4
+					glow.Brightness = 1.2
+					glow.Parent = grin
+				end
+			end
 		end
 	end
 end

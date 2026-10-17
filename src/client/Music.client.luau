@@ -50,7 +50,19 @@ local function start(id: string, looped: boolean)
 	end
 end
 
+-- During a holiday its own playlist (Config.HolidayMusic) replaces the main one.
+local function playlist()
+	local holiday = workspace:GetAttribute("Holiday")
+	local list = holiday and Config.HolidayMusic and Config.HolidayMusic[holiday]
+	return if list and #list > 0 then list else tracks
+end
+
 local function playNext()
+	local list = playlist()
+	if list ~= tracks then
+		start(list[math.random(1, #list)].id, false)
+		return
+	end
 	pos = pos % #order + 1
 	start(tracks[order[pos]].id, false)
 end

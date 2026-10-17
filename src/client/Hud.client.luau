@@ -193,6 +193,7 @@ local blackoutChip, blackoutLabel = chip(Color3.fromRGB(50, 40, 110))
 local arcadeChip, arcadeLabel = chip(Color3.fromRGB(255, 120, 200))
 local towerChip, towerLabel = chip(Color3.fromRGB(150, 120, 255))
 local stormChip, stormLabel = chip(Color3.fromRGB(110, 90, 220))
+local holidayChip, holidayLabel = chip(Color3.fromRGB(255, 130, 30))
 
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
@@ -1269,6 +1270,13 @@ task.spawn(function()
 		if stormIn > 0 then
 			stormLabel.Text = "⛈️ STORM in " .. (if stormIn >= 86400 then string.format("%dd %dh", stormIn // 86400, (stormIn % 86400) // 3600) else Util.Duration(stormIn))
 		end
+		local holiday = workspace:GetAttribute("Holiday")
+		local holidayDef = holiday and Config.Holidays[holiday]
+		local holidayLeft = (workspace:GetAttribute("HolidayUntil") or 0) - nowT
+		holidayChip.Visible = holidayDef ~= nil and holidayLeft > 0 and not eventChip.Visible
+		if holidayDef then
+			holidayLabel.Text = holidayDef.title .. " " .. (if holidayLeft >= 86400 then string.format("%dd %dh left", holidayLeft // 86400, (holidayLeft % 86400) // 3600) else Util.Duration(math.max(holidayLeft, 0)) .. " left")
+		end
 		rainLabel.Text = "🌧️ RAIN " .. math.ceil(math.max(rainLeft, 0)) .. "s"
 		local eventLeft = (workspace:GetAttribute("EventUntil") or 0) - nowT
 		local eventDef = event and Config.Events[event]
@@ -1399,8 +1407,9 @@ local tips = {
 	"Thieves get a 💰 bounty. Slap a WANTED player to claim it!",
 	"👑 The King Slime shows up every 12 minutes. Slap it with everyone for big cash!",
 }
-if os.date("!*t").month == 10 then
-	table.insert(tips, 1, "🎃 HALLOWEEN UPDATE: Pumpkin, Ghosty and Vampire slimes until Oct 31! Code: SPOOKY")
+if workspace:GetAttribute("Holiday") == "Halloween" then
+	table.insert(tips, 1, "🎃 HALLOWEEN: knock on other bases' candy bowls to TRICK OR TREAT! Code: SPOOKY")
+	table.insert(tips, 2, "🎃 Halloween slimes are on the belt until Nov 1: Pumpkin, Batty, Ghosty, Vampire and the Mythic Witchy!")
 end
 -- Tips trickle in one at a time (after the first-time guide), instead of a wall of toasts.
 task.spawn(function()
