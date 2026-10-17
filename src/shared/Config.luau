@@ -655,8 +655,11 @@ Config.Rarities = {
 	{ name = "Exclusive", weight = 0, color = Color3.fromRGB(0, 255, 230) }, -- codes only
 }
 
--- extra: decorations built on the slime (crown, halo, horns, wings, antenna, leaf, ears, spikes, band, bow,
--- witchhat, batwings, fangs, jackface).
+-- extra: decorations built on the slime (crown, halo, horns, angelwings, firewings, demonwings, dragonwings,
+-- batwings, antenna, leaf, ears, spikes, band, bow, witchhat, fangs, jackface). Wings flap.
+-- aura: colour of the slime's aura (ring, shell, orbs) instead of its rarity colour, e.g. red for evil ones.
+-- Auras grow with rarity: sparkles (Rare), ground ring (Epic), force-field shell (Legendary),
+-- orbiting orbs and flames (Mythic), a second ring and rising light (Divine and Secret).
 -- season: month number it can spawn in (others keep it once owned).
 -- holiday: only spawns while that holiday is on (Config.Holidays); owners keep it forever.
 -- storm: only spawns during the weekly Slime Storm.
@@ -684,25 +687,25 @@ Config.Slimes = {
 
 	{ id = "Golden", name = "Goldoni Ricchissimo", rarity = "Legendary", price = 250000, income = 2500, color = Color3.fromRGB(255, 200, 40), size = 4, extra = { "crown" } },
 	{ id = "Rainbow", name = "Arcobalenino Sparkalala", rarity = "Legendary", price = 600000, income = 5500, color = Color3.fromRGB(255, 100, 255), size = 4.1, extra = { "halo" } },
-	{ id = "Vampire", name = "Vampirelli Bitebite", rarity = "Legendary", price = 1200000, income = 10000, color = Color3.fromRGB(140, 0, 30), size = 4.3, extra = { "fangs", "batwings" }, holiday = "Halloween" },
-	{ id = "Tempest", name = "Uraganino Tempestoso", rarity = "Legendary", price = 1500000, income = 18000, color = Color3.fromRGB(80, 60, 200), size = 4.4, extra = { "wings", "halo" }, storm = true },
-	{ id = "Dragon", name = "Draghettino Fiammifero", rarity = "Legendary", price = 2000000, income = 15000, color = Color3.fromRGB(40, 180, 90), size = 4.4, extra = { "horns", "wings" } },
+	{ id = "Vampire", name = "Vampirelli Bitebite", rarity = "Legendary", price = 1200000, income = 10000, color = Color3.fromRGB(140, 0, 30), size = 4.3, aura = Color3.fromRGB(220, 0, 40), extra = { "fangs", "batwings" }, holiday = "Halloween" },
+	{ id = "Tempest", name = "Uraganino Tempestoso", rarity = "Legendary", price = 1500000, income = 18000, color = Color3.fromRGB(80, 60, 200), size = 4.4, aura = Color3.fromRGB(120, 190, 255), extra = { "angelwings", "halo" }, storm = true },
+	{ id = "Dragon", name = "Draghettino Fiammifero", rarity = "Legendary", price = 2000000, income = 15000, color = Color3.fromRGB(40, 180, 90), size = 4.4, extra = { "horns", "dragonwings" } },
 
-	{ id = "Void", name = "Vuotolino Nullissimo", rarity = "Mythic", price = 4000000, income = 28000, color = Color3.fromRGB(30, 0, 60), size = 4.5, extra = { "horns" } },
-	{ id = "Angel", name = "Angelino Halollo", rarity = "Mythic", price = 9000000, income = 60000, color = Color3.fromRGB(255, 255, 230), size = 4.6, extra = { "wings", "halo" } },
-	{ id = "Witchy", name = "Streghina Pozionella", rarity = "Mythic", price = 12000000, income = 85000, color = Color3.fromRGB(130, 220, 90), size = 4.6, extra = { "witchhat" }, holiday = "Halloween" },
-	{ id = "Phoenix", name = "Fenicino Fuocobello", rarity = "Mythic", price = 20000000, income = 120000, color = Color3.fromRGB(255, 110, 30), size = 4.8, extra = { "wings", "crown" } },
+	{ id = "Void", name = "Vuotolino Nullissimo", rarity = "Mythic", price = 4000000, income = 28000, color = Color3.fromRGB(30, 0, 60), size = 4.5, aura = Color3.fromRGB(170, 0, 255), extra = { "horns", "demonwings" } },
+	{ id = "Angel", name = "Angelino Halollo", rarity = "Mythic", price = 9000000, income = 60000, color = Color3.fromRGB(255, 255, 230), size = 4.6, aura = Color3.fromRGB(255, 225, 120), extra = { "angelwings", "halo" } },
+	{ id = "Witchy", name = "Streghina Pozionella", rarity = "Mythic", price = 12000000, income = 85000, color = Color3.fromRGB(130, 220, 90), size = 4.6, aura = Color3.fromRGB(170, 70, 255), extra = { "witchhat" }, holiday = "Halloween" },
+	{ id = "Phoenix", name = "Fenicino Fuocobello", rarity = "Mythic", price = 20000000, income = 120000, color = Color3.fromRGB(255, 110, 30), size = 4.8, aura = Color3.fromRGB(255, 120, 30), extra = { "firewings", "crown" } },
 
 	{ id = "Cosmic", name = "Cosmolino Universone", rarity = "Divine", price = 60000000, income = 320000, color = Color3.fromRGB(60, 90, 255), size = 5, extra = { "halo", "antenna" } },
 	{ id = "Titan", name = "Titanone Gigantesco", rarity = "Divine", price = 150000000, income = 750000, color = Color3.fromRGB(160, 160, 180), size = 5.4, extra = { "crown", "spikes" } },
-	{ id = "Celestial", name = "Celestino Divinissimo", rarity = "Divine", price = 400000000, income = 1800000, color = Color3.fromRGB(255, 240, 160), size = 5.4, extra = { "wings", "halo" } },
+	{ id = "Celestial", name = "Celestino Divinissimo", rarity = "Divine", price = 400000000, income = 1800000, color = Color3.fromRGB(255, 240, 160), size = 5.4, aura = Color3.fromRGB(255, 215, 90), extra = { "angelwings", "halo" } },
 
-	{ id = "KingSlime", name = "Re Slimone Supremo", rarity = "Secret", price = 1000000000, income = 4000000, color = Color3.fromRGB(255, 215, 0), size = 5.8, extra = { "crown", "wings" } },
-	{ id = "Glitch", name = "Glitchini Errorrino", rarity = "Secret", price = 3000000000, income = 11000000, color = Color3.fromRGB(0, 255, 120), size = 5.8, extra = { "antenna", "spikes" } },
+	{ id = "KingSlime", name = "Re Slimone Supremo", rarity = "Secret", price = 1000000000, income = 4000000, color = Color3.fromRGB(255, 215, 0), size = 5.8, aura = Color3.fromRGB(255, 200, 40), extra = { "crown", "angelwings" } },
+	{ id = "Glitch", name = "Glitchini Errorrino", rarity = "Secret", price = 3000000000, income = 11000000, color = Color3.fromRGB(0, 255, 120), size = 5.8, aura = Color3.fromRGB(0, 255, 120), extra = { "antenna", "spikes" } },
 
 	{ id = "Codey", name = "Codeyno Bippity", rarity = "Exclusive", price = 1500, income = 40, color = Color3.fromRGB(0, 230, 230), size = 3.2, extra = { "antenna", "bow" } },
 	{ id = "Sunny", name = "Solino Sunnissimo", rarity = "Exclusive", price = 20000, income = 400, color = Color3.fromRGB(255, 230, 80), size = 3.5, extra = { "halo", "ears" } },
-	{ id = "Starling", name = "Stellina Twinkolina", rarity = "Exclusive", price = 40000, income = 800, color = Color3.fromRGB(120, 170, 255), size = 3.7, extra = { "halo", "wings" } },
+	{ id = "Starling", name = "Stellina Twinkolina", rarity = "Exclusive", price = 40000, income = 800, color = Color3.fromRGB(120, 170, 255), size = 3.7, extra = { "halo", "angelwings" } },
 	{ id = "PumpkinKing", name = "Re Zuccone Pumpkinissimo", rarity = "Exclusive", price = 50000, income = 900, color = Color3.fromRGB(255, 120, 0), size = 3.8, extra = { "crown", "leaf" } },
 }
 

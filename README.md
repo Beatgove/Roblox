@@ -5,7 +5,7 @@ A collect-and-steal tycoon for Roblox. Why this game: see [RESEARCH.md](RESEARCH
 Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every second and grow bigger (even offline), raid other bases to steal theirs, shield your own, rebirth for permanent multipliers.
 
 **What's in it**
-- 32 slimes across 9 rarities (Common to Secret, plus code-only Exclusives), each with its own look: crowns, wings, halos, horns, antennae, auras and glow.
+- 32 slimes across 9 rarities (Common to Secret, plus code-only Exclusives), each with its own look: crowns, halos, horns, antennae and flapping wings that fit the slime (feathered angel wings, fire wings, leathery demon, dragon and bat wings). Auras grow with rarity: sparkles from Rare, a glowing ground ring from Epic, a breathing force-field shell from Legendary, orbiting orbs and flames from Mythic, and a second orbit with rising light for Divine and Secret. Evil slimes get red or purple auras.
 - Mutations: Golden (x2), Lava (x3, Lava Storm), Diamond (x4), Candy (x5, Candy Party), Rainbow (x8).
 - Traits (stack up to 3, multipliers add up): Sparkly, Spooky (October), and event traits Midas, Meteor, Sugar, Rich, Clover. During an event, meteors strike slimes already in your pens and can give them that event's trait.
 - Slime Dispenser: pay cash for a random slime, odds shown on the board next to it. 5x Luck boosts Rare+ odds (free for 10 minutes for new players, from codes, during Slime Rain, or bought).

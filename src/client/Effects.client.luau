@@ -1310,6 +1310,30 @@ end)
 track("Rainbow", rainbows, function()
 	return true
 end)
+-- Wings and orbiting orbs swing on a Weld the server tagged; aura shells breathe, ground rings fade.
+type Hinge = { weld: Weld, base: CFrame, phase: number, side: number, speed: number }
+local flaps: { [BasePart]: Hinge } = {}
+local orbits: { [BasePart]: Hinge } = {}
+local function hingeOf(p: BasePart): Hinge?
+	local w = p:FindFirstChild("Hinge")
+	if not w or not w:IsA("Weld") then
+		return nil
+	end
+	local model = p.Parent
+	-- Both wings of one slime share a phase so they beat together.
+	local phase = if model then (#model.Name * 0.7 + (model:GetAttribute("Slot") or 0) * 1.3) else 0
+	return { weld = w, base = w.C0, phase = phase, side = p:GetAttribute("Side") or 1, speed = p:GetAttribute("Speed") or 1 }
+end
+track("Flap", flaps, hingeOf)
+track("Orbit", orbits, hingeOf)
+local shells: { [BasePart]: { mesh: SpecialMesh?, phase: number } } = {}
+track("AuraPulse", shells, function(p)
+	return { mesh = p:FindFirstChildOfClass("SpecialMesh"), phase = math.random() * 10 }
+end)
+local fades: { [BasePart]: number } = {}
+track("AuraFade", fades, function(p)
+	return p.Transparency
+end)
 
 RunService.RenderStepped:Connect(function()
 	local t = os.clock()
@@ -1365,6 +1389,43 @@ RunService.RenderStepped:Connect(function()
 			continue
 		end
 		p.Color = Color3.fromHSV((t * 0.25) % 1, 0.75, 1)
+	end
+	for p, h in flaps do
+		if not p.Parent then
+			flaps[p] = nil
+			continue
+		end
+		if (p.Position - camPos).Magnitude > 140 then
+			continue
+		end
+		-- A quick downstroke and a slower lift, with a little sweep back.
+		local beat = math.sin(t * 5 + h.phase)
+		local lift = if beat > 0 then beat else beat * 0.6
+		h.weld.C0 = h.base * CFrame.Angles(0, h.side * lift * 0.18, h.side * lift * 0.45)
+	end
+	for p, h in orbits do
+		if not p.Parent then
+			orbits[p] = nil
+			continue
+		end
+		if (p.Position - camPos).Magnitude > 140 then
+			continue
+		end
+		h.weld.C0 = h.base * CFrame.Angles(0, t * h.speed + h.phase, 0)
+	end
+	for p, a in shells do
+		if not p.Parent then
+			shells[p] = nil
+		elseif a.mesh then
+			a.mesh.Scale = Vector3.one * (1 + math.sin(t * 2.2 + a.phase) * 0.06)
+		end
+	end
+	for p, base in fades do
+		if not p.Parent then
+			fades[p] = nil
+			continue
+		end
+		p.Transparency = base + (math.sin(t * 2.5) + 1) * 0.15
 	end
 end)
 

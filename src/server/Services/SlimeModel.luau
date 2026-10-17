@@ -50,6 +50,107 @@ local function deco(model: Model, body: BasePart, props, offset: CFrame): Part
 	return p
 end
 
+-- A decoration part at a world CFrame, welded to `attach` (a wing root, a ring...).
+local function decoAt(model: Model, attach: BasePart, props, cf: CFrame): Part
+	return deco(model, attach, props, attach.CFrame:ToObjectSpace(cf))
+end
+
+-- An invisible hinge welded to the body with a Weld, so the client can swing it by changing C0
+-- (wings flapping, rings orbiting). Parts welded to the hinge move with it.
+local function hinge(model: Model, body: BasePart, name: string, offset: CFrame, tag: string): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = Vector3.one * 0.2
+	p.Transparency = 1
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Massless = true
+	p.CFrame = body.CFrame * offset
+	p.Parent = model
+	local w = Instance.new("Weld")
+	w.Name = "Hinge"
+	w.Part0 = body
+	w.Part1 = p
+	w.C0 = offset
+	w.Parent = p
+	CollectionService:AddTag(p, tag)
+	return p
+end
+
+-- Feathered wings: long primaries fanning out from a shoulder, a row of soft coverts on top.
+-- `tip` colours the feather ends; fire wings get flames on top.
+local function featherWings(model: Model, body: BasePart, r: number, base: Color3, tip: Color3, fire: boolean)
+	for _, s in { -1, 1 } do
+		local root = hinge(model, body, "WingRoot", CFrame.new(s * r * 0.62, r * 0.3, r * 0.35) * CFrame.Angles(0, s * math.rad(-25), 0), "Flap")
+		root:SetAttribute("Side", s)
+		local rc = root.CFrame
+		for i = 0, 5 do
+			local fan = math.rad(48 - i * 19)
+			local len = r * (1.9 - i * 0.15)
+			local cf = rc * CFrame.Angles(0, 0, s * fan) * CFrame.new(s * len * 0.5, 0, i * r * 0.015)
+			decoAt(model, root, { Name = "Feather", Shape = Enum.PartType.Ball, Size = Vector3.new(len, r * 0.3, r * 0.07), Color = base:Lerp(tip, 0.25 + i * 0.08), Material = if fire then Enum.Material.Neon else Enum.Material.SmoothPlastic }, cf)
+			decoAt(model, root, { Name = "FeatherTip", Shape = Enum.PartType.Ball, Size = Vector3.new(len * 0.35, r * 0.22, r * 0.08), Color = tip, Material = Enum.Material.Neon, Transparency = 0.1 },
+				cf * CFrame.new(s * len * 0.36, 0, 0.01))
+		end
+		for i = 0, 3 do
+			local fan = math.rad(40 - i * 22)
+			local len = r * 0.85
+			decoAt(model, root, { Name = "Covert", Shape = Enum.PartType.Ball, Size = Vector3.new(len, r * 0.34, r * 0.1), Color = base:Lerp(Color3.new(1, 1, 1), 0.4), Material = Enum.Material.Neon, Transparency = 0.15 },
+				rc * CFrame.Angles(0, 0, s * fan) * CFrame.new(s * len * 0.45, 0, -r * 0.05))
+		end
+		if fire then
+			local f = Instance.new("ParticleEmitter")
+			f.Name = "WingFire"
+			f.Texture = FIRE
+			f.Color = ColorSequence.new(Color3.fromRGB(255, 200, 60), Color3.fromRGB(255, 60, 20))
+			f.LightEmission = 0.9
+			f.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, r * 0.7), NumberSequenceKeypoint.new(1, 0) })
+			f.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) })
+			f.Lifetime = NumberRange.new(0.4, 0.7)
+			f.Rate = 25
+			f.Speed = NumberRange.new(1, 3)
+			f.EmissionDirection = Enum.NormalId.Top
+			f.Parent = root:FindFirstChild("Feather") or root
+		end
+	end
+end
+
+-- Leathery wings: an arm bone along the top edge, three scalloped membrane lobes hanging from it
+-- with a glowing rim behind each, and a claw at the tip. Demons, dragons and bats share it.
+local function membraneWings(model: Model, body: BasePart, r: number, scale: number, bone: Color3, skin: Color3, rim: Color3)
+	local arm = r * 1.9 * scale
+	local up = math.rad(34)
+	for _, s in { -1, 1 } do
+		local root = hinge(model, body, "WingRoot", CFrame.new(s * r * 0.6, r * 0.45, r * 0.4) * CFrame.Angles(0, s * math.rad(-25), 0), "Flap")
+		root:SetAttribute("Side", s)
+		local rc = root.CFrame
+		-- x runs out from the body (mirrored per side), y up, z back.
+		local function at(x: number, y: number, z: number, rot: number): CFrame
+			return rc * CFrame.new(s * x, y, z) * CFrame.Angles(0, 0, s * rot)
+		end
+		local cu, su = math.cos(up), math.sin(up)
+		decoAt(model, root, { Name = "WingBone", Size = Vector3.new(arm, r * 0.13, r * 0.13), Color = bone, Material = Enum.Material.SmoothPlastic },
+			at(cu * arm * 0.5, su * arm * 0.5, 0, up))
+		decoAt(model, root, { Name = "Claw", Size = Vector3.new(r * 0.1, r * 0.34, r * 0.1), Color = rim, Material = Enum.Material.Neon },
+			at(cu * arm + r * 0.04, su * arm + r * 0.14, 0, math.rad(-20)))
+		for k = 0, 2 do
+			local t = 0.32 + k * 0.3
+			local w = arm * (0.5 - k * 0.06)
+			local h = arm * (0.85 - k * 0.15)
+			local x, y = cu * arm * t, su * arm * t - h * 0.42
+			local tilt = math.rad(8 + k * 10)
+			decoAt(model, root, { Name = "Membrane", Shape = Enum.PartType.Ball, Size = Vector3.new(w, h, r * 0.05), Color = skin, Material = Enum.Material.SmoothPlastic },
+				at(x, y, k * r * 0.03, tilt))
+			decoAt(model, root, { Name = "WingRim", Shape = Enum.PartType.Ball, Size = Vector3.new(w * 1.1, h * 1.06, r * 0.04), Color = rim, Material = Enum.Material.Neon, Transparency = 0.15 },
+				at(x, y - h * 0.02, k * r * 0.03 + r * 0.05, tilt))
+			-- A finger bone down the middle of each lobe.
+			decoAt(model, root, { Name = "WingFinger", Size = Vector3.new(r * 0.06, h * 0.9, r * 0.06), Color = bone, Material = Enum.Material.SmoothPlastic },
+				at(x, y + h * 0.02, k * r * 0.03 - r * 0.03, tilt))
+		end
+	end
+end
+
 local function makeLabel(parent: BasePart, height: number)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Label"
@@ -78,7 +179,7 @@ local function makeLabel(parent: BasePart, height: number)
 	return gui
 end
 
-local function addExtras(model: Model, body: BasePart, size: number, extras: { string }, color: Color3)
+local function addExtras(model: Model, body: BasePart, size: number, extras: { string }, color: Color3, auraColor: Color3?)
 	local r = size / 2
 	local gold = Color3.fromRGB(255, 210, 50)
 	for _, e in extras do
@@ -100,11 +201,14 @@ local function addExtras(model: Model, body: BasePart, size: number, extras: { s
 				deco(model, body, { Name = "Horn", Size = Vector3.new(r * 0.16, r * 0.6, r * 0.16), Color = Color3.fromRGB(250, 240, 220), Material = Enum.Material.SmoothPlastic },
 					CFrame.new(s * r * 0.45, r * 0.95, -r * 0.1) * CFrame.Angles(0, 0, -s * math.rad(25)))
 			end
-		elseif e == "wings" then
-			for _, s in { -1, 1 } do
-				deco(model, body, { Name = "Wing", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 1.1, r * 0.7, r * 0.12), Color = Color3.fromRGB(255, 255, 255), Material = Enum.Material.Neon, Transparency = 0.35 },
-					CFrame.new(s * r * 1.05, r * 0.35, r * 0.25) * CFrame.Angles(0, s * math.rad(25), s * math.rad(20)))
-			end
+		elseif e == "wings" or e == "angelwings" then
+			featherWings(model, body, r, Color3.fromRGB(255, 255, 255), auraColor or Color3.fromRGB(255, 225, 120), false)
+		elseif e == "firewings" then
+			featherWings(model, body, r, Color3.fromRGB(255, 200, 70), Color3.fromRGB(255, 70, 20), true)
+		elseif e == "demonwings" then
+			membraneWings(model, body, r, 1.15, Color3.fromRGB(25, 10, 25), Color3.fromRGB(70, 10, 30), auraColor or Color3.fromRGB(255, 30, 60))
+		elseif e == "dragonwings" then
+			membraneWings(model, body, r, 1.1, Color3.new(0, 0, 0):Lerp(color, 0.45), color:Lerp(Color3.new(1, 1, 0.6), 0.15), auraColor or Color3.fromRGB(180, 255, 80))
 		elseif e == "antenna" then
 			for _, s in { -1, 1 } do
 				deco(model, body, { Name = "Stalk", Size = Vector3.new(r * 0.07, r * 0.6, r * 0.07), Color = color, Material = Enum.Material.SmoothPlastic },
@@ -152,13 +256,7 @@ local function addExtras(model: Model, body: BasePart, size: number, extras: { s
 			deco(model, body, { Name = "HatBuckle", Size = Vector3.new(r * 0.22, r * 0.18, r * 0.05), Color = Color3.fromRGB(255, 210, 60), Material = Enum.Material.Metal },
 				CFrame.new(0, r * 1.02, -r * 0.55))
 		elseif e == "batwings" then
-			-- Pointy dark wings: three fingers fanning out on each side.
-			for _, s in { -1, 1 } do
-				for k = 0, 2 do
-					deco(model, body, { Name = "BatWing", Size = Vector3.new(r * (1.1 - k * 0.2), r * 0.32, r * 0.08), Color = Color3.fromRGB(45, 30, 60), Material = Enum.Material.SmoothPlastic },
-						CFrame.new(s * r * 1.2, r * (0.55 - k * 0.22), r * 0.2) * CFrame.Angles(0, s * math.rad(20), s * math.rad(35 - k * 25)))
-				end
-			end
+			membraneWings(model, body, r, 0.9, Color3.fromRGB(35, 20, 45), Color3.fromRGB(60, 40, 75), auraColor or Color3.fromRGB(170, 90, 255))
 		elseif e == "fangs" then
 			for _, s in { -1, 1 } do
 				deco(model, body, { Name = "Fang", Size = Vector3.new(r * 0.08, r * 0.16, r * 0.06), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic },
@@ -186,13 +284,64 @@ local function addExtras(model: Model, body: BasePart, size: number, extras: { s
 	end
 end
 
-local function addAura(body: BasePart, rarity, mut)
+local function addAura(model: Model, body: BasePart, rarity, mut, auraColor: Color3?)
 	local order = rarity.order
+	-- Codes-only slimes look like Legendaries; everything else climbs a tier at a time.
+	local tier = if rarity.name == "Exclusive" then 5 else order
+	local col = auraColor or rarity.color
+	local r = body.Size.X / 2
+	if rarity.name == "Secret" and not auraColor then
+		col = Color3.fromRGB(255, 60, 200)
+	end
+	-- Epic and up: a glowing ring on the ground that breathes in and out.
+	if tier >= 4 then
+		local ring = deco(model, body, { Name = "AuraRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.05, r * 3, r * 3), Color = col, Material = Enum.Material.Neon, Transparency = 0.55 },
+			CFrame.new(0, -r * 0.92, 0) * CFrame.Angles(0, 0, math.pi / 2))
+		CollectionService:AddTag(ring, "AuraFade")
+	end
+	-- Legendary and up: a shimmering force-field shell around the whole slime.
+	if tier >= 5 then
+		local shell = deco(model, body, { Name = "AuraShell", Shape = Enum.PartType.Ball, Size = Vector3.one * r * 2.5, Color = col, Material = Enum.Material.ForceField, Transparency = 0 },
+			CFrame.new(0, r * 0.1, 0))
+		CollectionService:AddTag(shell, "AuraPulse")
+		if rarity.name == "Secret" then
+			CollectionService:AddTag(shell, "Rainbow")
+		end
+	end
+	-- Mythic and up: glowing orbs circling the slime; Divine and Secret get a second, tilted ring.
+	if tier >= 6 then
+		for k = 1, if tier >= 7 then 2 else 1 do
+			local tilt = if k == 1 then CFrame.Angles(math.rad(12), 0, 0) else CFrame.Angles(math.rad(-25), 0, math.rad(20))
+			local orbit = hinge(model, body, "Orbit", CFrame.new(0, r * 0.1, 0) * tilt, "Orbit")
+			orbit:SetAttribute("Speed", if k == 1 then 1.2 else -0.9)
+			local n = if k == 1 then 3 else 4
+			for i = 1, n do
+				local a = i / n * math.pi * 2
+				decoAt(model, orbit, { Name = "Orb", Shape = Enum.PartType.Ball, Size = Vector3.one * r * 0.22, Color = col:Lerp(Color3.new(1, 1, 1), 0.35), Material = Enum.Material.Neon },
+					orbit.CFrame * CFrame.new(math.cos(a) * r * 1.55, 0, math.sin(a) * r * 1.55))
+			end
+		end
+	end
+	-- Divine and up: light rising from the ground ring.
+	if tier >= 7 then
+		local rise = Instance.new("ParticleEmitter")
+		rise.Name = "AuraRise"
+		rise.Texture = SPARKLE
+		rise.Color = ColorSequence.new(col)
+		rise.LightEmission = 1
+		rise.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0) })
+		rise.Lifetime = NumberRange.new(1, 1.6)
+		rise.Rate = 20
+		rise.Speed = NumberRange.new(3, 6)
+		rise.EmissionDirection = Enum.NormalId.Top
+		rise.SpreadAngle = Vector2.new(15, 15)
+		rise.Parent = body
+	end
 	if order >= 3 then
 		local p = Instance.new("ParticleEmitter")
 		p.Name = "Aura"
 		p.Texture = SPARKLE
-		p.Color = ColorSequence.new(rarity.color)
+		p.Color = ColorSequence.new(col)
 		p.LightEmission = 1
 		p.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
 		p.Lifetime = NumberRange.new(0.8, 1.4)
@@ -203,13 +352,13 @@ local function addAura(body: BasePart, rarity, mut)
 	end
 	if order >= 5 then
 		local light = Instance.new("PointLight")
-		light.Color = rarity.color
+		light.Color = col
 		light.Range = 8 + order * 2
 		light.Brightness = 2
 		light.Parent = body
 		local h = Instance.new("Highlight")
 		h.FillTransparency = 1
-		h.OutlineColor = rarity.color
+		h.OutlineColor = col
 		h.OutlineTransparency = 0.1
 		h.DepthMode = Enum.HighlightDepthMode.Occluded
 		h.Parent = body.Parent
@@ -218,7 +367,7 @@ local function addAura(body: BasePart, rarity, mut)
 		local f = Instance.new("ParticleEmitter")
 		f.Name = "Flames"
 		f.Texture = FIRE
-		f.Color = ColorSequence.new(rarity.color)
+		f.Color = ColorSequence.new(col)
 		f.LightEmission = 0.8
 		f.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, body.Size.X * 0.4), NumberSequenceKeypoint.new(1, 0) })
 		f.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1) })
@@ -232,7 +381,7 @@ local function addAura(body: BasePart, rarity, mut)
 		local s = Instance.new("ParticleEmitter")
 		s.Name = "Smoke"
 		s.Texture = SMOKE
-		s.Color = ColorSequence.new(rarity.color)
+		s.Color = ColorSequence.new(col)
 		s.Size = NumberSequence.new(body.Size.X * 0.6)
 		s.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(1, 1) })
 		s.Lifetime = NumberRange.new(1, 2)
@@ -320,8 +469,8 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 	deco(model, body, { Name = "Shine", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.45, r * 0.3, r * 0.2), Color = Color3.new(1, 1, 1), Material = Enum.Material.Neon, Transparency = 0.35 },
 		CFrame.new(-r * 0.4, r * 0.6, -r * 0.55))
 
-	addExtras(model, body, size, def.extra or {}, def.color)
-	addAura(body, rarity, mut)
+	addExtras(model, body, size, def.extra or {}, def.color, def.aura)
+	addAura(model, body, rarity, mut, def.aura)
 
 	local gui = makeLabel(body, r + 2.2)
 	gui.Rarity.Text = if mut then (mut .. " " .. def.rarity):upper() else def.rarity:upper()
