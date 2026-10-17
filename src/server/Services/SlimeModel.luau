@@ -260,7 +260,7 @@ local function addExtras(model: Model, body: BasePart, size: number, extras: { s
 		elseif e == "fangs" then
 			for _, s in { -1, 1 } do
 				deco(model, body, { Name = "Fang", Size = Vector3.new(r * 0.08, r * 0.16, r * 0.06), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic },
-					CFrame.new(s * r * 0.1, -r * 0.27, -r * 0.95))
+					CFrame.new(s * r * 0.08, -r * 0.25, -r * 0.99))
 			end
 		elseif e == "jackface" then
 			-- Pumpkin ribs and a glowing grin.
@@ -464,8 +464,21 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 		deco(model, body, { Name = "Blush", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.25, r * 0.12, r * 0.08), Color = Color3.fromRGB(255, 120, 150), Material = Enum.Material.SmoothPlastic, Transparency = 0.3 },
 			CFrame.new(side * r * 0.62, -r * 0.08, -r * 0.76))
 	end
-	deco(model, body, { Name = "Mouth", Size = Vector3.new(r * 0.3, r * 0.07, r * 0.06), Color = Color3.new(0.05, 0.05, 0.08), Material = Enum.Material.SmoothPlastic },
-		CFrame.new(0, -r * 0.18, -r * 0.97))
+	-- An open happy mouth: a dark oval with a tongue, its top half hidden under a body-coloured
+	-- lip so it reads as a "D" smile. Pumpkins have their own carved grin instead.
+	if not table.find(def.extra or {}, "jackface") then
+		local function onSurface(x: number, y: number, out: number): CFrame
+			local n = Vector3.new(x, y, -math.sqrt(math.max(0, 1 - x * x - y * y))).Unit
+			local p = n * r * (1 + out)
+			return CFrame.lookAt(p, p + n)
+		end
+		deco(model, body, { Name = "Mouth", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.38, r * 0.28, r * 0.06), Color = Color3.fromRGB(70, 15, 35), Material = Enum.Material.SmoothPlastic },
+			onSurface(0, -0.24, -0.005))
+		deco(model, body, { Name = "Tongue", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.2, r * 0.1, r * 0.05), Color = Color3.fromRGB(255, 110, 140), Material = Enum.Material.SmoothPlastic },
+			onSurface(0, -0.31, 0.005))
+		deco(model, body, { Name = "Lip", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.46, r * 0.18, r * 0.05), Color = color, Material = material, Reflectance = reflect },
+			onSurface(0, -0.15, 0.012))
+	end
 	deco(model, body, { Name = "Shine", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.45, r * 0.3, r * 0.2), Color = Color3.new(1, 1, 1), Material = Enum.Material.Neon, Transparency = 0.35 },
 		CFrame.new(-r * 0.4, r * 0.6, -r * 0.55))
 
@@ -528,6 +541,10 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 	if def.rarity == "Secret" or slimeId == "Glitch" then
 		CollectionService:AddTag(body, "Rainbow")
 	end
+	local lip = model:FindFirstChild("Lip")
+	if lip and CollectionService:HasTag(body, "Rainbow") then
+		CollectionService:AddTag(lip, "Rainbow")
+	end
 	local snack = diet and Config.Snacks[diet]
 	if snack then
 		SlimeModel.ApplyDiet(model, body, diet :: string, size)
@@ -544,6 +561,10 @@ function SlimeModel.ApplyDiet(model: Model, body: BasePart, diet: string, size: 
 	model:SetAttribute("Diet", diet)
 	if not model:GetAttribute("Mutation") then
 		body.Color = body.Color:Lerp(snack.color, 0.5)
+		local lip = model:FindFirstChild("Lip") :: BasePart?
+		if lip then
+			lip.Color = body.Color
+		end
 	end
 	local function emitter(props)
 		local p = Instance.new("ParticleEmitter")

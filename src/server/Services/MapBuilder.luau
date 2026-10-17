@@ -11,6 +11,7 @@ MapBuilder.BeltEnd = Vector3.new(205, 0, 0)
 MapBuilder.BeltTopY = 1.5
 MapBuilder.PlotSize = 68
 MapBuilder.WallHeight = 18
+local KNEE, HEADER = 4, 3 -- the low wall under a base's glass and the solid band above it
 MapBuilder.DoorWidth = 20
 MapBuilder.DoorHeight = 12
 -- Base layout: 4 bases on each side of the belt, with room to breathe between them.
@@ -88,11 +89,76 @@ local function billboard(parent: BasePart, offset: number, text: string, studs: 
 	return label
 end
 
+-- Lights for one storey of a base, from floor height y0 to ceiling height y1: warm glowing
+-- ceiling panels, each ringed by a thin strip in the base colour, and an LED strip running
+-- round the top of the walls. The colours are softened so they glow without glaring.
+-- Tagged "BaseLight" so a Blackout can switch them off.
+function MapBuilder.AddRoomLights(parent: Instance, cf: CFrame, y0: number, y1: number, theme: Color3)
+	local half = MapBuilder.PlotSize / 2
+	local led = theme:Lerp(Color3.fromRGB(255, 255, 255), 0.3)
+	local function lit(props, range: number, brightness: number, color: Color3, shadows: boolean?)
+		props.Anchored = true
+		props.CanCollide = false
+		props.CanQuery = false
+		props.CastShadow = false
+		local p = part(props)
+		p.Parent = parent
+		local pl = Instance.new("PointLight")
+		pl.Range = range
+		pl.Brightness = brightness
+		pl.Shadows = shadows == true
+		pl.Color = color
+		pl.Parent = p
+		CollectionService:AddTag(p, "BaseLight")
+		return p
+	end
+	local function strip(props)
+		props.Anchored = true
+		props.CanCollide = false
+		props.CanQuery = false
+		props.CastShadow = false
+		local p = part(props)
+		p.Parent = parent
+		CollectionService:AddTag(p, "BaseLight")
+		return p
+	end
+	for _, x in { -16, 16 } do
+		for _, z in { -20, 0, 20 } do
+			lit({ Name = "CeilingLight", Size = Vector3.new(4, 0.3, 4), CFrame = cf * CFrame.new(x, y1 - 0.3, z), Color = Color3.fromRGB(255, 236, 200), Material = Enum.Material.Neon }, 24, 0.7, Color3.fromRGB(255, 232, 200), true)
+			for _, e in {
+				{ Vector3.new(5, 0.12, 0.3), Vector3.new(0, 0, 2.35) },
+				{ Vector3.new(5, 0.12, 0.3), Vector3.new(0, 0, -2.35) },
+				{ Vector3.new(0.3, 0.12, 4.4), Vector3.new(2.35, 0, 0) },
+				{ Vector3.new(0.3, 0.12, 4.4), Vector3.new(-2.35, 0, 0) },
+			} do
+				strip({ Name = "LightRing", Size = e[1], CFrame = cf * CFrame.new(x + e[2].X, y1 - 0.3, z + e[2].Z), Color = led, Material = Enum.Material.Neon })
+			end
+		end
+	end
+	-- The wall-top LED strip, just in front of the inner walls, with a few soft coloured lights
+	-- along it so the walls pick up the glow.
+	local y, w = y1 - 1, half - 0.9
+	for _, s in {
+		{ Vector3.new(w * 2, 0.25, 0.25), Vector3.new(0, y, w) },
+		{ Vector3.new(w * 2, 0.25, 0.25), Vector3.new(0, y, -w) },
+		{ Vector3.new(0.25, 0.25, w * 2), Vector3.new(w, y, 0) },
+		{ Vector3.new(0.25, 0.25, w * 2), Vector3.new(-w, y, 0) },
+	} do
+		strip({ Name = "LEDStrip", Size = s[1], CFrame = cf * CFrame.new(s[2]), Color = led, Material = Enum.Material.Neon })
+	end
+	for _, p in {
+		Vector3.new(-w + 1, y, -16), Vector3.new(-w + 1, y, 16), Vector3.new(w - 1, y, -16), Vector3.new(w - 1, y, 16),
+		Vector3.new(-16, y, w - 1), Vector3.new(16, y, w - 1),
+	} do
+		lit({ Name = "LEDGlow", Size = Vector3.one * 0.2, CFrame = cf * CFrame.new(p), Transparency = 1 }, 18, 0.5, led)
+	end
+end
+
 local function buildLighting()
 	Lighting.ClockTime = 15.2
 	Lighting.Brightness = 2.2
 	Lighting.OutdoorAmbient = Color3.fromRGB(135, 135, 150)
-	Lighting.Ambient = Color3.fromRGB(70, 60, 90)
+	Lighting.Ambient = Color3.fromRGB(96, 88, 112) -- indoors: soft, not gloomy
 	Lighting.EnvironmentDiffuseScale = 1
 	Lighting.EnvironmentSpecularScale = 0.5
 	Lighting.ExposureCompensation = -0.25 -- a touch darker overall so nothing looks washed out
@@ -891,17 +957,30 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		part({ Name = "Trim", Size = t[1], CFrame = cf * CFrame.new(t[2]), Color = muted, Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = plot
 	end
 
-	-- Outer walls: full height on three sides, the front has a wide doorway with a header above.
+	-- Outer walls. The back and sides are big glass panes over a low wall, like Steal a
+	-- Brainrot's bases, so you can see the slimes inside and daylight gets in; the front has a
+	-- wide doorway with a header above.
 	local side = half - door
 	for _, w in {
-		{ Vector3.new(S, H, 1), Vector3.new(0, H / 2, half) },
-		{ Vector3.new(1, H, S), Vector3.new(-half, H / 2, 0) },
-		{ Vector3.new(1, H, S), Vector3.new(half, H / 2, 0) },
+		{ Vector3.new(S, KNEE, 1), Vector3.new(0, KNEE / 2, half) },
+		{ Vector3.new(1, KNEE, S), Vector3.new(-half, KNEE / 2, 0) },
+		{ Vector3.new(1, KNEE, S), Vector3.new(half, KNEE / 2, 0) },
+		{ Vector3.new(S, HEADER, 1), Vector3.new(0, H - HEADER / 2, half) },
+		{ Vector3.new(1, HEADER, S), Vector3.new(-half, H - HEADER / 2, 0) },
+		{ Vector3.new(1, HEADER, S), Vector3.new(half, H - HEADER / 2, 0) },
 		{ Vector3.new(side, H, 1), Vector3.new(-(door + side / 2), H / 2, -half) },
 		{ Vector3.new(side, H, 1), Vector3.new(door + side / 2, H / 2, -half) },
 		{ Vector3.new(door * 2, H - DH, 1), Vector3.new(0, DH + (H - DH) / 2, -half) },
 	} do
 		part({ Name = "Wall", Size = w[1], CFrame = cf * CFrame.new(w[2]), Color = muted, Material = Enum.Material.SmoothPlastic }).Parent = plot
+	end
+	local glassH = H - KNEE - HEADER
+	for _, g in {
+		{ Vector3.new(S, glassH, 0.4), Vector3.new(0, KNEE + glassH / 2, half) },
+		{ Vector3.new(0.4, glassH, S), Vector3.new(-half, KNEE + glassH / 2, 0) },
+		{ Vector3.new(0.4, glassH, S), Vector3.new(half, KNEE + glassH / 2, 0) },
+	} do
+		part({ Name = "GlassWall", Size = g[1], CFrame = cf * CFrame.new(g[2]), Color = Color3.fromRGB(200, 235, 255), Material = Enum.Material.Glass, Transparency = 0.6, CastShadow = false }).Parent = plot
 	end
 
 	local start = Instance.new("Folder")
@@ -950,10 +1029,14 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	-- Cream walls and a light ceiling inside, so the slimes stand out.
 	local cream = Color3.fromRGB(194, 182, 168) -- inside walls: a soft warm beige, not white
 	local ceilingColor = Color3.fromRGB(150, 140, 130)
+	local kneeIn, headIn = KNEE - 0.8, HEADER - 0.2
 	for _, l in {
-		{ Vector3.new(S - 2, H - 1.6, 0.2), Vector3.new(0, 0.8 + (H - 1.6) / 2, half - 0.6) },
-		{ Vector3.new(0.2, H - 1.6, S - 2), Vector3.new(-half + 0.6, 0.8 + (H - 1.6) / 2, 0) },
-		{ Vector3.new(0.2, H - 1.6, S - 2), Vector3.new(half - 0.6, 0.8 + (H - 1.6) / 2, 0) },
+		{ Vector3.new(S - 2, kneeIn, 0.2), Vector3.new(0, 0.8 + kneeIn / 2, half - 0.6) },
+		{ Vector3.new(0.2, kneeIn, S - 2), Vector3.new(-half + 0.6, 0.8 + kneeIn / 2, 0) },
+		{ Vector3.new(0.2, kneeIn, S - 2), Vector3.new(half - 0.6, 0.8 + kneeIn / 2, 0) },
+		{ Vector3.new(S - 2, headIn, 0.2), Vector3.new(0, H - 0.2 - headIn / 2, half - 0.6) },
+		{ Vector3.new(0.2, headIn, S - 2), Vector3.new(-half + 0.6, H - 0.2 - headIn / 2, 0) },
+		{ Vector3.new(0.2, headIn, S - 2), Vector3.new(half - 0.6, H - 0.2 - headIn / 2, 0) },
 		{ Vector3.new(side - 1, H - 1.6, 0.2), Vector3.new(-(door + side / 2) - 0.5, 0.8 + (H - 1.6) / 2, -half + 0.6) },
 		{ Vector3.new(side - 1, H - 1.6, 0.2), Vector3.new(door + side / 2 + 0.5, 0.8 + (H - 1.6) / 2, -half + 0.6) },
 	} do
@@ -969,12 +1052,13 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 			add({ Name = "WallPost", Size = Vector3.new(1.6, H, 2), CFrame = cf * CFrame.new(sx * (half + 0.5), H / 2, z), Color = dark, Material = Enum.Material.SmoothPlastic })
 		end
 	end
-	-- Windows down the sides, so you can peek in at the slimes.
-	for _, sx in { -1, 1 } do
-		for _, z in { -18, -4, 10, 23.5 } do
-			add({ Name = "WindowFrame", Size = Vector3.new(1.7, 6.4, 8.4), CFrame = cf * CFrame.new(sx * half, 8.5, z), Color = soft, Material = Enum.Material.SmoothPlastic })
-			add({ Name = "Window", Size = Vector3.new(1.9, 5.4, 7.4), CFrame = cf * CFrame.new(sx * half, 8.5, z), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.35 })
-		end
+	-- Window sills along the top of the low walls, under the glass.
+	for _, b in {
+		{ Vector3.new(S - 2, 0.3, 1.8), Vector3.new(0, KNEE + 0.15, half) },
+		{ Vector3.new(1.8, 0.3, S - 2), Vector3.new(-half, KNEE + 0.15, 0) },
+		{ Vector3.new(1.8, 0.3, S - 2), Vector3.new(half, KNEE + 0.15, 0) },
+	} do
+		add({ Name = "Sill", Size = b[1], CFrame = cf * CFrame.new(b[2]), Color = soft, Material = Enum.Material.SmoothPlastic })
 	end
 
 	-- Inside: a red carpet down the middle, borders, and lights in the ceiling.
@@ -983,19 +1067,9 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	for _, x in { -6.8, 6.8 } do
 		add({ Name = "FloorBorder", Size = Vector3.new(0.6, 0.1, S - 4), CFrame = cf * CFrame.new(x, 0.57, 0), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
 	end
-	for _, x in { -16, 16 } do
-		for _, z in { -20, 0, 20 } do
-			local lamp = add({ Name = "CeilingLight", Size = Vector3.new(4, 0.3, 4), CFrame = cf * CFrame.new(x, H - 0.3, z), Color = Color3.fromRGB(255, 250, 240), Material = Enum.Material.SmoothPlastic })
-			local pl = Instance.new("PointLight")
-			pl.Range = 20
-			pl.Brightness = 0.2
-			pl.Shadows = true
-			pl.Color = Color3.fromRGB(255, 245, 225)
-			pl.Parent = lamp
-		end
-	end
+	MapBuilder.AddRoomLights(start, cf, 0, H, theme)
 	-- A big stripe in the base colour along the back wall.
-	add({ Name = "BackStripe", Size = Vector3.new(S - 4, 1.2, 0.3), CFrame = cf * CFrame.new(0, 4, half - 0.8), Color = muted, Material = Enum.Material.SmoothPlastic })
+	add({ Name = "BackStripe", Size = Vector3.new(S - 4, 0.8, 0.3), CFrame = cf * CFrame.new(0, 2.6, half - 0.8), Color = muted, Material = Enum.Material.SmoothPlastic })
 
 	-- The doorway: pillars either side, glowing orbs, laser emitters, and a name board over it.
 	for _, x in { -door - 1.2, door + 1.2 } do

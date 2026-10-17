@@ -459,23 +459,32 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		} do
 			solid({ Name = "FloorBand", Size = b[1], CFrame = at(b[2].X, H + 0.35, b[2].Z), Color = theme:Lerp(Color3.fromRGB(40, 35, 50), 0.6), Material = Enum.Material.SmoothPlastic })
 		end
+		-- Like downstairs: the front is solid with two windows, the back and sides are big glass
+		-- panes between a low wall and a band under the roof.
+		local WH = RISE - 0.7
+		local KNEE, HEAD = 3, 2.5
+		local glassH = WH - KNEE - HEAD
+		local cream = Color3.fromRGB(194, 182, 168)
 		for _, w in {
-			{ Vector3.new(HALF * 2 + 1, RISE - 0.7, 1), Vector3.new(0, 0, -HALF) },
-			{ Vector3.new(HALF * 2 + 1, RISE - 0.7, 1), Vector3.new(0, 0, HALF) },
-			{ Vector3.new(1, RISE - 0.7, HALF * 2 + 1), Vector3.new(-HALF, 0, 0) },
-			{ Vector3.new(1, RISE - 0.7, HALF * 2 + 1), Vector3.new(HALF, 0, 0) },
+			{ Vector3.new(HALF * 2 + 1, 1, 1), Vector3.new(0, 0, -HALF), true },
+			{ Vector3.new(HALF * 2 + 1, 1, 1), Vector3.new(0, 0, HALF), false },
+			{ Vector3.new(1, 1, HALF * 2 + 1), Vector3.new(-HALF, 0, 0), false },
+			{ Vector3.new(1, 1, HALF * 2 + 1), Vector3.new(HALF, 0, 0), false },
 		} do
-			local y = FY + (RISE - 0.7) / 2
-			solid({ Name = "UpperWall", Size = w[1], CFrame = at(w[2].X, y, w[2].Z), Color = wallColor, Material = Enum.Material.SmoothPlastic })
+			local alongX = w[1].X > w[1].Z
 			local inset = -math.sign(w[2].X + w[2].Z) * 0.6
-			local liner = if w[1].X > w[1].Z then Vector3.new(w[1].X - 2.4, w[1].Y, 0.2) else Vector3.new(0.2, w[1].Y, w[1].Z - 2.4)
-			local pos = if w[1].X > w[1].Z then Vector3.new(0, y, w[2].Z + inset) else Vector3.new(w[2].X + inset, y, 0)
-			part(folder, { Name = "UpperLining", Size = liner, CFrame = at(pos.X, pos.Y, pos.Z), Color = Color3.fromRGB(194, 182, 168), Material = Enum.Material.SmoothPlastic })
-		end
-		for _, sx in { -1, 1 } do
-			for _, z in { -20, 0, 20 } do
-				part(folder, { Name = "UpperWindowFrame", Size = Vector3.new(1.7, 6.4, 8.4), CFrame = at(sx * HALF, FY + 7, z), Color = Color3.fromRGB(214, 211, 206), Material = Enum.Material.SmoothPlastic })
-				part(folder, { Name = "UpperWindow", Size = Vector3.new(1.9, 5.4, 7.4), CFrame = at(sx * HALF, FY + 7, z), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.35 })
+			local spans = if w[3] then { { FY, WH } } else { { FY, KNEE }, { FY + WH - HEAD, HEAD } }
+			for _, sp in spans do
+				local y = sp[1] + sp[2] / 2
+				solid({ Name = "UpperWall", Size = Vector3.new(w[1].X, sp[2], w[1].Z), CFrame = at(w[2].X, y, w[2].Z), Color = wallColor, Material = Enum.Material.SmoothPlastic })
+				local liner = if alongX then Vector3.new(w[1].X - 2.4, sp[2], 0.2) else Vector3.new(0.2, sp[2], w[1].Z - 2.4)
+				local pos = if alongX then Vector3.new(0, y, w[2].Z + inset) else Vector3.new(w[2].X + inset, y, 0)
+				part(folder, { Name = "UpperLining", Size = liner, CFrame = at(pos.X, pos.Y, pos.Z), Color = cream, Material = Enum.Material.SmoothPlastic })
+			end
+			if not w[3] then
+				local gy = FY + KNEE + glassH / 2
+				solid({ Name = "UpperGlass", Size = if alongX then Vector3.new(w[1].X, glassH, 0.4) else Vector3.new(0.4, glassH, w[1].Z), CFrame = at(w[2].X, gy, w[2].Z), Color = Color3.fromRGB(200, 235, 255), Material = Enum.Material.Glass, Transparency = 0.6 })
+				part(folder, { Name = "UpperSill", Size = if alongX then Vector3.new(w[1].X - 2, 0.3, 1.8) else Vector3.new(1.8, 0.3, w[1].Z - 2), CFrame = at(w[2].X, FY + KNEE + 0.15, w[2].Z), Color = Color3.fromRGB(214, 211, 206), Material = Enum.Material.SmoothPlastic })
 			end
 		end
 		for _, x in { -12, 12 } do
@@ -483,17 +492,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 			part(folder, { Name = "UpperWindow", Size = Vector3.new(9.4, 5.4, 1.9), CFrame = at(x, FY + 7, -HALF), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.35 })
 		end
 		part(folder, { Name = "UpperTopCeiling", Size = Vector3.new(inner * 2, 0.2, inner * 2), CFrame = at(0, TOP - 0.1, 0), Color = ceilingColor, Material = Enum.Material.SmoothPlastic })
-		for _, x in { -16, 16 } do
-			for _, z in { -20, 0, 20 } do
-				local lamp = part(folder, { Name = "UpperLight", Size = Vector3.new(4, 0.3, 4), CFrame = at(x, TOP - 0.3, z), Color = Color3.fromRGB(255, 250, 240), Material = Enum.Material.SmoothPlastic })
-				local pl = Instance.new("PointLight")
-				pl.Range = 20
-				pl.Brightness = 0.2
-				pl.Shadows = true
-				pl.Color = Color3.fromRGB(255, 245, 225)
-				pl.Parent = lamp
-			end
-		end
+		require(script.Parent.MapBuilder).AddRoomLights(folder, cf, FY, TOP, theme)
 		-- The Goo Spiral: 24 jelly steps, one full turn round a goo column at (0, 27). It starts
 		-- facing the door and comes out on the right-hand floor at the top.
 		local goo = Color3.fromRGB(110, 235, 130)

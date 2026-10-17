@@ -1089,6 +1089,21 @@ local function addMyLights()
 	myLights = { spot, aura }
 end
 
+-- Base ceiling lights and LED strips go dark with the rest of the power.
+local function baseLights(on: boolean)
+	for _, p in CollectionService:GetTagged("BaseLight") do
+		if p:IsA("BasePart") then
+			if p.Transparency < 1 then
+				p.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			end
+			local l = p:FindFirstChildOfClass("PointLight")
+			if l then
+				l.Enabled = on
+			end
+		end
+	end
+end
+
 local function setDark(on: boolean)
 	local atm = Lighting:FindFirstChildOfClass("Atmosphere")
 	if on then
@@ -1112,6 +1127,7 @@ local function setDark(on: boolean)
 			task.defer(addSlimeGlow, m)
 		end)
 		addMyLights()
+		baseLights(false)
 	else
 		if not savedLighting then
 			return
@@ -1135,6 +1151,7 @@ local function setDark(on: boolean)
 			l:Destroy()
 		end
 		table.clear(myLights)
+		baseLights(true)
 	end
 end
 local function blackoutActive(): boolean
