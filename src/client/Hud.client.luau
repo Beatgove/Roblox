@@ -1100,7 +1100,7 @@ local function refresh()
 	incomeLabel.Text = "+" .. Util.Money(income) .. "/s  ·  Pens " .. count .. "/" .. slots .. extra
 	barFill.Size = UDim2.fromScale(math.clamp(cash / cost, 0, 1), 1)
 	rebirthInfo.Text = string.format(
-		"Rebirth %d → %d\n\nCost: %s\nYou have: %s\n\n🎁 Prize: %s\n✅ Keep: +%d%% income forever, +%d pen slots, +%ds lock time, your Slime Index\n❌ Lose: cash and slimes",
+		"Rebirth %d → %d\n\nCost: %s\nYou have: %s\n\n🎁 Prize: %s\n✅ Keep: +%d%% income forever, +%d pen, +%ds lock time, your Slime Index\n❌ Lose: cash and slimes",
 		rebirths,
 		rebirths + 1,
 		Util.Money(cost),
