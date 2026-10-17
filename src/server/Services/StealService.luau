@@ -65,7 +65,7 @@ local function attachToHead(char: Model, slime, stage: number): Model?
 	if not head then
 		return nil
 	end
-	local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars, slime.traits)
+	local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars, slime.traits, slime.diet)
 	local body = model.PrimaryPart
 	local size = body.Size.Y
 	model:PivotTo(head.CFrame * CFrame.new(0, head.Size.Y / 2 + size / 2 + 0.3, 0))
@@ -125,7 +125,7 @@ local function bounceHome(slime, fromPos: Vector3, owner: Player, fallback: Play
 		return
 	end
 	local stage = Util.Stage(os.time() - slime.born)
-	local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars, slime.traits)
+	local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars, slime.traits, slime.diet)
 	local r = model.PrimaryPart.Size.Y / 2
 	model.PrimaryPart.Label.Info.Text = "Bouncing home!"
 	local ground = Vector3.new(0, r + 0.5, 0)
@@ -158,7 +158,7 @@ local function bounceHome(slime, fromPos: Vector3, owner: Player, fallback: Play
 			PlotService.Transit(owner, -1)
 			if owner.Parent and PlotService.GetPlot(owner) then
 				if PlotService.AddOrPay(owner, slime) then
-					Net.Notify(owner, "Your " .. Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits) .. " bounced back home!", "good")
+					Net.Notify(owner, "Your " .. Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet) .. " bounced back home!", "good")
 				end
 			elseif fallback and fallback.Parent then
 				PlotService.AddOrPay(fallback, slime)
@@ -206,7 +206,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	end
 	carrying[thief] = true
 	PlotService.Transit(victim, 1)
-	local name = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits)
+	local name = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet)
 
 	local stage = Util.Stage(os.time() - slime.born)
 	local carried = attachToHead(char, slime, stage)

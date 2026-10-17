@@ -31,6 +31,7 @@ local plotOf: { [Player]: Plot } = {}
 
 -- Fired when a non-owner triggers a steal prompt: (thief, victim, slotIndex)
 PlotService.StealRequested = Instance.new("BindableEvent")
+PlotService.FeedRequested = Instance.new("BindableEvent") -- (player, slot) owner fed a snack
 
 local function now()
 	return os.time()
@@ -94,7 +95,7 @@ end
 function PlotService.SlimeIncome(slime, at: number?): number
 	local def = Config.SlimeById[slime.id]
 	local stage = Util.Stage((at or now()) - slime.born)
-	return def.income * Config.GrowthIncomeMult[stage] * Config.MutationMult(slime.mut) * Config.StarMult(slime.stars) * Config.TraitMult(slime.traits)
+	return def.income * Config.GrowthIncomeMult[stage] * Config.MutationMult(slime.mut) * Config.StarMult(slime.stars) * Config.TraitMult(slime.traits) * Config.DietMult(slime.diet)
 end
 
 function PlotService.IndexCount(player: Player): number
@@ -188,7 +189,7 @@ function PlotService.Sync(player: Player)
 	-- Compact list of owned slimes for menus (Fuse Machine picker).
 	local owned = {}
 	for i, sl in data.slimes do
-		owned[i] = { id = sl.id, mut = sl.mut, stars = sl.stars, traits = sl.traits }
+		owned[i] = { id = sl.id, mut = sl.mut, stars = sl.stars, traits = sl.traits, diet = sl.diet }
 	end
 	player:SetAttribute("SlimeList", HttpService:JSONEncode(owned))
 	local ids = {}
@@ -230,6 +231,15 @@ local function slimeLabelInfo(slime, player: Player): string
 	if nextIn then
 		text ..= " · grows in " .. Util.Duration(nextIn)
 	end
+	-- Snack progress toward a diet form.
+	if not slime.diet and slime.food then
+		for _, key in Config.SnackOrder do
+			local n = slime.food[key]
+			if n and n > 0 then
+				text ..= " · " .. Config.Snacks[key].icon .. " " .. n .. "/" .. Config.SnackEvolve
+			end
+		end
+	end
 	return text
 end
 
@@ -262,7 +272,7 @@ function PlotService.Render(player: Player)
 		end
 		local stage = Util.Stage(now() - slime.born)
 		plot.stages[i] = stage
-		local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars, slime.traits)
+		local model = SlimeModel.Create(slime.id, stage, slime.mut, slime.stars, slime.traits, slime.diet)
 		local height = model.PrimaryPart.Size.Y / 2
 		-- Face the entrance (plot -Z) so slimes look at visitors.
 		model:PivotTo(pad.CFrame * CFrame.new(0, 0.2 + height, 0))
@@ -274,7 +284,7 @@ function PlotService.Render(player: Player)
 		local steal = Instance.new("ProximityPrompt")
 		steal.Name = "StealPrompt"
 		steal.ActionText = "Steal"
-		steal.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits)
+		steal.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet)
 		steal.HoldDuration = Config.StealHoldSeconds
 		steal.MaxActivationDistance = 8
 		steal.RequiresLineOfSight = false
@@ -285,7 +295,7 @@ function PlotService.Render(player: Player)
 		local sell = Instance.new("ProximityPrompt")
 		sell.Name = "SellPrompt"
 		sell.ActionText = "Sell " .. Util.Money(PlotService.SellValue(slime))
-		sell.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits)
+		sell.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet)
 		sell.HoldDuration = 1
 		sell.MaxActivationDistance = 8
 		sell.RequiresLineOfSight = false
@@ -303,6 +313,27 @@ function PlotService.Render(player: Player)
 				PlotService.Sell(player, model:GetAttribute("Slot"))
 			end
 		end)
+
+		-- Feed prompt until the slime has evolved into a diet form.
+		if not slime.diet then
+			local feed = Instance.new("ProximityPrompt")
+			feed.Name = "FeedPrompt"
+			feed.ActionText = "Feed Snack"
+			feed.ObjectText = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits)
+			feed.HoldDuration = 0.25
+			feed.MaxActivationDistance = 8
+			feed.RequiresLineOfSight = false
+			feed.KeyboardKeyCode = Enum.KeyCode.G
+			feed.GamepadKeyCode = Enum.KeyCode.ButtonY
+			feed.UIOffset = Vector2.new(0, -80)
+			feed:SetAttribute("OwnerId", player.UserId)
+			feed.Parent = model.PrimaryPart
+			feed.Triggered:Connect(function(who)
+				if who == player then
+					PlotService.FeedRequested:Fire(player, model:GetAttribute("Slot"))
+				end
+			end)
+		end
 
 		-- Merge prompt only when this slime has enough identical partners.
 		if #PlotService.MergeGroup(data, i) >= Config.MergeCount then
@@ -335,7 +366,7 @@ function PlotService.HasFreeSlot(player: Player): boolean
 end
 
 function PlotService.SellValue(slime): number
-	return math.floor(Config.SlimeById[slime.id].price * Config.MutationMult(slime.mut) * Config.TraitMult(slime.traits) * (Config.MergeCount ^ (slime.stars or 0)) / 2)
+	return math.floor(Config.SlimeById[slime.id].price * Config.MutationMult(slime.mut) * Config.TraitMult(slime.traits) * Config.DietMult(slime.diet) * (Config.MergeCount ^ (slime.stars or 0)) / 2)
 end
 
 -- Slots of slimes that can merge with the one in `slot` (same name, same stars), including itself.
@@ -349,7 +380,7 @@ function PlotService.MergeGroup(data, slot: number): { number }
 		if #group >= Config.MergeCount then
 			break
 		end
-		if i ~= slot and s.id == base.id and (s.stars or 0) == (base.stars or 0) then
+		if i ~= slot and s.id == base.id and (s.stars or 0) == (base.stars or 0) and s.diet == base.diet then
 			table.insert(group, i)
 		end
 	end
@@ -398,7 +429,7 @@ function PlotService.Merge(player: Player, slot: number)
 	while #traits > Config.MaxTraits do
 		table.remove(traits)
 	end
-	local merged = { id = base.id, born = born, mut = bestMut, stars = (base.stars or 0) + 1, traits = if #traits > 0 then traits else nil }
+	local merged = { id = base.id, born = born, mut = bestMut, stars = (base.stars or 0) + 1, traits = if #traits > 0 then traits else nil, diet = base.diet }
 	table.sort(group, function(a, b)
 		return a > b
 	end)
@@ -408,7 +439,7 @@ function PlotService.Merge(player: Player, slot: number)
 	table.insert(data.slimes, merged)
 	PlotService.Render(player)
 	local pad = plot.model.Pens:FindFirstChild("Pen" .. #data.slimes)
-	local name = Config.DisplayName(merged.id, merged.mut, merged.stars, merged.traits)
+	local name = Config.DisplayName(merged.id, merged.mut, merged.stars, merged.traits, merged.diet)
 	Net.FxAll("merge", { from = positions, to = pad and pad.Position or positions[1], color = Config.RarityByName[Config.SlimeById[merged.id].rarity].color })
 	Net.Fx(player, "merged", { name = name, stars = merged.stars })
 	Signals.Progress(player, "merge")

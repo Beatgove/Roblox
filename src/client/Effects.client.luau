@@ -591,6 +591,38 @@ handlers.revenge = function(d)
 	flash(Color3.fromRGB(255, 70, 70), 0.35, 0.5)
 	announce("REVENGE!", Color3.fromRGB(255, 80, 80), "Go steal one back from " .. d.name .. ". Their shield can't stop you!", nil, 3)
 end
+-- Slime Snacks
+handlers.snack = function(d)
+	sound("Ping", 1.8, 0.5)
+	local char = Players.LocalPlayer.Character
+	local head = char and char:FindFirstChild("Head") :: BasePart?
+	if head then
+		popText(head.Position + Vector3.new(0, 3, 0), d.icon .. " +" .. d.count, Color3.fromRGB(255, 200, 120))
+	end
+end
+handlers.fed = function(d)
+	if d.pos then
+		burst(d.pos + Vector3.new(0, 3, 0), d.color, 18, { speed = 10 })
+		popText(d.pos + Vector3.new(0, 6, 0), d.icon .. " " .. d.n .. "/" .. d.of, d.color)
+		sound("Snap", 1.4 + d.n * 0.1, 0.6, d.pos)
+	end
+end
+handlers.evolve = function(d)
+	if d.pos then
+		pillar(d.pos, d.color)
+		ring(d.pos, d.color, 16)
+		burst(d.pos + Vector3.new(0, 4, 0), d.color, 70, { speed = 24, size = 1.4 })
+		sound("Whoosh", 1.2, 0.8, d.pos)
+	end
+end
+handlers.evolved = function(d)
+	confetti(90)
+	flash(Color3.fromRGB(255, 220, 140), 0.35, 0.5)
+	announce(d.icon .. " EVOLVED!", Color3.fromRGB(255, 200, 100), d.name .. (if d.new then " · NEW in your Diet Book!" else ""), nil, 3)
+	sound("Ping", 1, 0.9)
+	task.delay(0.15, sound, "Ping", 1.35, 0.9)
+end
+
 handlers.nemesis = function(d)
 	flash(Color3.fromRGB(150, 40, 200), 0.4, 0.6)
 	shake(1)

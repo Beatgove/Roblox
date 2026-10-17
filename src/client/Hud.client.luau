@@ -11,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "HoldTight", "Fx" } do
+for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "HoldTight", "BuySnack", "PickSnack", "Fx" } do
 	Remotes:WaitForChild(name)
 end
 
@@ -558,6 +558,7 @@ end
 -- Base upgrades (permanent, kept on rebirth)
 local upgrades, upgradesScale = panel("⬆️ Upgrades", Color3.fromRGB(120, 255, 160))
 local upList = scroller(upgrades, new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }))
+upList.Size = UDim2.new(1, -24, 1, -110) -- leave room for the footer line
 local upRows = {}
 for i, key in Config.UpgradeOrder do
 	local def = Config.Upgrades[key]
@@ -592,6 +593,51 @@ local function refreshUpgrades()
 end
 player:GetAttributeChangedSignal("Upgrades"):Connect(refreshUpgrades)
 refreshUpgrades()
+
+-- Snack Bar: your snacks, which one "Feed" uses, and buying more.
+local SNACK_COLOR = Color3.fromRGB(255, 150, 80)
+local snacksPanel, snacksScale = panel("🍽️ Snack Bar", SNACK_COLOR)
+local snackList = scroller(snacksPanel, new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }))
+snackList.Size = UDim2.new(1, -24, 1, -110) -- leave room for the footer line
+local snackRows = {}
+for i, key in Config.SnackOrder do
+	local def = Config.Snacks[key]
+	local row = new("Frame", { Size = UDim2.new(1, -8, 0, 72), BackgroundColor3 = COLORS.panel, LayoutOrder = i, Parent = snackList }, { corner(12) })
+	local rowStroke = new("UIStroke", { Color = def.color, Thickness = 2, Transparency = 0.5, Parent = row })
+	text({ Size = UDim2.fromOffset(56, 56), Position = UDim2.fromOffset(8, 8), Text = def.icon, Parent = row })
+	local title = text({ Size = UDim2.new(0.5, -70, 0, 28), Position = UDim2.fromOffset(70, 6), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = def.color, Text = key, Parent = row })
+	text({ Size = UDim2.new(0.5, -70, 0, 32), Position = UDim2.fromOffset(70, 34), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.muted, Font = Enum.Font.GothamMedium, TextStrokeTransparency = 1, TextWrapped = true,
+		Text = "→ " .. def.diet .. ": x" .. def.mult .. " cash. " .. def.desc, Parent = row })
+	local use = button({ Size = UDim2.new(0.22, -6, 0, 52), Position = UDim2.new(0.5, 0, 0, 10), BackgroundColor3 = def.color, Text = "USE", Parent = row }, function()
+		Remotes.PickSnack:FireServer(key)
+	end)
+	local buy = button({ Size = UDim2.new(0.28, -12, 0, 52), Position = UDim2.new(0.72, 0, 0, 10), BackgroundColor3 = COLORS.gold, Text = "", Parent = row }, function()
+		Remotes.BuySnack:FireServer(key)
+	end)
+	snackRows[key] = { title = title, use = use, buy = buy, stroke = rowStroke }
+end
+local snackInfo = text({ Position = UDim2.new(0, 16, 1, -36), Size = UDim2.new(1, -32, 0, 24), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.gold, Text = "", Parent = snacksPanel })
+local function refreshSnacks()
+	local ok, owned = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("Snacks") or "{}")
+	local ok2, prices = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("SnackPrices") or "{}")
+	owned = if ok and type(owned) == "table" then owned else {}
+	prices = if ok2 and type(prices) == "table" then prices else {}
+	local pick = player:GetAttribute("SnackPick")
+	for key, r in snackRows do
+		local n = owned[key] or 0
+		r.title.Text = key .. "  x" .. n
+		r.use.Text = if pick == key then "✅ USING" else "USE"
+		r.use.AutoButtonColor = n > 0
+		r.use.BackgroundTransparency = if n > 0 then 0 else 0.5
+		r.buy.Text = "BUY " .. Util.Money(prices[key] or 0)
+		r.stroke.Transparency = if pick == key then 0 else 0.5
+	end
+	snackInfo.Text = "Hold G on your slime to feed. " .. Config.SnackEvolve .. " of one kind = EVOLVE! 📕 Diet Book " .. (player:GetAttribute("DietCount") or 0) .. "/" .. (#Config.Slimes * #Config.SnackOrder)
+end
+for _, attr in { "Snacks", "SnackPrices", "SnackPick", "DietCount" } do
+	player:GetAttributeChangedSignal(attr):Connect(refreshSnacks)
+end
+refreshSnacks()
 
 -- Fuse Machine: pick 3 slimes, see the fee and odds, fuse, come back later.
 local FUSE_COLOR = Color3.fromRGB(150, 255, 120)
@@ -681,7 +727,7 @@ local function rebuildFuseGrid()
 		local r = Config.RarityByName[def.rarity]
 		local card = new("TextButton", { BackgroundColor3 = COLORS.panel, Text = "", AutoButtonColor = false, LayoutOrder = i, Parent = fuseGrid }, { corner(12) })
 		local st = new("UIStroke", { Color = r.color, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = card })
-		text({ Position = UDim2.fromOffset(4, 6), Size = UDim2.new(1, -8, 0, 30), Text = Config.DisplayName(s.id, s.mut, s.stars, s.traits), Parent = card })
+		text({ Position = UDim2.fromOffset(4, 6), Size = UDim2.new(1, -8, 0, 30), Text = Config.DisplayName(s.id, s.mut, s.stars, s.traits, s.diet), Parent = card })
 		text({ Position = UDim2.fromOffset(4, 40), Size = UDim2.new(1, -8, 0, 20), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = r.color, Text = def.rarity, Parent = card })
 		local exclusive = def.rarity == "Exclusive"
 		if exclusive then
@@ -743,7 +789,7 @@ end)
 local side = new("Frame", {
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 10, 0.5, 0),
-	Size = UDim2.fromOffset(208, 356),
+	Size = UDim2.fromOffset(208, 428),
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, { new("UIGridLayout", { CellSize = UDim2.fromOffset(100, 62), CellPadding = UDim2.fromOffset(8, 10), SortOrder = Enum.SortOrder.LayoutOrder }) })
@@ -751,7 +797,7 @@ local side = new("Frame", {
 local sideScale = new("UIScale", { Parent = side })
 local function fitSide()
 	local h = workspace.CurrentCamera.ViewportSize.Y
-	sideScale.Scale = math.clamp((h - 150) / 356, 0.5, 1)
+	sideScale.Scale = math.clamp((h - 150) / 428, 0.5, 1)
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitSide)
 fitSide()
@@ -775,6 +821,7 @@ sideButton(7, Color3.fromRGB(255, 120, 200), "📖 INDEX", index, indexScale)
 local dailyBtn = sideButton(8, Color3.fromRGB(255, 140, 60), "📅 DAILY", daily, dailyScale)
 sideButton(9, Color3.fromRGB(120, 255, 160), "⬆️ UPGRADE", upgrades, upgradesScale)
 local fuseSideBtn = sideButton(10, FUSE_COLOR, "🧪 FUSE", fuse, fuseScale)
+sideButton(11, SNACK_COLOR, "🍽️ SNACKS", snacksPanel, snacksScale)
 local fuseBadge = makeBadge(fuseSideBtn)
 local badge = makeBadge(dailyBtn)
 local questBadge = makeBadge(questsBtn)
@@ -1046,7 +1093,7 @@ local function filterPrompt(prompt: ProximityPrompt)
 	local mine = ownerId == player.UserId
 	if prompt.Name == "StealPrompt" then
 		prompt.Enabled = not mine
-	elseif prompt.Name == "SellPrompt" or prompt.Name == "MergePrompt" then
+	elseif prompt.Name == "SellPrompt" or prompt.Name == "MergePrompt" or prompt.Name == "FeedPrompt" then
 		prompt.Enabled = mine
 	end
 end
@@ -1081,6 +1128,7 @@ local tips = {
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
 	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",
+	"Feed 5 of the same 🍽️ SNACK to a slime and it evolves into a new form that earns way more!",
 	"Buy ⬆️ UPGRADES for more income, longer shields and extra pens. They survive rebirth!",
 	"Level up by playing. Every level pays cash, and new titles show over your head.",
 	"Find more slimes for the 📖 INDEX to unlock big milestone rewards.",

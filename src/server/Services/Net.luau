@@ -28,6 +28,8 @@ Net.BuyUpgradeEvent = remote("BuyUpgrade") -- client -> server: (upgradeKey)
 Net.FuseStartEvent = remote("FuseStart") -- client -> server: ({ slot, slot, slot })
 Net.FuseClaimEvent = remote("FuseClaim") -- client -> server: ()
 Net.HoldTightEvent = remote("HoldTight") -- client -> server: (token) answer a squirm while carrying
+Net.BuySnackEvent = remote("BuySnack") -- client -> server: (snackKey) buy one at the Snack Bar
+Net.PickSnackEvent = remote("PickSnack") -- client -> server: (snackKey) which snack "Feed" uses
 
 Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (ok, message)
 Net.RedeemCode.Name = "RedeemCode"

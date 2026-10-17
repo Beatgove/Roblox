@@ -1,11 +1,13 @@
 -- Studio-only test hooks. In a Play test, run from the command bar (Server view):
 --   game.ServerStorage.Debug:Invoke("king")
--- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | slime Id
+-- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | slime Id | snacks N | feed Slot
 -- Never exists in live servers.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
+
+local Config = require(game.ReplicatedStorage.Shared.Config)
 
 local DebugService = {}
 
@@ -50,6 +52,12 @@ function DebugService.Start(services)
 			end
 		elseif cmd == "slime" then
 			services.PlotService.AddSlime(player, { id = arg or "Goop", born = os.time() - 3600 })
+		elseif cmd == "snacks" then
+			for _, key in Config.SnackOrder do
+				services.SnackService.Give(player, key, n or 5, true)
+			end
+		elseif cmd == "feed" then
+			services.SnackService.Feed(player, n or 1)
 		elseif cmd == "gift" then
 			player:SetAttribute("GiftStart", workspace:GetServerTimeNow() - 3600)
 		else

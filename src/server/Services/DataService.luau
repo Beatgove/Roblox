@@ -42,7 +42,9 @@ local function defaultData()
 		xp = 0,
 		level = 1,
 		fuse = { active = false }, -- Fuse Machine job: { active, endsAt, result = slime table }
-		indexRewards = {}, -- milestone count (as string) -> true
+		indexRewards = {},
+		snacks = {}, -- snack key -> count owned
+		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true
 		quests = { day = -1, list = {}, bonus = false }, -- today's daily quests
 		receipts = {}, -- PurchaseId -> true (recent, for idempotent ProcessReceipt)
 		receiptOrder = {},

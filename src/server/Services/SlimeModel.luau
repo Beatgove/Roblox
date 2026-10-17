@@ -211,7 +211,7 @@ local function addAura(body: BasePart, rarity, mut)
 end
 
 -- Creates a slime model. `stage` is the growth stage (1 for belt slimes), `mut` an optional mutation.
-function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: number?, traits: { string }?): Model
+function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: number?, traits: { string }?, diet: string?): Model
 	local def = Config.SlimeById[slimeId]
 	local rarity = Config.RarityByName[def.rarity]
 	local starCount: number = stars or 0
@@ -333,7 +333,79 @@ function SlimeModel.Create(slimeId: string, stage: number, mut: string?, stars: 
 	if def.rarity == "Secret" or slimeId == "Glitch" then
 		CollectionService:AddTag(body, "Rainbow")
 	end
+	local snack = diet and Config.Snacks[diet]
+	if snack then
+		SlimeModel.ApplyDiet(model, body, diet :: string, size)
+		gui.Title.Text = (if icons ~= "" then icons .. " " else "") .. snack.diet .. " " .. slimeId .. Config.Stars(starCount)
+		gui.Info.Text = Util.Money(def.income * Config.MutationMult(mut) * Config.StarMult(starCount) * Config.TraitMult(traits) * snack.mult) .. "/s"
+	end
 	return model
+end
+
+-- Diet forms: each snack gives the slime a new look on top of its mutation.
+function SlimeModel.ApplyDiet(model: Model, body: BasePart, diet: string, size: number)
+	local snack = Config.Snacks[diet]
+	local r = size / 2
+	model:SetAttribute("Diet", diet)
+	if not model:GetAttribute("Mutation") then
+		body.Color = body.Color:Lerp(snack.color, 0.5)
+	end
+	local function emitter(props)
+		local p = Instance.new("ParticleEmitter")
+		p.Texture = SPARKLE
+		p.LightEmission = 1
+		p.SpreadAngle = Vector2.new(180, 180)
+		for k, v in props do
+			(p :: any)[k] = v
+		end
+		p.Parent = body
+		return p
+	end
+	if diet == "Pepper" then
+		local fire = Instance.new("Fire")
+		fire.Heat = 4
+		fire.Size = math.max(2, r * 1.4)
+		fire.Color = Color3.fromRGB(255, 120, 30)
+		fire.SecondaryColor = Color3.fromRGB(255, 40, 20)
+		fire.Parent = body
+	elseif diet == "Berry" then
+		-- Little berry bubbles drifting up.
+		emitter({ Name = "DietBubbles", Texture = "rbxasset://textures/particles/sparkles_main.dds", Color = ColorSequence.new(snack.color), LightEmission = 0.4,
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0.1) }), Lifetime = NumberRange.new(1, 1.6),
+			Rate = 6, Speed = NumberRange.new(2, 3), Acceleration = Vector3.new(0, 3, 0), SpreadAngle = Vector2.new(30, 30) })
+		deco(model, body, { Name = "BerryLeaf", Size = Vector3.new(r * 0.5, r * 0.08, r * 0.3), Color = Color3.fromRGB(80, 200, 90), Material = Enum.Material.SmoothPlastic },
+			CFrame.new(0, r * 0.98, 0) * CFrame.Angles(0, 0, math.rad(20)))
+	elseif diet == "Honey" then
+		body.Material = Enum.Material.Glass
+		body.Transparency = math.max(body.Transparency, 0.15)
+		for i = 1, 3 do
+			local a = (i / 3) * math.pi * 2
+			deco(model, body, { Name = "HoneyDrip", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.22, r * 0.4, r * 0.22), Color = snack.color, Material = Enum.Material.Glass, Transparency = 0.2 },
+				CFrame.new(math.cos(a) * r * 0.75, -r * 0.45, math.sin(a) * r * 0.75))
+		end
+	elseif diet == "Crystal" then
+		body.Reflectance = 0.4
+		for i = 1, 4 do
+			local a = (i / 4) * math.pi * 2 + 0.4
+			deco(model, body, { Name = "Crystal", Size = Vector3.new(r * 0.25, r * 0.6, r * 0.25), Color = snack.color, Material = Enum.Material.Glass, Transparency = 0.15, Reflectance = 0.3 },
+				CFrame.new(math.cos(a) * r * 0.55, r * 0.75, math.sin(a) * r * 0.55) * CFrame.Angles(math.sin(a) * 0.5, 0, -math.cos(a) * 0.5))
+		end
+		emitter({ Name = "DietGlint", Color = ColorSequence.new(snack.color), Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) }),
+			Lifetime = NumberRange.new(0.5, 0.8), Rate = 8, Speed = NumberRange.new(0.5, 1.5) })
+	elseif diet == "Glowcap" then
+		local light = Instance.new("PointLight")
+		light.Color = snack.color
+		light.Range = math.max(10, size * 2)
+		light.Brightness = 1.6
+		light.Parent = body
+		for i = 1, 5 do
+			local a = (i / 5) * math.pi * 2
+			deco(model, body, { Name = "GlowSpot", Shape = Enum.PartType.Ball, Size = Vector3.one * r * 0.2, Color = snack.color, Material = Enum.Material.Neon },
+				CFrame.new(math.cos(a) * r * 0.8, r * 0.35, math.sin(a) * r * 0.8))
+		end
+		deco(model, body, { Name = "Cap", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 0.9, r * 0.35, r * 0.9), Color = Color3.fromRGB(230, 60, 80), Material = Enum.Material.SmoothPlastic },
+			CFrame.new(0, r * 0.95, 0))
+	end
 end
 
 return SlimeModel

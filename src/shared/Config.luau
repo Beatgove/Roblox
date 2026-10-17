@@ -128,6 +128,28 @@ function Config.TraitIcons(traits: { string }?): string
 	return out
 end
 
+-- ===== Slime Snacks (diet decides evolution, like Pokémon evolution items) =====
+-- Snacks drop from rolls, belt buys, quests, bounties and the King Slime, or you can buy
+-- them at the Snack Bar. Feed SnackEvolve of ONE kind to a slime and it evolves into that
+-- diet form for good: new look, new name, and an income boost that stacks with everything.
+-- weight = drop chance share. priceMult = Snack Bar price x (base price).
+Config.SnackEvolve = 5
+Config.SnackDropChance = 0.2 -- per roll or belt buy
+Config.SnackPriceSeconds = 25 -- Snack Bar price = income per second x this x priceMult
+Config.SnackMinPrice = 150
+Config.SnackOrder = { "Berry", "Pepper", "Honey", "Crystal", "Glowcap" }
+Config.Snacks = {
+	Berry = { icon = "🍇", diet = "Juicy", mult = 1.4, weight = 34, priceMult = 1, color = Color3.fromRGB(120, 90, 255), desc = "Bouncy and bubbly" },
+	Pepper = { icon = "🌶️", diet = "Spicy", mult = 1.5, weight = 26, priceMult = 1.2, color = Color3.fromRGB(255, 70, 30), desc = "Literally on fire" },
+	Honey = { icon = "🍯", diet = "Sweet", mult = 1.5, weight = 24, priceMult = 1.2, color = Color3.fromRGB(255, 185, 50), desc = "Sticky golden drips" },
+	Crystal = { icon = "💎", diet = "Gem", mult = 1.8, weight = 11, priceMult = 2.5, color = Color3.fromRGB(150, 235, 255), desc = "Shiny crystal skin" },
+	Glowcap = { icon = "🍄", diet = "Glowing", mult = 2.2, weight = 5, priceMult = 4, color = Color3.fromRGB(110, 255, 150), desc = "Glows in the dark" },
+}
+function Config.DietMult(diet: string?): number
+	local s = diet and Config.Snacks[diet]
+	return if s then s.mult else 1
+end
+
 -- ===== Fuse Machine (like Steal a Brainrot's) =====
 -- Put in 3 slimes of any kind, pay a fee, wait, get one slime whose rarity is based on
 -- the average rarity you put in. Odds are shown before you fuse.
@@ -152,7 +174,7 @@ end
 
 -- ===== Player level =====
 -- XP for doing things. Levels give cash, every 5 levels gives luck, and titles show over your head.
-Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30, boss = 40, bounty = 30, avenge = 80 }
+Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30, boss = 40, bounty = 30, avenge = 80, evolve = 50 }
 Config.XPPerCollect = 1 / 500 -- plus 1 XP per $500 collected (capped per collect)
 function Config.XPForLevel(level: number): number
 	return math.floor(80 * level ^ 1.45)
@@ -271,6 +293,7 @@ Config.QuestPool = {
 	{ kind = "gift", goal = 3, text = "Open %d playtime gifts" },
 	{ kind = "bounty", goal = 1, text = "Claim %d bounty on a thief" },
 	{ kind = "boss", goal = 1, text = "Help beat the King Slime %d time" },
+	{ kind = "evolve", goal = 1, text = "Evolve %d slime with snacks" },
 }
 Config.QuestReward = { cashSeconds = 300, cashMin = 1500, luckMinutes = 5 }
 Config.AllQuestsBonus = { cashSeconds = 900, cashMin = 5000, luckMinutes = 15 }
@@ -427,9 +450,11 @@ function Config.MutationMult(mut: string?): number
 	return if m then m.mult else 1
 end
 
-function Config.DisplayName(id: string, mut: string?, stars: number?, traits: { string }?): string
+function Config.DisplayName(id: string, mut: string?, stars: number?, traits: { string }?, diet: string?): string
 	local icons = Config.TraitIcons(traits)
-	return (if icons ~= "" then icons .. " " else "") .. (if mut then mut .. " " .. id else id) .. Config.Stars(stars)
+	local snack = diet and Config.Snacks[diet]
+	local name = if snack then snack.diet .. " " .. id else id
+	return (if icons ~= "" then icons .. " " else "") .. (if mut then mut .. " " .. name else name) .. Config.Stars(stars)
 end
 
 return Config
