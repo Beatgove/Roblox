@@ -102,7 +102,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 	for _, pad in (if pens then pens:GetChildren() else {}) do
 		local pedestal = pad:FindFirstChild("Pedestal") :: BasePart?
 		if pedestal then
-			pedestal.Color = if rebirths >= 20 then Color3.fromRGB(240, 195, 70) else Color3.fromRGB(245, 240, 250)
+			pedestal.Color = if rebirths >= 20 then Color3.fromRGB(240, 195, 70) else Color3.fromRGB(210, 205, 215)
 			pedestal.Material = if rebirths >= 20 then Enum.Material.Metal else Enum.Material.Marble
 		end
 	end
@@ -135,7 +135,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		local mid = (w.from + w.to) / 2
 		local len = (w.to - w.from).Magnitude + 1.4
 		local alongX = math.abs(w.to.X - w.from.X) > 0.1
-		part(folder, { Name = "Cap", Size = if alongX then Vector3.new(len, 0.4, 1.4) else Vector3.new(1.4, 0.4, len), CFrame = at(mid.X, H + 0.2, mid.Z), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.SmoothPlastic })
+		part(folder, { Name = "Cap", Size = if alongX then Vector3.new(len, 0.4, 1.4) else Vector3.new(1.4, 0.4, len), CFrame = at(mid.X, H + 0.2, mid.Z), Color = Color3.fromRGB(215, 210, 220), Material = Enum.Material.SmoothPlastic })
 	end
 
 	-- 2: flower boxes along the inside of the walls
@@ -217,8 +217,8 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 
 	-- 6: marble walls and floor with gold trim
 	if rebirths >= 6 then
-		restyle(model, "Floor", Color3.fromRGB(198, 192, 202), Enum.Material.Marble)
-		restyle(model, "Wall", Color3.fromRGB(226, 222, 230), Enum.Material.Marble)
+		restyle(model, "Floor", Color3.fromRGB(176, 170, 180), Enum.Material.Marble)
+		restyle(model, "Wall", Color3.fromRGB(205, 200, 210), Enum.Material.Marble)
 		restyle(model, "Trim", Color3.fromRGB(255, 205, 60), Enum.Material.Metal)
 		for _, cap in folder:GetChildren() do
 			if cap.Name == "Cap" then
@@ -393,7 +393,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		local run = (front - bottom) / steps
 		for k = 1, steps do
 			local z0 = bottom + (k - 1) * run
-			solid({ Name = "Stair", Size = Vector3.new(8, k * 0.6, front - z0), CFrame = at(0, 0.5 + k * 0.3, (z0 + front) / 2), Color = Color3.fromRGB(235, 230, 240), Material = Enum.Material.Marble })
+			solid({ Name = "Stair", Size = Vector3.new(8, k * 0.6, front - z0), CFrame = at(0, 0.5 + k * 0.3, (z0 + front) / 2), Color = Color3.fromRGB(200, 195, 205), Material = Enum.Material.Marble })
 			part(folder, { Name = "StairCarpet", Size = Vector3.new(5, 0.06, run), CFrame = at(0, 0.53 + k * 0.6, z0 + run / 2), Color = Color3.fromRGB(200, 40, 60), Material = Enum.Material.Fabric })
 		end
 		for _, sx in { -1, 1 } do

@@ -95,7 +95,7 @@ local function buildLighting()
 	Lighting.Ambient = Color3.fromRGB(70, 60, 90)
 	Lighting.EnvironmentDiffuseScale = 1
 	Lighting.EnvironmentSpecularScale = 0.5
-	Lighting.ExposureCompensation = -0.15 -- a touch darker overall so nothing looks washed out
+	Lighting.ExposureCompensation = -0.25 -- a touch darker overall so nothing looks washed out
 	Lighting.GlobalShadows = true
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
@@ -860,7 +860,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	plot:SetAttribute("Theme", theme)
 	-- Muted tones of the base colour: easy on the eyes, still easy to tell bases apart.
 	local muted = theme:Lerp(Color3.fromRGB(200, 200, 205), 0.45)
-	local soft = Color3.fromRGB(238, 236, 232)
+	local soft = Color3.fromRGB(214, 211, 206)
 	local dark = theme:Lerp(Color3.fromRGB(60, 60, 70), 0.6)
 
 	local floor = part({
@@ -941,8 +941,8 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		add({ Name = "WallPost", Size = Vector3.new(2.6, H + 1, 2.6), CFrame = cf * CFrame.new(c.X, (H + 1) / 2, c.Z), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true })
 	end
 	-- Cream walls and a light ceiling inside, so the slimes stand out.
-	local cream = Color3.fromRGB(222, 210, 194) -- inside walls: a soft warm beige, not white
-	local ceilingColor = Color3.fromRGB(188, 178, 166)
+	local cream = Color3.fromRGB(194, 182, 168) -- inside walls: a soft warm beige, not white
+	local ceilingColor = Color3.fromRGB(150, 140, 130)
 	for _, l in {
 		{ Vector3.new(S - 2, H - 1.6, 0.2), Vector3.new(0, 0.8 + (H - 1.6) / 2, half - 0.6) },
 		{ Vector3.new(0.2, H - 1.6, S - 2), Vector3.new(-half + 0.6, 0.8 + (H - 1.6) / 2, 0) },
@@ -1092,7 +1092,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 			-- A round display pedestal with a coloured rim; PlotService shows it for unlocked
 			-- pens and tints the rim with the rarity of the slime on it.
 			local pedestal = part({ Name = "Pedestal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 7.2, 7.2), CFrame = pad.CFrame * CFrame.new(0, -0.05, 0) * CFrame.Angles(0, 0, math.pi / 2),
-				Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble, Transparency = 1, CanCollide = false, CastShadow = false })
+				Color = Color3.fromRGB(210, 205, 215), Material = Enum.Material.Marble, Transparency = 1, CanCollide = false, CastShadow = false })
 			pedestal.Parent = pad
 			local ring = part({ Name = "Ring", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 8.4, 8.4), CFrame = pad.CFrame * CFrame.new(0, -0.15, 0) * CFrame.Angles(0, 0, math.pi / 2),
 				Color = theme, Material = Enum.Material.SmoothPlastic, Transparency = 1, CanCollide = false, CastShadow = false })
