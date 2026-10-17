@@ -185,6 +185,7 @@ local revengeChip, revengeLabel = chip(Color3.fromRGB(220, 50, 50))
 local bountyChip, bountyLabel = chip(Color3.fromRGB(230, 170, 30))
 local rookieChip, rookieLabel = chip(Color3.fromRGB(255, 200, 90))
 local nemesisChip, nemesisLabel = chip(Color3.fromRGB(140, 50, 200))
+local blackoutChip, blackoutLabel = chip(Color3.fromRGB(50, 40, 110))
 
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
@@ -1046,6 +1047,9 @@ task.spawn(function()
 		rookieChip.Visible = player:GetAttribute("Rookie") == true
 		rookieLabel.Text = "🐣 ROOKIE SHIELD"
 		updateRevengeGlow(revengeLeft > 0)
+		local blackoutLeft = (workspace:GetAttribute("BlackoutUntil") or 0) - nowT
+		blackoutChip.Visible = blackoutLeft > 0
+		blackoutLabel.Text = "🌑 BLACKOUT " .. Util.Duration(math.max(blackoutLeft, 0))
 		local nemesisName = player:GetAttribute("NemesisName")
 		nemesisChip.Visible = nemesisName ~= nil
 		nemesisLabel.Text = "☠️ " .. (nemesisName or "") .. (if player:GetAttribute("NemesisNear") then " · ⚡ CHASE" else "")
@@ -1128,6 +1132,7 @@ local tips = {
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
 	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",
+	"During a 🌑 BLACKOUT base locks stop working. Raid in the dark, but avoid the Gloom!",
 	"Feed 5 of the same 🍽️ SNACK to a slime and it evolves into a new form that earns way more!",
 	"Buy ⬆️ UPGRADES for more income, longer shields and extra pens. They survive rebirth!",
 	"Level up by playing. Every level pays cash, and new titles show over your head.",

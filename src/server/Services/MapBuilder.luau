@@ -6,10 +6,13 @@ local Lighting = game:GetService("Lighting")
 
 local MapBuilder = {}
 
-MapBuilder.BeltStart = Vector3.new(-135, 0, 0)
-MapBuilder.BeltEnd = Vector3.new(135, 0, 0)
+MapBuilder.BeltStart = Vector3.new(-175, 0, 0)
+MapBuilder.BeltEnd = Vector3.new(175, 0, 0)
 MapBuilder.BeltTopY = 1.5
 MapBuilder.PlotSize = 52
+-- Base layout: 4 bases on each side of the belt, with room to breathe between them.
+MapBuilder.PlotXs = { -129, -43, 43, 129 }
+MapBuilder.PlotZ = 74
 
 local PEN_X = { -18, -9, 0, 9, 18 }
 local PEN_Z = { -4, 5, 14, 23 }
@@ -467,34 +470,50 @@ local function decorate(map: Folder)
 	end
 
 	-- Walkway lamps along both sides of the belt.
-	for x = -120, 120, 30 do
+	for x = -165, 165, 30 do
 		lamp(Vector3.new(x, 0, 12), Color3.fromRGB(255, 220, 140))
 		lamp(Vector3.new(x, 0, -12), Color3.fromRGB(255, 220, 140))
 	end
+	-- Gardens in the gaps between neighbouring bases: a tree, bushes and a lamp.
+	local bushColors = { Color3.fromRGB(80, 180, 80), Color3.fromRGB(100, 200, 90), Color3.fromRGB(70, 160, 100) }
+	for _, side in { 1, -1 } do
+		for i = 1, #MapBuilder.PlotXs - 1 do
+			local x = (MapBuilder.PlotXs[i] + MapBuilder.PlotXs[i + 1]) / 2
+			local z = side * (MapBuilder.PlotZ + 8)
+			tree(Vector3.new(x, 0, z))
+			for k = -2, 2 do
+				if k ~= 0 then
+					part({ Name = "Bush", Shape = Enum.PartType.Ball, Size = Vector3.one * rng:NextNumber(4, 5.5), Position = Vector3.new(x + rng:NextNumber(-3, 3), 1.4, side * (MapBuilder.PlotZ + k * 9)),
+						Color = bushColors[rng:NextInteger(1, #bushColors)], Material = Enum.Material.Grass }).Parent = deco
+				end
+			end
+			lamp(Vector3.new(x, 0, side * (MapBuilder.PlotZ - 24)), Color3.fromRGB(255, 200, 150))
+		end
+	end
 	-- Floating crystals above the belt.
 	local crystalColors = { Color3.fromRGB(120, 255, 200), Color3.fromRGB(255, 120, 220), Color3.fromRGB(140, 160, 255) }
-	for i, x in { -100, -50, 0, 50, 100 } do
+	for i, x in { -150, -100, -50, 0, 50, 100, 150 } do
 		crystal(Vector3.new(x, 26, 0), crystalColors[(i - 1) % #crystalColors + 1])
 	end
 	-- Trees around the outside of the map.
-	for _ = 1, 40 do
+	for _ = 1, 56 do
 		local side = rng:NextInteger(1, 4)
 		local pos
 		if side == 1 then
-			pos = Vector3.new(rng:NextNumber(-200, 200), 0, rng:NextNumber(92, 150))
+			pos = Vector3.new(rng:NextNumber(-260, 260), 0, rng:NextNumber(110, 185))
 		elseif side == 2 then
-			pos = Vector3.new(rng:NextNumber(-200, 200), 0, rng:NextNumber(-150, -92))
+			pos = Vector3.new(rng:NextNumber(-260, 260), 0, rng:NextNumber(-185, -110))
 		elseif side == 3 then
-			pos = Vector3.new(rng:NextNumber(-200, -138), 0, rng:NextNumber(-85, 85))
+			pos = Vector3.new(rng:NextNumber(-260, -182), 0, rng:NextNumber(-100, 100))
 		else
-			pos = Vector3.new(rng:NextNumber(138, 200), 0, rng:NextNumber(-85, 85))
+			pos = Vector3.new(rng:NextNumber(182, 260), 0, rng:NextNumber(-100, 100))
 		end
 		tree(pos)
 	end
 	-- Colourful flowers scattered on the grass.
-	for _ = 1, 120 do
-		local pos = Vector3.new(rng:NextNumber(-200, 200), 0.3, rng:NextNumber(-150, 150))
-		if math.abs(pos.Z) > 88 or math.abs(pos.X) > 132 then
+	for _ = 1, 180 do
+		local pos = Vector3.new(rng:NextNumber(-270, 270), 0.3, rng:NextNumber(-190, 190))
+		if math.abs(pos.Z) > 104 or math.abs(pos.X) > 172 then
 			part({
 				Name = "Flower",
 				Shape = Enum.PartType.Ball,
@@ -519,7 +538,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		Name = "Floor",
 		Size = Vector3.new(MapBuilder.PlotSize, 0.5, MapBuilder.PlotSize),
 		CFrame = cf * CFrame.new(0, 0.25, 0),
-		Color = Color3.fromRGB(235, 225, 210),
+		Color = Color3.fromRGB(196, 150, 108),
 		Material = Enum.Material.WoodPlanks,
 	})
 	floor.Parent = plot
@@ -544,6 +563,63 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	} do
 		part({ Name = "Wall", Size = w[1], CFrame = cf * CFrame.new(w[2]), Color = wallColor }).Parent = plot
 	end
+
+	-- Starting look: posts along the walls, a border on the floor, an entrance with
+	-- glowing pillars, a welcome rug and hedges outside. Rebirths add more (BaseDecor).
+	local soft = theme:Lerp(Color3.new(1, 1, 1), 0.45)
+	local dark = theme:Lerp(Color3.new(0, 0, 0), 0.35)
+	local start = Instance.new("Folder")
+	start.Name = "StartDecor"
+	start.Parent = plot
+	local function add(props)
+		props.CanCollide = props.CanCollide or false
+		props.CastShadow = false
+		part(props).Parent = start
+	end
+	for _, b in {
+		{ Vector3.new(MapBuilder.PlotSize - 2, 0.08, 1.6), Vector3.new(0, 0.54, -half + 1.8) },
+		{ Vector3.new(MapBuilder.PlotSize - 2, 0.08, 1.6), Vector3.new(0, 0.54, half - 1.8) },
+		{ Vector3.new(1.6, 0.08, MapBuilder.PlotSize - 2), Vector3.new(-half + 1.8, 0.54, 0) },
+		{ Vector3.new(1.6, 0.08, MapBuilder.PlotSize - 2), Vector3.new(half - 1.8, 0.54, 0) },
+	} do
+		add({ Name = "FloorBorder", Size = b[1], CFrame = cf * CFrame.new(b[2]), Color = soft, Material = Enum.Material.SmoothPlastic })
+	end
+	add({ Name = "WelcomeRug", Size = Vector3.new(9, 0.08, 14), CFrame = cf * CFrame.new(0, 0.55, -half + 8), Color = soft, Material = Enum.Material.Fabric })
+	add({ Name = "RugStripe", Size = Vector3.new(7, 0.1, 12), CFrame = cf * CFrame.new(0, 0.56, -half + 8), Color = theme, Material = Enum.Material.Fabric })
+	-- Posts with round tops at the corners and along the walls.
+	local posts = { Vector3.new(-half, 0, -half), Vector3.new(half, 0, -half), Vector3.new(-half, 0, half), Vector3.new(half, 0, half) }
+	for _, d in { -13, 0, 13 } do
+		table.insert(posts, Vector3.new(-half, 0, d))
+		table.insert(posts, Vector3.new(half, 0, d))
+		table.insert(posts, Vector3.new(d, 0, half))
+	end
+	for _, p in posts do
+		add({ Name = "WallPost", Size = Vector3.new(1.8, 4, 1.8), CFrame = cf * CFrame.new(p.X, 2, p.Z), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true })
+		add({ Name = "PostTop", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.7, CFrame = cf * CFrame.new(p.X, 4.5, p.Z), Color = soft, Material = Enum.Material.SmoothPlastic })
+	end
+	-- Entrance pillars with glowing orbs, so every base has a front door from day one.
+	for _, x in { -half, half } do
+		add({ Name = "EntrancePillar", Size = Vector3.new(2.2, 6, 2.2), CFrame = cf * CFrame.new(x, 3, -half), Color = soft, Material = Enum.Material.SmoothPlastic, CanCollide = true })
+		local orb = part({ Name = "EntranceOrb", Shape = Enum.PartType.Ball, Size = Vector3.one * 2, CFrame = cf * CFrame.new(x, 7, -half), Color = theme, Material = Enum.Material.Neon, CanCollide = false, CastShadow = false })
+		orb.Parent = start
+		local glow = Instance.new("PointLight")
+		glow.Color = theme
+		glow.Range = 14
+		glow.Brightness = 1.2
+		glow.Parent = orb
+		CollectionService:AddTag(orb, "Pulse")
+	end
+	-- Hedges hugging the outside of the side and back walls.
+	for _, h in {
+		{ Vector3.new(3, 4, MapBuilder.PlotSize - 6), Vector3.new(-half - 2.2, 2, 2) },
+		{ Vector3.new(3, 4, MapBuilder.PlotSize - 6), Vector3.new(half + 2.2, 2, 2) },
+		{ Vector3.new(MapBuilder.PlotSize - 6, 4, 3), Vector3.new(0, 2, half + 2.2) },
+	} do
+		add({ Name = "Hedge", Size = h[1], CFrame = cf * CFrame.new(h[2]), Color = Color3.fromRGB(80, 170, 80), Material = Enum.Material.Grass, CanCollide = true })
+	end
+	-- Rims so the cash pad and lock button read as buttons.
+	add({ Name = "CollectorRim", Size = Vector3.new(9.6, 0.5, 9.6), CFrame = cf * CFrame.new(-16, 0.6, -18), Color = Color3.fromRGB(40, 90, 50), Material = Enum.Material.SmoothPlastic })
+	add({ Name = "LockRim", Size = Vector3.new(7.6, 0.7, 7.6), CFrame = cf * CFrame.new(16, 0.7, -18), Color = Color3.fromRGB(90, 30, 40), Material = Enum.Material.SmoothPlastic })
 
 	-- Shield walls, only visible while the base is locked.
 	local shield = Instance.new("Folder")
@@ -578,7 +654,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 				Name = "Pen" .. n,
 				Size = Vector3.new(7, 0.4, 7),
 				CFrame = cf * CFrame.new(PEN_X[xi], 0.7, PEN_Z[zi]),
-				Color = Color3.fromRGB(180, 170, 160),
+				Color = theme:Lerp(Color3.new(1, 1, 1), 0.5),
 				Material = Enum.Material.SmoothPlastic,
 				Transparency = 1,
 				CanCollide = false,
@@ -641,7 +717,7 @@ function MapBuilder.Build()
 
 	part({
 		Name = "Ground",
-		Size = Vector3.new(420, 2, 320),
+		Size = Vector3.new(580, 2, 420),
 		Position = Vector3.new(0, -1, 0),
 		Color = Color3.fromRGB(110, 190, 90),
 		Material = Enum.Material.Grass,
@@ -663,14 +739,14 @@ function MapBuilder.Build()
 	buildFuseMachine(map)
 
 	local plots = {}
-	local xs = { -96, -32, 32, 96 }
+	local xs = MapBuilder.PlotXs
 	local i = 0
 	for _, side in { 1, -1 } do
 		for _, x in xs do
 			i += 1
 			-- Plot local -Z must point at the belt (world z = 0).
 			local facing = if side == 1 then 0 else math.pi
-			local model, cf = buildPlot(map, i, Vector3.new(x, 0, side * 58), facing)
+			local model, cf = buildPlot(map, i, Vector3.new(x, 0, side * MapBuilder.PlotZ), facing)
 			table.insert(plots, { model = model, cframe = cf })
 		end
 	end

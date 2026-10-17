@@ -170,6 +170,22 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		end
 	end
 
+	-- 7: fireflies drifting over the pens
+	if rebirths >= 7 then
+		local zone = part(folder, { Name = "Fireflies", Size = Vector3.new(44, 1, 34), CFrame = at(0, 6, 8), Transparency = 1 })
+		local e = Instance.new("ParticleEmitter")
+		e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		e.Color = ColorSequence.new(Color3.fromRGB(255, 240, 140), Color3.fromRGB(200, 255, 140))
+		e.LightEmission = 1
+		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.3, 0.45), NumberSequenceKeypoint.new(1, 0) })
+		e.Lifetime = NumberRange.new(3, 5)
+		e.Rate = 5
+		e.Speed = NumberRange.new(0.5, 1.5)
+		e.SpreadAngle = Vector2.new(180, 180)
+		e.RotSpeed = NumberRange.new(-30, 30)
+		e.Parent = zone
+	end
+
 	-- 8: royal banners on the back wall
 	if rebirths >= 8 then
 		for _, x in { -20, -10, 10, 20 } do
@@ -177,6 +193,20 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 			local banner = part(folder, { Name = "Banner", Size = Vector3.new(4, 6, 0.2), CFrame = at(x + 2.2, 10, HALF + 0.6), Color = theme, Material = Enum.Material.Fabric })
 			part(folder, { Name = "BannerStripe", Size = Vector3.new(4.02, 0.6, 0.22), CFrame = banner.CFrame * CFrame.new(0, -2.2, 0), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
 		end
+	end
+
+	-- 9: a string of party lights across the entrance
+	if rebirths >= 9 then
+		local colors = { Color3.fromRGB(255, 90, 120), Color3.fromRGB(255, 220, 80), Color3.fromRGB(100, 220, 255), Color3.fromRGB(150, 255, 120), light }
+		for k = 0, 12 do
+			local x = -HALF + k * (HALF * 2 / 12)
+			local sag = -2.2 * (1 - ((x / HALF) ^ 2))
+			local bulb = part(folder, { Name = "PartyBulb", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(x, 8 + sag, -HALF), Color = colors[k % #colors + 1], Material = Enum.Material.Neon })
+			if k % 3 == 0 then
+				CollectionService:AddTag(bulb, "Pulse")
+			end
+		end
+		part(folder, { Name = "PartyWire", Size = Vector3.new(HALF * 2, 0.1, 0.1), CFrame = at(0, 8.4, -HALF), Color = Color3.fromRGB(40, 40, 50), Material = Enum.Material.SmoothPlastic })
 	end
 
 	-- 10: sparkles drifting up from the floor edges
@@ -198,6 +228,15 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		end
 	end
 
+	-- 12: a golden slime statue on top of the back wall sign
+	if rebirths >= 12 then
+		part(folder, { Name = "Plinth", Size = Vector3.new(6, 1.2, 4), CFrame = at(0, 10.6, HALF - 1), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble })
+		local s = part(folder, { Name = "StatueSlime", Shape = Enum.PartType.Ball, Size = Vector3.one * 5, CFrame = at(0, 13.4, HALF - 1), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal, Reflectance = 0.35 })
+		for _, side in { -1, 1 } do
+			part(folder, { Name = "StatueEye", Shape = Enum.PartType.Ball, Size = Vector3.new(0.8, 1.1, 0.4), CFrame = s.CFrame * CFrame.new(side * 0.9, 0.4, -2.3), Color = Color3.fromRGB(30, 25, 20), Material = Enum.Material.SmoothPlastic })
+		end
+	end
+
 	-- 15: a giant floating crown above the base
 	if rebirths >= 15 then
 		local crownFolder = Instance.new("Model")
@@ -212,6 +251,21 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		-- Spin around the crown's own upright axis.
 		crownFolder.WorldPivot = at(0, 32, 6)
 		CollectionService:AddTag(crownFolder, "Spin")
+	end
+
+	-- 20: the floor border glows in your colour
+	if rebirths >= 20 then
+		local start = model:FindFirstChild("StartDecor")
+		for _, d in (if start then start:GetChildren() else {}) do
+			if d:IsA("BasePart") and d.Name == "FloorBorder" then
+				local glow = d:Clone()
+				glow.Name = "GlowBorder"
+				glow.Color = theme
+				glow.Material = Enum.Material.Neon
+				glow.Size += Vector3.new(0, 0.02, 0)
+				glow.Parent = folder
+			end
+		end
 	end
 
 	-- 25: the trim cycles through the rainbow

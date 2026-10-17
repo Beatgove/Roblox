@@ -19,7 +19,7 @@ local StealService = {}
 
 local carrying: { [Player]: boolean } = {}
 -- Ends a thief's carry early (slapped, tased): the slime bounces home.
-local dropFns: { [Player]: () -> () } = {}
+local dropFns: { [Player]: (string?) -> () } = {}
 -- Squirm: the token the thief must send back (HoldTight) before the deadline.
 local squirms: { [Player]: { token: number, deadline: number } } = {}
 local squirmToken = 0
@@ -49,10 +49,10 @@ function StealService.IsCarrying(player: Player): boolean
 	return carrying[player] == true
 end
 
-function StealService.Drop(player: Player)
+function StealService.Drop(player: Player, reason: string?)
 	local fn = dropFns[player]
 	if fn then
-		fn()
+		fn(reason)
 	end
 end
 
@@ -300,6 +300,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 					then "CAUGHT! The owner took it back!"
 					elseif outcome == "slapped" then "SLAPPED! You dropped the slime!"
 					elseif outcome == "squirmed" then "It SQUIRMED out of your hands!"
+					elseif outcome == "gloom" then "👻 The Gloom scared the slime right out of your hands!"
 					else "You dropped the slime!"
 				Net.Notify(thief, reason, "bad")
 				Net.Fx(thief, "caught", {})
@@ -318,8 +319,8 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		end
 	end
 
-	dropFns[thief] = function()
-		finish("slapped")
+	dropFns[thief] = function(reason: string?)
+		finish(reason or "slapped")
 	end
 
 	local started = os.clock()

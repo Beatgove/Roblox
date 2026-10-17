@@ -775,6 +775,184 @@ task.spawn(function()
 	end
 end)
 
+-- ===== Blackout =====
+-- Lights out: dark world, a flashlight on you, a faint glow on every pen slime,
+-- and a heartbeat when the Gloom gets close.
+local darkProps = {
+	Brightness = 0,
+	ClockTime = 0.5,
+	Ambient = Color3.fromRGB(14, 10, 26),
+	OutdoorAmbient = Color3.fromRGB(22, 16, 40),
+	ExposureCompensation = -0.4,
+}
+local savedLighting: { [string]: any }? = nil
+local savedAtmosphere: number? = nil
+local glowConn: RBXScriptConnection? = nil
+local myLights: { Instance } = {}
+
+local function addSlimeGlow(model: Instance)
+	local body = model:IsA("Model") and model.PrimaryPart
+	if body and not body:FindFirstChild("BlackoutGlow") then
+		local l = Instance.new("PointLight")
+		l.Name = "BlackoutGlow"
+		l.Color = body.Color
+		l.Range = 9
+		l.Brightness = 0.8
+		l.Parent = body
+	end
+end
+
+local function addMyLights()
+	for _, l in myLights do
+		l:Destroy()
+	end
+	table.clear(myLights)
+	local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return
+	end
+	local spot = Instance.new("SpotLight")
+	spot.Name = "Flashlight"
+	spot.Face = Enum.NormalId.Front
+	spot.Angle = 70
+	spot.Range = 45
+	spot.Brightness = 4
+	spot.Color = Color3.fromRGB(255, 240, 210)
+	spot.Shadows = true
+	spot.Parent = root
+	local aura = Instance.new("PointLight")
+	aura.Name = "SelfLight"
+	aura.Range = 12
+	aura.Brightness = 0.7
+	aura.Color = Color3.fromRGB(180, 170, 255)
+	aura.Parent = root
+	myLights = { spot, aura }
+end
+
+local function setDark(on: boolean)
+	local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+	if on then
+		if savedLighting then
+			return
+		end
+		local saved = {}
+		for k in darkProps do
+			saved[k] = (Lighting :: any)[k]
+		end
+		savedLighting = saved
+		TweenService:Create(Lighting, TweenInfo.new(1.5), darkProps):Play()
+		if atm then
+			savedAtmosphere = atm.Density
+			TweenService:Create(atm, TweenInfo.new(1.5), { Density = 0.55 }):Play()
+		end
+		for _, m in CollectionService:GetTagged("PenSlime") do
+			addSlimeGlow(m)
+		end
+		glowConn = CollectionService:GetInstanceAddedSignal("PenSlime"):Connect(function(m)
+			task.defer(addSlimeGlow, m)
+		end)
+		addMyLights()
+	else
+		if not savedLighting then
+			return
+		end
+		TweenService:Create(Lighting, TweenInfo.new(2), savedLighting):Play()
+		savedLighting = nil
+		if atm and savedAtmosphere then
+			TweenService:Create(atm, TweenInfo.new(2), { Density = savedAtmosphere }):Play()
+		end
+		if glowConn then
+			glowConn:Disconnect()
+			glowConn = nil
+		end
+		for _, m in CollectionService:GetTagged("PenSlime") do
+			local g = m:IsA("Model") and m.PrimaryPart and m.PrimaryPart:FindFirstChild("BlackoutGlow")
+			if g then
+				g:Destroy()
+			end
+		end
+		for _, l in myLights do
+			l:Destroy()
+		end
+		table.clear(myLights)
+	end
+end
+local function blackoutActive(): boolean
+	return (workspace:GetAttribute("BlackoutUntil") or 0) > workspace:GetServerTimeNow()
+end
+workspace:GetAttributeChangedSignal("BlackoutUntil"):Connect(function()
+	setDark(blackoutActive())
+end)
+Players.LocalPlayer.CharacterAdded:Connect(function(char)
+	char:WaitForChild("HumanoidRootPart", 10)
+	if blackoutActive() then
+		addMyLights()
+	end
+end)
+task.defer(function()
+	if blackoutActive() then
+		setDark(true)
+	end
+end)
+-- Heartbeat: faster and louder the closer the Gloom is.
+task.spawn(function()
+	while true do
+		local gloom = workspace:FindFirstChild("Gloom") :: Model?
+		local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if gloom and gloom.PrimaryPart and root then
+			local d = (gloom.PrimaryPart.Position - root.Position).Magnitude
+			if d < 60 then
+				local near = 1 - d / 60
+				sound("Snap", 0.22, 0.25 + near * 0.6)
+				task.delay(0.18, sound, "Snap", 0.2, 0.2 + near * 0.5)
+				if d < 20 then
+					shake(0.4 * near)
+				end
+				task.wait(1.1 - near * 0.7)
+				continue
+			end
+		end
+		task.wait(0.5)
+	end
+end)
+handlers.blackoutWarn = function(d)
+	local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+	announce("⚡ FLICKER...", Color3.fromRGB(200, 200, 255), "A Blackout is coming. Get home or get ready!", nil, 2.5)
+	task.spawn(function()
+		local t0 = os.clock()
+		while os.clock() - t0 < d.seconds and cc do
+			cc.Brightness = -0.35
+			task.wait(math.random(4, 14) / 100)
+			cc.Brightness = 0
+			task.wait(math.random(20, 70) / 100)
+		end
+	end)
+	sound("Whoosh", 0.3, 0.8)
+end
+handlers.blackout = function()
+	flash(Color3.new(0, 0, 0), 0.9, 1.2)
+	shake(1)
+	sound("Whoosh", 0.25, 1)
+	announce("🌑 BLACKOUT!", Color3.fromRGB(170, 140, 255), "Locks are down! Steal in the dark, but stay away from the Gloom!", nil, 3.5)
+	setDark(true)
+end
+handlers.blackoutEnd = function()
+	setDark(false)
+	flash(Color3.fromRGB(255, 250, 220), 0.5, 0.8)
+	announce("💡 POWER'S BACK", Color3.fromRGB(255, 240, 160), "Lock your base!", nil, 2)
+	sound("Ping", 1.1, 0.7)
+end
+handlers.gloomCatch = function(d)
+	burst(d.pos, Color3.fromRGB(30, 0, 50), 40, { speed = 18, size = 1.6 })
+	sound("Oof", 0.7, 0.6, d.pos)
+end
+handlers.gloomCaught = function(d)
+	flash(Color3.new(0, 0, 0), 1, 1.4)
+	shake(3)
+	sound("Whoosh", 0.4, 1)
+	announce("👻 BOO!", Color3.fromRGB(255, 60, 90), if d.dropped then "The Gloom got you! Your stolen slime hopped home." else "The Gloom sent you home!", nil, 2.5)
+end
+
 local EVENT_DROPS = {
 	LavaStorm = { colors = { Color3.fromRGB(255, 90, 20), Color3.fromRGB(255, 160, 40) }, size = { 18, 34 }, rate = 0.15, fire = true },
 	CandyParty = { colors = { Color3.fromRGB(255, 130, 200), Color3.fromRGB(150, 230, 255), Color3.fromRGB(255, 240, 120) }, size = { 8, 16 }, rate = 0.08 },
@@ -797,7 +975,7 @@ task.spawn(function()
 		drop.Material = Enum.Material.Neon
 		drop.Color = style.colors[math.random(1, #style.colors)]
 		drop.Size = Vector3.one * (math.random(style.size[1], style.size[2]) / 10)
-		local x, z = math.random(-160, 160), math.random(-110, 110)
+		local x, z = math.random(-210, 210), math.random(-140, 140)
 		drop.Position = Vector3.new(x + 20, 90, z)
 		drop.Parent = fxFolder
 		if style.fire then

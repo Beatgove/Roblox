@@ -24,6 +24,7 @@ type Plot = {
 	stages: { number },
 	lockedUntil: number,
 	lockReadyAt: number,
+	paidLockUntil: number,
 }
 
 local plots: { Plot } = {}
@@ -155,7 +156,15 @@ function PlotService.IsRookie(player: Player): boolean
 	return data ~= nil and not data.rookieOff and data.rebirths == 0 and data.totalEarned < Config.RookieEarnedLimit
 end
 
+-- Blackout: the power is out and free base locks stop working (bought shields still hold).
+function PlotService.IsBlackout(): boolean
+	return (workspace:GetAttribute("BlackoutUntil") or 0) > workspace:GetServerTimeNow()
+end
+
 function PlotService.IsLocked(plot: Plot): boolean
+	if PlotService.IsBlackout() then
+		return plot.paidLockUntil > now()
+	end
 	return plot.lockedUntil > now()
 end
 
@@ -513,8 +522,14 @@ function PlotService.Lock(player: Player, seconds: number, ignoreCooldown: boole
 	if not ignoreCooldown and (PlotService.IsLocked(plot) or t < plot.lockReadyAt) then
 		return false
 	end
+	if not ignoreCooldown and PlotService.IsBlackout() then
+		return false
+	end
 	plot.lockedUntil = math.max(plot.lockedUntil, t) + seconds
 	plot.lockReadyAt = plot.lockedUntil + Config.LockCooldownSeconds
+	if ignoreCooldown then
+		plot.paidLockUntil = math.max(plot.paidLockUntil, t) + seconds
+	end
 	PlotService.Sync(player)
 	return true
 end
@@ -633,7 +648,10 @@ local function setupPlotInteractions(plot: Plot)
 			return
 		end
 		local seconds = (Config.LockSeconds + PlotService.UpgradeLevel(who, "Shield") * Config.Upgrades.Shield.per) * (if Passes.Owns(who, "VIP") then 2 else 1)
-		if PlotService.Lock(who, seconds) then
+		if PlotService.IsBlackout() and not PlotService.IsLocked(plot) then
+			Net.Notify(who, "⚡ The power is out! Locks don't work during the Blackout.", "bad")
+			Net.Fx(who, "deny", {})
+		elseif PlotService.Lock(who, seconds) then
 			Net.Notify(who, "Base locked for " .. seconds .. "s", "good")
 		else
 			local wait = math.max(plot.lockedUntil, plot.lockReadyAt) - now()
@@ -648,6 +666,7 @@ function PlotService.Assign(player: Player)
 			plot.owner = player
 			plot.lockedUntil = 0
 			plot.lockReadyAt = 0
+			plot.paidLockUntil = 0
 			plotOf[player] = plot
 			setOwnerSign(plot)
 			local data = DataService.Get(player)
@@ -684,6 +703,7 @@ function PlotService.Release(player: Player)
 	end
 	plot.owner = nil
 	plot.lockedUntil = 0
+	plot.paidLockUntil = 0
 	plotOf[player] = nil
 	BaseDecor.Apply(plot.model, plot.cframe, 0)
 	setOwnerSign(plot)
@@ -699,6 +719,7 @@ function PlotService.Start(builtPlots)
 			stages = {},
 			lockedUntil = 0,
 			lockReadyAt = 0,
+			paidLockUntil = 0,
 		}
 		table.insert(plots, plot)
 		setupPlotInteractions(plot)
@@ -769,7 +790,8 @@ function PlotService.Start(builtPlots)
 				local status = plot.model.LockButton:FindFirstChild("Status", true)
 				if status then
 					status.Text = if locked
-						then "LOCKED " .. Util.Duration(plot.lockedUntil - now())
+						then "LOCKED " .. Util.Duration((if PlotService.IsBlackout() then plot.paidLockUntil else plot.lockedUntil) - now())
+						elseif plot.owner and PlotService.IsBlackout() and not PlotService.IsRookie(plot.owner) then "⚡ POWER OUT"
 						elseif plot.owner and PlotService.IsRookie(plot.owner) then "🐣 ROOKIE SHIELD"
 						elseif plot.owner and now() < plot.lockReadyAt then "Ready in " .. Util.Duration(plot.lockReadyAt - now())
 						else "LOCK BASE"

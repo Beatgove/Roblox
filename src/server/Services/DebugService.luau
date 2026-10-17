@@ -1,6 +1,6 @@
 -- Studio-only test hooks. In a Play test, run from the command bar (Server view):
 --   game.ServerStorage.Debug:Invoke("king")
--- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | slime Id | snacks N | feed Slot
+-- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | slime Id | snacks N | feed Slot | blackout
 -- Never exists in live servers.
 
 local Players = game:GetService("Players")
@@ -56,6 +56,8 @@ function DebugService.Start(services)
 			for _, key in Config.SnackOrder do
 				services.SnackService.Give(player, key, n or 5, true)
 			end
+		elseif cmd == "blackout" then
+			services.BlackoutService.RunNow()
 		elseif cmd == "feed" then
 			services.SnackService.Feed(player, n or 1)
 		elseif cmd == "gift" then

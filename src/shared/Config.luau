@@ -196,9 +196,13 @@ Config.BaseTiers = {
 	{ rebirth = 4, name = "Grand entrance gate" },
 	{ rebirth = 5, name = "Crystal clusters" },
 	{ rebirth = 6, name = "Marble and gold" },
+	{ rebirth = 7, name = "Fireflies" },
 	{ rebirth = 8, name = "Royal banners" },
+	{ rebirth = 9, name = "Party lights over the entrance" },
 	{ rebirth = 10, name = "Sparkling aura" },
+	{ rebirth = 12, name = "Golden slime statue" },
 	{ rebirth = 15, name = "Floating crown" },
+	{ rebirth = 20, name = "Glowing floor" },
 	{ rebirth = 25, name = "Rainbow trim" },
 }
 
@@ -213,6 +217,13 @@ end
 -- Revenge: after you're robbed, the thief's shield can't stop you for a while, you carry at
 -- full speed when stealing from them, and they glow for you.
 Config.RevengeSeconds = 90
+-- Blackout (Doors / 99 Nights style): the power goes out, free locks stop working and the
+-- Gloom roams the street between bases. Bought shields and the Rookie Shield still hold.
+Config.Blackout = {
+	firstDelay = 9 * 60, everySeconds = 25 * 60, seconds = 90, warnSeconds = 5,
+	size = 8, height = 5, roamX = 175, roamZ = 40,
+	roamSpeed = 7, chaseSpeed = 11, chaseRange = 40, catchRange = 5, graceSeconds = 4,
+}
 -- Nemesis: steals from the same thief before they become your Nemesis.
 Config.Nemesis = { steals = 2, chaseRange = 70, chaseSpeed = 1.2, bountyMult = 1.5 }
 -- Bounty: every steal puts a bounty on the thief. Slap, zap or trap them to cash it in.
