@@ -333,7 +333,7 @@ Config.BaseTiers = {
 	{ rebirth = 1, name = "Stone floor and wall caps" },
 	{ rebirth = 2, name = "Rooftop garden and flower boxes" },
 	{ rebirth = 3, name = "Sweeping searchlights and lanterns" },
-	{ rebirth = 4, name = "Grand entrance gate" },
+	{ rebirth = 4, name = "A second floor with stairs and a grand gate" },
 	{ rebirth = 5, name = "Indoor fountain and crystals" },
 	{ rebirth = 6, name = "Marble and gold" },
 	{ rebirth = 7, name = "A penthouse on your roof" },
@@ -342,7 +342,7 @@ Config.BaseTiers = {
 	{ rebirth = 10, name = "Helipad with a slime copter" },
 	{ rebirth = 12, name = "Golden slime statue" },
 	{ rebirth = 15, name = "Floating crown" },
-	{ rebirth = 20, name = "Glowing floor" },
+	{ rebirth = 20, name = "Golden pen pedestals" },
 	{ rebirth = 25, name = "Rainbow trim" },
 }
 
@@ -519,9 +519,11 @@ end
 Config.StartingCash = 50
 Config.BaseSlots = 8
 Config.SlotsPerRebirth = 2
-Config.MaxSlots = 20
+Config.MaxSlots = 36 -- 20 pens downstairs + 16 on the second floor
+Config.GroundSlots = 20 -- the cap until the second floor is built
+Config.SecondFloorRebirth = 4
 Config.ExtraPensSlots = 4
-Config.RebirthIncomeBonus = 0.5 -- +50% income per rebirth
+Config.RebirthIncomeBonus = 1 -- +100% income per rebirth (x2, x3, x4...)
 Config.IndexBonusPerSlime = 0.01 -- +1% income for every slime discovered in the Index
 Config.OfflineCapSeconds = 8 * 3600
 Config.OfflineRate = 0.5 -- offline earnings are half speed

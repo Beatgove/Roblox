@@ -111,7 +111,7 @@ function SnackService.Feed(player: Player, slot: number)
 	end
 	slime.food[key] = (slime.food[key] or 0) + 1
 	local plot = PlotService.GetPlot(player)
-	local pad = plot and plot.model.Pens:FindFirstChild("Pen" .. slot)
+	local pad = plot and PlotService.PadFor(player, slot)
 	local pos = if pad then pad.Position else nil
 	if slime.food[key] >= Config.SnackEvolve then
 		slime.food = nil

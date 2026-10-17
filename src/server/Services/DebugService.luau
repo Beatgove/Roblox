@@ -1,6 +1,6 @@
 -- Studio-only test hooks. In a Play test, run from the command bar (Server view):
 --   game.ServerStorage.Debug:Invoke("king")
--- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | slime Id | snacks N | feed Slot | blackout | relic [Key] | arcade | tower | drop EventKey
+-- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | move I,Pen | slime Id | snacks N | feed Slot | blackout | relic [Key] | arcade | tower | drop EventKey
 -- Never exists in live servers.
 
 local Players = game:GetService("Players")
@@ -56,6 +56,13 @@ function DebugService.Start(services)
 			for _ = 1, n or 3 do
 				services.PlotService.AddSlime(player, { id = "Goop", born = os.time() - 3600 })
 			end
+		elseif cmd == "move" then
+			-- "move" with arg "slimeIndex,pen": pick a slime up and drop it on a pen. Returns where slimes 1 and 2 sit.
+			local a, b = string.match(tostring(arg), "(%d+),(%d+)")
+			services.PlotService.PickUp(player, tonumber(a))
+			services.PlotService.MoveTo(player, tonumber(b))
+			local p1, p2 = services.PlotService.PadFor(player, 1), services.PlotService.PadFor(player, 2)
+			return (if p1 then p1.Name else "-") .. " " .. (if p2 then p2.Name else "-") .. " slots " .. services.PlotService.Slots(player)
 		elseif cmd == "slime" then
 			services.PlotService.AddSlime(player, { id = arg or "Goop", born = os.time() - 3600 })
 		elseif cmd == "snacks" then

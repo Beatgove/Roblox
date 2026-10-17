@@ -1349,7 +1349,7 @@ local function filterPrompt(prompt: ProximityPrompt)
 	local mine = ownerId == player.UserId
 	if prompt.Name == "StealPrompt" then
 		prompt.Enabled = not mine
-	elseif prompt.Name == "SellPrompt" or prompt.Name == "MergePrompt" or prompt.Name == "FeedPrompt" then
+	elseif prompt.Name == "SellPrompt" or prompt.Name == "MergePrompt" or prompt.Name == "FeedPrompt" or prompt.Name == "MovePrompt" or prompt.Name == "PlacePrompt" then
 		prompt.Enabled = mine
 	end
 end

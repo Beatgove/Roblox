@@ -71,7 +71,7 @@ local function infuse(player: Player, eventKey: string): string?
 	s.traits = s.traits or {}
 	table.insert(s.traits, trait)
 	local plot = PlotService.GetPlot(player)
-	local pad = plot and plot.model.Pens:FindFirstChild("Pen" .. i)
+	local pad = plot and PlotService.PadFor(player, i)
 	local def = Config.Traits[trait]
 	if pad then
 		Net.FxAll("strike", { pos = pad.Position, color = def.color, icon = def.icon })

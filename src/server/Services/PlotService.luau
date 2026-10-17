@@ -24,6 +24,7 @@ type Plot = {
 	owner: Player?,
 	slimeFolder: Folder?,
 	stages: { number },
+	penOf: { number }?, -- slime index -> pen number, worked out by Render
 	lockedUntil: number,
 	lockReadyAt: number,
 	paidLockUntil: number,
@@ -31,6 +32,7 @@ type Plot = {
 
 local plots: { Plot } = {}
 local plotOf: { [Player]: Plot } = {}
+local moving: { [Player]: any } = {} -- the slime (table) a player has picked up to move
 
 -- Fired when a non-owner triggers a steal prompt: (thief, victim, slotIndex)
 PlotService.StealRequested = Instance.new("BindableEvent")
@@ -73,7 +75,9 @@ function PlotService.Slots(player: Player): number
 		slots += Config.ExtraPensSlots
 	end
 	slots += PlotService.UpgradeLevel(player, "Pens") * Config.Upgrades.Pens.per
-	return math.min(slots, Config.MaxSlots)
+	-- The pens upstairs only exist once the second floor is built.
+	local cap = if data.rebirths >= Config.SecondFloorRebirth then Config.MaxSlots else Config.GroundSlots
+	return math.min(slots, cap)
 end
 
 function PlotService.UpgradeLevel(player: Player, key: string): number
@@ -271,6 +275,87 @@ local function slimeLabelInfo(slime, player: Player): string
 end
 
 -- Rebuilds every slime model in a player's pens.
+-- Which pen each slime sits in. A slime keeps the pen it was moved to (slime.pen) while that
+-- pen is unlocked and not taken by an earlier slime; any other slime takes the lowest free pen.
+local function assignPens(data, slots: number): { number }
+	local penOf, used = {}, {}
+	for i, slime in data.slimes do
+		local p = slime.pen
+		if typeof(p) == "number" and p >= 1 and p <= slots and not used[p] then
+			penOf[i], used[p] = p, true
+		end
+	end
+	local nextFree = 1
+	for i, slime in data.slimes do
+		if not penOf[i] then
+			while used[nextFree] do
+				nextFree += 1
+			end
+			penOf[i], used[nextFree] = nextFree, true
+			slime.pen = nextFree
+		end
+	end
+	return penOf
+end
+
+-- The pen part a slime (by its index in data.slimes) sits on.
+function PlotService.PadFor(player: Player, index: number): BasePart?
+	local plot = plotOf[player]
+	if not plot then
+		return nil
+	end
+	local pen = if plot.penOf then plot.penOf[index] else nil
+	return plot.model.Pens:FindFirstChild("Pen" .. (pen or index)) :: BasePart?
+end
+
+-- Pick up a slime (by index) to move it; Render then shows "Move here" on free pens.
+function PlotService.PickUp(player: Player, index: number)
+	local data = DataService.Get(player)
+	if not data or not data.slimes[index] then
+		return
+	end
+	moving[player] = data.slimes[index]
+	PlotService.Render(player)
+	Net.Notify(player, "Walk to a free pen and press T to move it there, or onto another slime to swap them.", "good")
+end
+
+-- Move the picked-up slime to pen `pen`, swapping with whatever slime is there.
+function PlotService.MoveTo(player: Player, pen: number)
+	local data = DataService.Get(player)
+	local slime = moving[player]
+	moving[player] = nil
+	if not data or not slime or not table.find(data.slimes, slime) or pen < 1 or pen > PlotService.Slots(player) then
+		PlotService.Render(player)
+		return
+	end
+	local from = slime.pen
+	for _, other in data.slimes do
+		if other ~= slime and other.pen == pen then
+			other.pen = from
+		end
+	end
+	slime.pen = pen
+	PlotService.Render(player)
+	local pad = PlotService.PadFor(player, table.find(data.slimes, slime) :: number)
+	if pad then
+		Net.FxAll("land", { pos = pad.Position, color = Config.RarityByName[Config.SlimeById[slime.id].rarity].color })
+	end
+end
+
+local function ownerPrompt(parent: Instance, name: string, action: string, object: string, key: Enum.KeyCode, ownerId: number): ProximityPrompt
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = name
+	prompt.ActionText = action
+	prompt.ObjectText = object
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 8
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = key
+	prompt:SetAttribute("OwnerId", ownerId)
+	prompt.Parent = parent
+	return prompt
+end
+
 function PlotService.Render(player: Player)
 	local plot = plotOf[player]
 	local data = DataService.Get(player)
@@ -287,16 +372,39 @@ function PlotService.Render(player: Player)
 	plot.stages = {}
 
 	local slots = PlotService.Slots(player)
+	local penOf = assignPens(data, slots)
+	plot.penOf = penOf
+	local slimeIn = {}
+	for i, pen in penOf do
+		slimeIn[pen] = data.slimes[i]
+	end
+	local carrying = moving[player]
+	if carrying and not table.find(data.slimes, carrying) then
+		carrying, moving[player] = nil, nil
+	end
 	local theme = plot.model:GetAttribute("Theme")
 	local emptyRing = if typeof(theme) == "Color3" then theme:Lerp(Color3.new(1, 1, 1), 0.35) else Color3.new(1, 1, 1)
 	for _, pad in plot.model.Pens:GetChildren() do
 		local slot = pad:GetAttribute("Slot")
-		local slime = data.slimes[slot]
+		local slime = slimeIn[slot]
 		setPen(pad, slot <= slots, if slime then Config.RarityByName[Config.SlimeById[slime.id].rarity].color else emptyRing)
+		local old = pad:FindFirstChild("PlacePrompt")
+		if old then
+			old:Destroy()
+		end
+		-- While moving a slime, every free pen offers "Move here".
+		if carrying and not slime and slot <= slots then
+			local place = ownerPrompt(pad, "PlacePrompt", "Move here", "Empty pen", Enum.KeyCode.T, player.UserId)
+			place.Triggered:Connect(function(who)
+				if who == player then
+					PlotService.MoveTo(player, slot)
+				end
+			end)
+		end
 	end
 
 	for i, slime in data.slimes do
-		local pad = plot.model.Pens:FindFirstChild("Pen" .. i)
+		local pad = plot.model.Pens:FindFirstChild("Pen" .. penOf[i])
 		if not pad then
 			continue
 		end
@@ -336,6 +444,40 @@ function PlotService.Render(player: Player)
 		steal.Triggered:Connect(function(who)
 			if who ~= player then
 				PlotService.StealRequested:Fire(who, player, model:GetAttribute("Slot"))
+			end
+		end)
+
+		-- Moving slimes around: pick one up, then choose a pen (or another slime to swap with).
+		if carrying then
+			sell:Destroy()
+			local isMe = carrying == slime
+			local move = ownerPrompt(model.PrimaryPart, "MovePrompt", if isMe then "Cancel move" else "Swap here", Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet), Enum.KeyCode.T, player.UserId)
+			move.Triggered:Connect(function(who)
+				if who ~= player then
+					return
+				end
+				if isMe then
+					moving[player] = nil
+					PlotService.Render(player)
+				else
+					PlotService.MoveTo(player, penOf[i])
+				end
+			end)
+			if isMe then
+				local hl = Instance.new("Highlight")
+				hl.FillTransparency = 0.7
+				hl.OutlineColor = Color3.fromRGB(255, 230, 120)
+				hl.FillColor = Color3.fromRGB(255, 230, 120)
+				hl.Parent = model
+			end
+			model.Parent = folder
+			continue
+		end
+		local move = ownerPrompt(model.PrimaryPart, "MovePrompt", "Move", Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet), Enum.KeyCode.T, player.UserId)
+		move.UIOffset = Vector2.new(0, -160)
+		move.Triggered:Connect(function(who)
+			if who == player then
+				PlotService.PickUp(player, model:GetAttribute("Slot"))
 			end
 		end)
 		sell.Triggered:Connect(function(who)
@@ -442,7 +584,7 @@ function PlotService.Merge(player: Player, slot: number)
 		if Config.MutationMult(s.mut) > bestMult then
 			bestMut, bestMult = s.mut, Config.MutationMult(s.mut)
 		end
-		local pad = plot.model.Pens:FindFirstChild("Pen" .. i)
+		local pad = PlotService.PadFor(player, i)
 		if pad then
 			table.insert(positions, pad.Position)
 		end
@@ -459,7 +601,7 @@ function PlotService.Merge(player: Player, slot: number)
 	while #traits > Config.MaxTraits do
 		table.remove(traits)
 	end
-	local merged = { id = base.id, born = born, mut = bestMut, stars = (base.stars or 0) + 1, traits = if #traits > 0 then traits else nil, diet = base.diet }
+	local merged = { id = base.id, born = born, mut = bestMut, stars = (base.stars or 0) + 1, traits = if #traits > 0 then traits else nil, diet = base.diet, pen = base.pen }
 	table.sort(group, function(a, b)
 		return a > b
 	end)
@@ -468,7 +610,7 @@ function PlotService.Merge(player: Player, slot: number)
 	end
 	table.insert(data.slimes, merged)
 	PlotService.Render(player)
-	local pad = plot.model.Pens:FindFirstChild("Pen" .. #data.slimes)
+	local pad = PlotService.PadFor(player, #data.slimes)
 	local name = Config.DisplayName(merged.id, merged.mut, merged.stars, merged.traits, merged.diet)
 	Net.FxAll("merge", { from = positions, to = pad and pad.Position or positions[1], color = Config.RarityByName[Config.SlimeById[merged.id].rarity].color })
 	Net.Fx(player, "merged", { name = name, stars = merged.stars })
@@ -486,7 +628,15 @@ function PlotService.NextPenPosition(player: Player): Vector3?
 	if not plot or not data then
 		return nil
 	end
-	local pad = plot.model.Pens:FindFirstChild("Pen" .. (#data.slimes + 1))
+	local used = {}
+	for _, pen in plot.penOf or {} do
+		used[pen] = true
+	end
+	local free = 1
+	while used[free] do
+		free += 1
+	end
+	local pad = plot.model.Pens:FindFirstChild("Pen" .. free)
 	return pad and pad.Position
 end
 
@@ -495,10 +645,10 @@ function PlotService.AddSlime(player: Player, slime): boolean
 	if not data or not PlotService.HasFreeSlot(player) then
 		return false
 	end
+	slime.pen = nil -- a new (or stolen) slime takes the lowest free pen
 	table.insert(data.slimes, slime)
 	PlotService.Render(player)
-	local plot = plotOf[player]
-	local pad = plot and plot.model.Pens:FindFirstChild("Pen" .. #data.slimes)
+	local pad = PlotService.PadFor(player, #data.slimes)
 	local rarity = Config.RarityByName[Config.SlimeById[slime.id].rarity]
 	if pad then
 		Net.FxAll("land", { pos = pad.Position, color = rarity.color, big = rarity.order >= 5 })
@@ -810,6 +960,7 @@ end
 
 function PlotService.Release(player: Player)
 	inTransit[player] = nil
+	moving[player] = nil
 	local plot = plotOf[player]
 	if not plot then
 		return

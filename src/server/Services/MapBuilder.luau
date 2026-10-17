@@ -20,6 +20,10 @@ MapBuilder.PlotZ = 84
 -- Two rows of pens down each side of the aisle, front row first.
 local PEN_X = { -25, -15, 15, 25 }
 local PEN_Z = { -14, -4, 6, 16, 26 }
+-- The second floor (built by BaseDecor at Config.SecondFloorRebirth) holds pens 21 to 36.
+local UPPER_Y = 9.5
+local UPPER_Z = { 0, 9, 18, 27 }
+MapBuilder.UpperFloorY = UPPER_Y
 local THEMES = {
 	Color3.fromRGB(255, 90, 140),
 	Color3.fromRGB(90, 170, 255),
@@ -96,18 +100,18 @@ local function buildLighting()
 	end)
 
 	local atm = Instance.new("Atmosphere")
-	atm.Density = 0.32
+	atm.Density = 0.26
 	atm.Offset = 0.15
 	atm.Color = Color3.fromRGB(215, 225, 240)
 	atm.Decay = Color3.fromRGB(120, 130, 170)
 	atm.Glare = 0.05
-	atm.Haze = 0.8
+	atm.Haze = 0.4
 	atm.Parent = Lighting
 
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.3
+	bloom.Intensity = 0.15
 	bloom.Size = 16
-	bloom.Threshold = 1.6
+	bloom.Threshold = 2.2
 	bloom.Parent = Lighting
 
 	local cc = Instance.new("ColorCorrectionEffect")
@@ -973,8 +977,9 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		for _, z in { -20, 0, 20 } do
 			local lamp = add({ Name = "CeilingLight", Size = Vector3.new(4, 0.3, 4), CFrame = cf * CFrame.new(x, H - 0.3, z), Color = Color3.fromRGB(255, 250, 240), Material = Enum.Material.SmoothPlastic })
 			local pl = Instance.new("PointLight")
-			pl.Range = 22
-			pl.Brightness = 0.6
+			pl.Range = 20
+			pl.Brightness = 0.2
+			pl.Shadows = true
 			pl.Color = Color3.fromRGB(255, 245, 225)
 			pl.Parent = lamp
 		end
@@ -987,11 +992,6 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		add({ Name = "EntrancePillar", Size = Vector3.new(2.4, DH + 1, 2.8), CFrame = cf * CFrame.new(x, (DH + 1) / 2, -half - 0.4), Color = soft, Material = Enum.Material.SmoothPlastic, CanCollide = true })
 		add({ Name = "LaserEmitter", Size = Vector3.new(0.5, DH - 1, 1), CFrame = cf * CFrame.new(x + (if x < 0 then 1.4 else -1.4), DH / 2, -half), Color = Color3.fromRGB(50, 50, 60), Material = Enum.Material.Metal })
 		local orb = add({ Name = "EntranceOrb", Shape = Enum.PartType.Ball, Size = Vector3.one * 2.2, CFrame = cf * CFrame.new(x, DH + 2.2, -half - 0.6), Color = theme, Material = Enum.Material.Neon })
-		local glow = Instance.new("PointLight")
-		glow.Color = theme
-		glow.Range = 16
-		glow.Brightness = 1.2
-		glow.Parent = orb
 		CollectionService:AddTag(orb, "Pulse")
 	end
 	local facade = add({ Name = "FacadeSign", Size = Vector3.new(door * 2 + 4, 3.6, 0.6), CFrame = cf * CFrame.new(0, DH + (H - DH) / 2 + 0.6, -half - 0.8), Color = Color3.fromRGB(30, 25, 40), Material = Enum.Material.SmoothPlastic })
@@ -1063,29 +1063,38 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	pens.Name = "Pens"
 	pens.Parent = plot
 	local n = 0
+	local spots = {}
 	for zi = 1, #PEN_Z do
 		for xi = 1, #PEN_X do
+			table.insert(spots, Vector3.new(PEN_X[xi], 0.7, PEN_Z[zi]))
+		end
+	end
+	for zi = 1, #UPPER_Z do
+		for xi = 1, #PEN_X do
+			table.insert(spots, Vector3.new(PEN_X[xi], UPPER_Y + 0.2, UPPER_Z[zi]))
+		end
+	end
+	for _, spot in spots do
 			n += 1
 			local pad = part({
 				Name = "Pen" .. n,
 				Size = Vector3.new(7, 0.4, 7),
-				CFrame = cf * CFrame.new(PEN_X[xi], 0.7, PEN_Z[zi]),
+				CFrame = cf * CFrame.new(spot),
 				Color = theme:Lerp(Color3.new(1, 1, 1), 0.5),
 				Material = Enum.Material.SmoothPlastic,
 				Transparency = 1,
 				CanCollide = false,
 			})
 			pad:SetAttribute("Slot", n)
-			-- A round display pedestal with a glowing rim; PlotService shows it for unlocked
+			-- A round display pedestal with a coloured rim; PlotService shows it for unlocked
 			-- pens and tints the rim with the rarity of the slime on it.
-			local pedestal = part({ Name = "Pedestal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 7.6, 7.6), CFrame = pad.CFrame * CFrame.new(0, -0.05, 0) * CFrame.Angles(0, 0, math.pi / 2),
+			local pedestal = part({ Name = "Pedestal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 7.2, 7.2), CFrame = pad.CFrame * CFrame.new(0, -0.05, 0) * CFrame.Angles(0, 0, math.pi / 2),
 				Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble, Transparency = 1, CanCollide = false, CastShadow = false })
 			pedestal.Parent = pad
-			local ring = part({ Name = "Ring", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 9.2, 9.2), CFrame = pad.CFrame * CFrame.new(0, -0.15, 0) * CFrame.Angles(0, 0, math.pi / 2),
-				Color = theme, Material = Enum.Material.Neon, Transparency = 1, CanCollide = false, CastShadow = false })
+			local ring = part({ Name = "Ring", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 8.4, 8.4), CFrame = pad.CFrame * CFrame.new(0, -0.15, 0) * CFrame.Angles(0, 0, math.pi / 2),
+				Color = theme, Material = Enum.Material.SmoothPlastic, Transparency = 1, CanCollide = false, CastShadow = false })
 			ring.Parent = pad
 			pad.Parent = pens
-		end
 	end
 
 	local collector = part({

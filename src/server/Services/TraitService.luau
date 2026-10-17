@@ -46,7 +46,7 @@ local function strike()
 		end
 		if #hit > 0 then
 			for _, i in hit do
-				local pad = plot.model.Pens:FindFirstChild("Pen" .. i)
+				local pad = PlotService.PadFor(owner, i)
 				if pad then
 					Net.FxAll("strike", { pos = pad.Position, color = def.color, icon = def.icon })
 				end

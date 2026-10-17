@@ -55,7 +55,7 @@ local function makeLabel(parent: BasePart, height: number)
 	gui.Name = "Label"
 	gui.Size = UDim2.fromOffset(200, 66)
 	gui.StudsOffset = Vector3.new(0, height, 0)
-	gui.MaxDistance = 70
+	gui.MaxDistance = 45
 	gui.LightInfluence = 0
 	gui.Parent = parent
 
