@@ -52,6 +52,15 @@ LevelService.Start()
 FuseService.Start()
 BountyService.Start()
 BossService.Start()
+require(Services.DebugService).Start({
+	DataService = DataService,
+	PlotService = PlotService,
+	BossService = BossService,
+	BaseDecor = require(Services.BaseDecor),
+	LevelService = LevelService,
+	EventService = EventService,
+	BountyService = BountyService,
+})
 
 local function makeLeaderstats(player: Player)
 	local ls = Instance.new("Folder")

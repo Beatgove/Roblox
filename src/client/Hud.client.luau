@@ -598,16 +598,16 @@ local fuse, fuseScale = panel("🧪 Fuse Machine", FUSE_COLOR)
 text({ Position = UDim2.fromOffset(16, 58), Size = UDim2.new(1, -32, 0, 24), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "Pick " .. Config.FuseCount .. " slimes. You get 1 new slime based on their rarity.", Parent = fuse })
 local fuseGrid = new("ScrollingFrame", {
 	Position = UDim2.fromOffset(12, 86),
-	Size = UDim2.new(1, -24, 1, -236),
+	Size = UDim2.new(1, -24, 1, -200),
 	BackgroundTransparency = 1,
 	ScrollBarThickness = 6,
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	CanvasSize = UDim2.new(),
 	Parent = fuse,
 }, { new("UIGridLayout", { CellSize = UDim2.fromOffset(104, 70), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
-local fuseEmpty = text({ Position = UDim2.fromOffset(16, 120), Size = UDim2.new(1, -32, 0, 30), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "You need slimes in your pens to fuse.", Visible = false, Parent = fuse })
-local fuseFee = text({ Position = UDim2.new(0, 16, 1, -144), Size = UDim2.new(1, -32, 0, 26), TextColor3 = COLORS.gold, Text = "", Parent = fuse })
-local fuseOdds = text({ Position = UDim2.new(0, 16, 1, -114), Size = UDim2.new(1, -32, 0, 34), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.text, RichText = true, Text = "", Parent = fuse })
+local fuseEmpty = text({ Position = UDim2.fromOffset(16, 96), Size = UDim2.new(1, -32, 0, 30), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.muted, Text = "You need slimes in your pens to fuse.", Visible = false, Parent = fuse })
+local fuseFee = text({ Position = UDim2.new(0, 16, 1, -112), Size = UDim2.new(1, -32, 0, 22), TextColor3 = COLORS.gold, Text = "", Parent = fuse })
+local fuseOdds = text({ Position = UDim2.new(0, 16, 1, -88), Size = UDim2.new(1, -32, 0, 26), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = COLORS.text, RichText = true, Text = "", Parent = fuse })
 local fuseSelected: { number } = {}
 local fuseSlimes = {}
 local fuseState = { active = false, endsAt = 0 }
@@ -711,7 +711,7 @@ local function rebuildFuseGrid()
 	end
 	refreshFuseInfo()
 end
-fuseBtn = button({ Size = UDim2.new(1, -40, 0, 60), Position = UDim2.new(0, 20, 1, -74), BackgroundColor3 = FUSE_COLOR, Text = "", Parent = fuse }, function()
+fuseBtn = button({ Size = UDim2.new(1, -40, 0, 50), Position = UDim2.new(0, 20, 1, -58), BackgroundColor3 = FUSE_COLOR, Text = "", Parent = fuse }, function()
 	if fuseState.active then
 		Remotes.FuseClaim:FireServer()
 	elseif #fuseSelected == Config.FuseCount then
