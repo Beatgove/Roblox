@@ -19,11 +19,11 @@ MapBuilder.PlotZ = 84
 
 -- Two rows of pens down each side of the aisle, front row first.
 local PEN_X = { -25, -15, 15, 25 }
-local PEN_Z = { -14, -4, 6, 16 }
--- The second floor (built by BaseDecor at Config.SecondFloorRebirth) holds pens 17 to 32, so the
+local PEN_Z = { -12, 2, 16 }
+-- The second floor (built by BaseDecor at Config.SecondFloorRebirth) holds pens 13 to 24, so the
 -- pens are split evenly between the two floors.
 local UPPER_Y = 9.5
-local UPPER_Z = { 2, 11, 20, 29 }
+local UPPER_Z = { 4, 16, 28 }
 MapBuilder.UpperFloorY = UPPER_Y
 local THEMES = {
 	Color3.fromRGB(255, 90, 140),

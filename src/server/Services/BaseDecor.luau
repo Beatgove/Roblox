@@ -374,7 +374,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		e.Parent = spout
 	end
 
-	-- 4: a second floor with stairs up the middle; it holds pens 17 to 32
+	-- 4: a second floor with stairs up the middle; it holds pens 13 to 24
 	if rebirths >= Config.SecondFloorRebirth then
 		local FY = 9.5 -- MapBuilder.UpperFloorY, the top of the upper floor
 		local inner = HALF - 0.6
