@@ -41,8 +41,7 @@ local function setPen(pad: Instance, visible: boolean, ringColor: Color3?)
 	local pedestal = pad:FindFirstChild("Pedestal") :: BasePart?
 	local ring = pad:FindFirstChild("Ring") :: BasePart?
 	if pedestal then
-		-- Locked pens still show as faded podiums, so the base looks full like Steal a Brainrot.
-		pedestal.Transparency = if visible then 0 else 0.6
+		pedestal.Transparency = if visible then 0 else 1
 	end
 	if ring then
 		ring.Transparency = if visible then 0.1 else 1
@@ -718,7 +717,9 @@ local function setupPlotInteractions(plot: Plot)
 		if who ~= plot.owner then
 			return
 		end
-		local seconds = (Config.LockSeconds + PlotService.UpgradeLevel(who, "Shield") * Config.Upgrades.Shield.per) * (if Passes.Owns(who, "VIP") then 2 else 1)
+		local data = DataService.Get(who)
+		local rebirthBonus = (if data then data.rebirths else 0) * Config.RebirthLockBonus
+		local seconds = (Config.LockSeconds + rebirthBonus + PlotService.UpgradeLevel(who, "Shield") * Config.Upgrades.Shield.per) * (if Passes.Owns(who, "VIP") then 2 else 1)
 		if PlotService.IsBlackout() and not PlotService.IsLocked(plot) then
 			Net.Notify(who, "⚡ The power is out! Locks don't work during the Blackout.", "bad")
 			Net.Fx(who, "deny", {})

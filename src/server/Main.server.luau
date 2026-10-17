@@ -8,6 +8,7 @@ local Util = require(game.ReplicatedStorage.Shared.Util)
 local Net = require(Services.Net)
 local MapBuilder = require(Services.MapBuilder)
 local DataService = require(Services.DataService)
+local Rewards = require(Services.Rewards)
 local Passes = require(Services.Passes)
 local PlotService = require(Services.PlotService)
 local ConveyorService = require(Services.ConveyorService)
@@ -169,5 +170,17 @@ Net.RebirthEvent.OnServerEvent:Connect(function(player)
 		return
 	end
 	rebirthDebounce[player] = t
+	local data = DataService.Get(player)
+	local before = if data then data.rebirths else 0
 	PlotService.Rebirth(player)
+	-- A prize for every rebirth (Config.RebirthRewards), after the base resets.
+	if data and data.rebirths > before then
+		local reward = Config.RebirthRewards[data.rebirths] or Config.RebirthRewardDefault
+		task.delay(1.5, function()
+			if player.Parent then
+				local got = Rewards.Grant(player, reward)
+				Net.Notify(player, "🎁 REBIRTH " .. data.rebirths .. " PRIZE: " .. got, "epic")
+			end
+		end)
+	end
 end)

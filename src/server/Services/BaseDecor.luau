@@ -128,7 +128,7 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		part(folder, { Name = "Cap", Size = if alongX then Vector3.new(len, 0.4, 1.4) else Vector3.new(1.4, 0.4, len), CFrame = at(mid.X, H + 0.2, mid.Z), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.SmoothPlastic })
 	end
 
-	-- 2: window boxes of flowers hanging on the inside of the walls
+	-- 2: flower boxes along the inside of the walls
 	if rebirths >= 2 then
 		local flowerColors = { Color3.fromRGB(255, 90, 140), Color3.fromRGB(255, 220, 80), Color3.fromRGB(180, 120, 255), light }
 		local n = 0
@@ -139,12 +139,12 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 				local p = w.from + (w.to - w.from).Unit * d
 				-- Nudge inward, off the wall face.
 				p -= Vector3.new(math.sign(p.X) * (if math.abs(p.X) >= HALF - 0.1 then 1.6 else 0), 0, math.sign(p.Z) * (if math.abs(p.Z) >= HALF - 0.1 then 1.6 else 0))
-				part(folder, { Name = "FlowerBox", Size = Vector3.new(2.6, 0.8, 2.6), CFrame = at(p.X, 6.8, p.Z), Color = Color3.fromRGB(120, 80, 50), Material = Enum.Material.WoodPlanks })
+				part(folder, { Name = "FlowerBox", Size = Vector3.new(2.6, 0.8, 2.6), CFrame = at(p.X, 0.9, p.Z), Color = Color3.fromRGB(120, 80, 50), Material = Enum.Material.WoodPlanks })
 				for k = 1, 3 do
 					local off = Vector3.new(math.cos(k * 2.1) * 0.7, 0, math.sin(k * 2.1) * 0.7)
-					part(folder, { Name = "Flower", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(p.X + off.X, 7.6, p.Z + off.Z), Color = flowerColors[(n + k) % #flowerColors + 1], Material = Enum.Material.SmoothPlastic })
+					part(folder, { Name = "Flower", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(p.X + off.X, 1.7, p.Z + off.Z), Color = flowerColors[(n + k) % #flowerColors + 1], Material = Enum.Material.SmoothPlastic })
 				end
-				part(folder, { Name = "Leaves", Size = Vector3.new(2.2, 0.3, 2.2), CFrame = at(p.X, 7.25, p.Z), Color = Color3.fromRGB(70, 170, 70), Material = Enum.Material.Grass })
+				part(folder, { Name = "Leaves", Size = Vector3.new(2.2, 0.3, 2.2), CFrame = at(p.X, 1.35, p.Z), Color = Color3.fromRGB(70, 170, 70), Material = Enum.Material.Grass })
 			end
 		end
 	end
@@ -276,8 +276,8 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 
 	-- 12: a golden slime statue at the end of the red carpet
 	if rebirths >= 12 then
-		part(folder, { Name = "Plinth", Size = Vector3.new(6, 1.2, 4), CFrame = at(0, 1.1, HALF - 4), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble })
-		local s = part(folder, { Name = "StatueSlime", Shape = Enum.PartType.Ball, Size = Vector3.one * 5, CFrame = at(0, 4.2, HALF - 4), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal, Reflectance = 0.35 })
+		part(folder, { Name = "Plinth", Size = Vector3.new(6, 1.2, 4), CFrame = at(0, 1.1, HALF - 3), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble })
+		local s = part(folder, { Name = "StatueSlime", Shape = Enum.PartType.Ball, Size = Vector3.one * 5, CFrame = at(0, 4.2, HALF - 3), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal, Reflectance = 0.35 })
 		for _, side in { -1, 1 } do
 			part(folder, { Name = "StatueEye", Shape = Enum.PartType.Ball, Size = Vector3.new(0.8, 1.1, 0.4), CFrame = s.CFrame * CFrame.new(side * 0.9, 0.4, -2.3), Color = Color3.fromRGB(30, 25, 20), Material = Enum.Material.SmoothPlastic })
 		end
@@ -288,15 +288,137 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		local crownFolder = Instance.new("Model")
 		crownFolder.Name = "Crown"
 		crownFolder.Parent = folder
-		part(crownFolder, { Name = "CrownBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 9, 9), CFrame = at(0, H + 26, 6) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
+		part(crownFolder, { Name = "CrownBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 9, 9), CFrame = at(0, H + 36, 6) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
 		for k = 0, 5 do
 			local a = k / 6 * math.pi * 2
-			part(crownFolder, { Name = "Spike", Size = Vector3.new(1, 3.4, 1), CFrame = at(math.cos(a) * 3.8, H + 28.6, 6 + math.sin(a) * 3.8), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
-			part(crownFolder, { Name = "Gem", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.1, CFrame = at(math.cos(a) * 3.8, H + 30.6, 6 + math.sin(a) * 3.8), Color = theme, Material = Enum.Material.Neon })
+			part(crownFolder, { Name = "Spike", Size = Vector3.new(1, 3.4, 1), CFrame = at(math.cos(a) * 3.8, H + 38.6, 6 + math.sin(a) * 3.8), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
+			part(crownFolder, { Name = "Gem", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.1, CFrame = at(math.cos(a) * 3.8, H + 40.6, 6 + math.sin(a) * 3.8), Color = theme, Material = Enum.Material.Neon })
 		end
 		-- Spin around the crown's own upright axis.
-		crownFolder.WorldPivot = at(0, H + 28, 6)
+		crownFolder.WorldPivot = at(0, H + 38, 6)
 		CollectionService:AddTag(crownFolder, "Spin")
+	end
+
+	-- ===== The big building upgrades =====
+	local RY = H + 1.2 -- top of the roof
+	local muted = theme:Lerp(Color3.fromRGB(200, 200, 205), 0.45)
+	local function tree(x: number, z: number, y: number, s: number)
+		part(folder, { Name = "RoofTrunk", Size = Vector3.new(0.9, 4 * s, 0.9) , CFrame = at(x, y + 2 * s, z), Color = Color3.fromRGB(110, 75, 55), Material = Enum.Material.Wood })
+		part(folder, { Name = "RoofLeaves", Shape = Enum.PartType.Ball, Size = Vector3.one * 5 * s, CFrame = at(x, y + 4.6 * s, z), Color = Color3.fromRGB(90, 175, 90), Material = Enum.Material.Grass })
+	end
+
+	-- 2: a rooftop garden: lawns, planters, little trees and benches
+	if rebirths >= 2 then
+		for _, sx in { -1, 1 } do
+			part(folder, { Name = "RoofLawn", Size = Vector3.new(12, 0.3, 40), CFrame = at(sx * 25, RY + 0.15, 4), Color = Color3.fromRGB(100, 180, 90), Material = Enum.Material.Grass })
+			for _, z in { -10, 4, 18 } do
+				tree(sx * 28, z, RY + 0.3, 0.8)
+				part(folder, { Name = "RoofBench", Size = Vector3.new(1.4, 0.6, 4), CFrame = at(sx * 22, RY + 0.9, z + 6), Color = Color3.fromRGB(150, 100, 65), Material = Enum.Material.WoodPlanks })
+			end
+			part(folder, { Name = "Planter", Size = Vector3.new(2, 1.2, 40), CFrame = at(sx * 18.6, RY + 0.6, 4), Color = Color3.fromRGB(235, 232, 228), Material = Enum.Material.SmoothPlastic })
+			for z = -14, 22, 4 do
+				part(folder, { Name = "PlanterFlower", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.3, CFrame = at(sx * 18.6, RY + 1.5, z), Color = ({ Color3.fromRGB(255, 120, 160), Color3.fromRGB(255, 220, 90), Color3.fromRGB(180, 130, 255) })[(z // 4) % 3 + 1], Material = Enum.Material.SmoothPlastic })
+			end
+		end
+	end
+
+	-- 3: searchlights on the back corners of the roof, sweeping the sky
+	if rebirths >= 3 then
+		for _, sx in { -1, 1 } do
+			local rig = Instance.new("Model")
+			rig.Name = "Searchlight"
+			rig.Parent = folder
+			part(rig, { Name = "LightBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 4, 4), CFrame = at(sx * 29, RY + 0.7, 29) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(60, 60, 70), Material = Enum.Material.Metal })
+			local head = part(rig, { Name = "LightHead", Size = Vector3.new(2.6, 2.6, 3.4), CFrame = at(sx * 29, RY + 3, 29) * CFrame.Angles(math.rad(55), 0, 0), Color = Color3.fromRGB(70, 70, 80), Material = Enum.Material.Metal })
+			local lens = part(rig, { Name = "Lens", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 2.3, 2.3), CFrame = head.CFrame * CFrame.new(0, 0, -1.75) * CFrame.Angles(0, math.pi / 2, 0), Color = Color3.fromRGB(255, 250, 220), Material = Enum.Material.Neon })
+			local beam = part(rig, { Name = "LightBeam", Size = Vector3.new(2, 2, 70), CFrame = head.CFrame * CFrame.new(0, 0, -37), Color = Color3.fromRGB(255, 250, 220), Material = Enum.Material.Neon, Transparency = 0.85 })
+			beam.CanQuery = false
+			local sl = Instance.new("SpotLight")
+			sl.Range = 60
+			sl.Brightness = 3
+			sl.Angle = 25
+			sl.Face = Enum.NormalId.Left
+			sl.Parent = lens
+			rig.WorldPivot = at(sx * 29, RY, 29)
+			CollectionService:AddTag(rig, "Spin")
+		end
+	end
+
+	-- 5: an indoor fountain at the end of the red carpet
+	if rebirths >= 5 then
+		part(folder, { Name = "IndoorFountain", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 11, 11), CFrame = at(0, 0.7, HALF - 13) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(235, 232, 240), Material = Enum.Material.Marble })
+		part(folder, { Name = "IndoorWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 9.6, 9.6), CFrame = at(0, 1.35, HALF - 13) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(110, 190, 235), Material = Enum.Material.Glass, Transparency = 0.3 })
+		local spout = part(folder, { Name = "Spout", Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, 1.4, 1.4), CFrame = at(0, 2.6, HALF - 13) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+		local e = Instance.new("ParticleEmitter")
+		e.Color = ColorSequence.new(Color3.fromRGB(190, 230, 255))
+		e.Size = NumberSequence.new(0.4, 0.1)
+		e.Transparency = NumberSequence.new(0.2, 1)
+		e.Lifetime = NumberRange.new(0.9, 1.2)
+		e.Rate = 30
+		e.Speed = NumberRange.new(8, 10)
+		e.SpreadAngle = Vector2.new(15, 15)
+		e.Acceleration = Vector3.new(0, -25, 0)
+		e.EmissionDirection = Enum.NormalId.Right -- the cylinder's axis points up
+		e.Parent = spout
+	end
+
+	-- 7: a penthouse on the roof, so your base stands taller than everyone else's
+	if rebirths >= 7 then
+		local ph, pw, pd = 9, 26, 18
+		local base = RY
+		for _, w in {
+			{ Vector3.new(pw, ph, 1), Vector3.new(0, base + ph / 2, 14 + pd / 2) },
+			{ Vector3.new(1, ph, pd), Vector3.new(-pw / 2, base + ph / 2, 14) },
+			{ Vector3.new(1, ph, pd), Vector3.new(pw / 2, base + ph / 2, 14) },
+		} do
+			part(folder, { Name = "PenthouseWall", Size = w[1], CFrame = at(w[2].X, w[2].Y, w[2].Z), Color = muted, Material = Enum.Material.SmoothPlastic, CanCollide = true })
+		end
+		-- A glass front facing the street.
+		part(folder, { Name = "PenthouseGlass", Size = Vector3.new(pw, ph - 1, 0.4), CFrame = at(0, base + (ph - 1) / 2, 14 - pd / 2), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.45, CanCollide = true })
+		part(folder, { Name = "PenthouseRoof", Size = Vector3.new(pw + 3, 1, pd + 3), CFrame = at(0, base + ph + 0.5, 14), Color = theme:Lerp(Color3.fromRGB(60, 60, 70), 0.6), Material = Enum.Material.SmoothPlastic, CanCollide = true })
+		part(folder, { Name = "PenthouseTrim", Size = Vector3.new(pw + 3.2, 0.4, pd + 3.2), CFrame = at(0, base + ph + 1.1, 14), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+		local lamp = part(folder, { Name = "PenthouseLight", Size = Vector3.new(6, 0.3, 6), CFrame = at(0, base + ph - 0.2, 14), Color = Color3.fromRGB(255, 240, 210), Material = Enum.Material.Neon })
+		local pl = Instance.new("PointLight")
+		pl.Range = 18
+		pl.Brightness = 1
+		pl.Parent = lamp
+		part(folder, { Name = "PenthouseSofa", Size = Vector3.new(10, 1.6, 3), CFrame = at(0, base + 0.8, 20), Color = theme, Material = Enum.Material.Fabric })
+	end
+
+	-- 8: a VIP rope line down the red carpet
+	if rebirths >= 8 then
+		for _, x in { -7.6, 7.6 } do
+			for z = -HALF + 6, HALF - 20, 8 do
+				part(folder, { Name = "Stanchion", Size = Vector3.new(0.5, 3, 0.5), CFrame = at(x, 2, z), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+				part(folder, { Name = "StanchionTop", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(x, 3.6, z), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+				if z + 8 <= HALF - 20 then
+					part(folder, { Name = "Rope", Size = Vector3.new(0.3, 0.3, 8), CFrame = at(x, 2.8, z + 4), Color = Color3.fromRGB(170, 20, 40), Material = Enum.Material.Fabric })
+				end
+			end
+		end
+	end
+
+	-- 10: a helipad on the roof with a little slime copter
+	if rebirths >= 10 then
+		part(folder, { Name = "Helipad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 14, 14), CFrame = at(0, RY + 0.15, -18) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(70, 70, 80), Material = Enum.Material.Concrete })
+		part(folder, { Name = "HeliRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.32, 12.5, 12.5), CFrame = at(0, RY + 0.17, -18) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.SmoothPlastic })
+		part(folder, { Name = "HeliInner", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.34, 11, 11), CFrame = at(0, RY + 0.19, -18) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(70, 70, 80), Material = Enum.Material.Concrete })
+		for _, h in { { Vector3.new(1, 0.1, 5), Vector3.new(-1.6, 0, 0) }, { Vector3.new(1, 0.1, 5), Vector3.new(1.6, 0, 0) }, { Vector3.new(2.4, 0.1, 1), Vector3.new(0, 0, 0) } } do
+			part(folder, { Name = "HeliH", Size = h[1], CFrame = at(h[2].X, RY + 0.4, -18 + h[2].Z), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic })
+		end
+		local body = part(folder, { Name = "CopterBody", Shape = Enum.PartType.Ball, Size = Vector3.new(4.4, 3.6, 5), CFrame = at(0, RY + 3, -18), Color = theme, Material = Enum.Material.SmoothPlastic })
+		part(folder, { Name = "CopterTail", Size = Vector3.new(0.8, 0.8, 5), CFrame = body.CFrame * CFrame.new(0, 0.4, 4.4), Color = theme, Material = Enum.Material.SmoothPlastic })
+		for _, sx in { -1, 1 } do
+			part(folder, { Name = "CopterEye", Shape = Enum.PartType.Ball, Size = Vector3.new(0.7, 1, 0.4), CFrame = body.CFrame * CFrame.new(sx * 0.9, 0.3, -2.4), Color = Color3.fromRGB(30, 25, 30), Material = Enum.Material.SmoothPlastic })
+			part(folder, { Name = "CopterSkid", Size = Vector3.new(0.4, 0.4, 5), CFrame = body.CFrame * CFrame.new(sx * 1.6, -2, 0), Color = Color3.fromRGB(60, 60, 70), Material = Enum.Material.Metal })
+		end
+		local rotor = Instance.new("Model")
+		rotor.Name = "Rotor"
+		rotor.Parent = folder
+		part(rotor, { Name = "Blade", Size = Vector3.new(12, 0.2, 0.8), CFrame = body.CFrame * CFrame.new(0, 2.2, 0), Color = Color3.fromRGB(50, 50, 60), Material = Enum.Material.Metal })
+		part(rotor, { Name = "Blade", Size = Vector3.new(0.8, 0.2, 12), CFrame = body.CFrame * CFrame.new(0, 2.2, 0), Color = Color3.fromRGB(50, 50, 60), Material = Enum.Material.Metal })
+		rotor.WorldPivot = body.CFrame * CFrame.new(0, 2.2, 0)
+		CollectionService:AddTag(rotor, "Spin")
 	end
 
 	-- 20: the floor border glows in your colour

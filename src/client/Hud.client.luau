@@ -329,7 +329,7 @@ local rebirthInfo = text({
 	Position = UDim2.fromOffset(20, 70),
 	Size = UDim2.new(1, -40, 1, -170),
 	TextScaled = false,
-	TextSize = 20,
+	TextSize = 17,
 	TextWrapped = true,
 	TextYAlignment = Enum.TextYAlignment.Top,
 	Font = Enum.Font.GothamBold,
@@ -946,12 +946,12 @@ local side = new("Frame", {
 	Size = UDim2.fromOffset(208, 494),
 	BackgroundTransparency = 1,
 	Parent = gui,
-}, { new("UIGridLayout", { CellSize = UDim2.fromOffset(100, 62), CellPadding = UDim2.fromOffset(8, 10), SortOrder = Enum.SortOrder.LayoutOrder }) })
+}, { new("UIGridLayout", { CellSize = UDim2.fromOffset(100, 56), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 -- Shrink the side buttons on short screens so they never hit Roblox's top-left menu.
 local sideScale = new("UIScale", { Parent = side })
 local function fitSide()
 	local h = workspace.CurrentCamera.ViewportSize.Y
-	sideScale.Scale = math.clamp((h - 150) / 494, 0.5, 0.8)
+	sideScale.Scale = math.clamp((h - 150) / 494, 0.5, 0.75)
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitSide)
 fitSide()
@@ -992,6 +992,41 @@ local fuseBadge = makeBadge(fuseSideBtn)
 local badge = makeBadge(dailyBtn)
 local questBadge = makeBadge(questsBtn)
 local giftBadge = makeBadge(giftsBtn)
+do
+	-- Only the main buttons show by default; ➕ MORE opens the rest, so the screen stays clear.
+	-- The MORE button gets a badge whenever a hidden button has one.
+	local moreOpen = false
+	local moreBtn
+	moreBtn = button({ BackgroundColor3 = Color3.fromRGB(110, 100, 140), Text = "➕ MORE", LayoutOrder = 99, Parent = side }, function()
+		moreOpen = not moreOpen
+		moreBtn.Text = if moreOpen then "✖ LESS" else "➕ MORE"
+		for _, b in side:GetChildren() do
+			local order = if b:IsA("GuiObject") then b.LayoutOrder else 0
+			if b:IsA("GuiButton") and b ~= moreBtn and not table.find({ 1, 3, 5, 7, 8 }, order) then
+				b.Visible = moreOpen
+			end
+		end
+	end)
+	for _, b in side:GetChildren() do
+		if b:IsA("GuiButton") and b ~= moreBtn and not table.find({ 1, 3, 5, 7, 8 }, b.LayoutOrder) then
+			b.Visible = false
+		end
+	end
+	local moreBadge = makeBadge(moreBtn)
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local any = false
+			for _, b in side:GetChildren() do
+				local bd = b:IsA("GuiButton") and not b.Visible and b:FindFirstChildWhichIsA("Frame")
+				if bd and bd.Visible and bd.ZIndex == 3 then
+					any = true
+				end
+			end
+			moreBadge.Visible = any and not moreOpen
+		end
+	end)
+end
 task.spawn(function()
 	while true do
 		refreshGifts()
@@ -1062,13 +1097,15 @@ local function refresh()
 	incomeLabel.Text = "+" .. Util.Money(income) .. "/s  ·  Pens " .. count .. "/" .. slots .. extra
 	barFill.Size = UDim2.fromScale(math.clamp(cash / cost, 0, 1), 1)
 	rebirthInfo.Text = string.format(
-		"Rebirth %d → %d\n\nCost: %s\nYou have: %s\n\n✅ Keep: +%d%% income forever, +%d pen slots, your Slime Index\n❌ Lose: cash and slimes",
+		"Rebirth %d → %d\n\nCost: %s\nYou have: %s\n\n🎁 Prize: %s\n✅ Keep: +%d%% income forever, +%d pen slots, +%ds lock time, your Slime Index\n❌ Lose: cash and slimes",
 		rebirths,
 		rebirths + 1,
 		Util.Money(cost),
 		Util.Money(cash),
+		(Config.RebirthRewards[rebirths + 1] or Config.RebirthRewardDefault).label,
 		math.floor(Config.RebirthIncomeBonus * 100 * (rebirths + 1)),
-		Config.SlotsPerRebirth
+		Config.SlotsPerRebirth,
+		Config.RebirthLockBonus
 	)
 	for _, t in Config.BaseTiers do
 		if t.rebirth > rebirths then
@@ -1377,8 +1414,8 @@ end)
 do
 	-- ===== First-time guide: pinned goal + an arrow to the spot =====
 	local goal = new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 228),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -84), -- low on the screen, above the hotbar, so the view stays clear
 		Size = UDim2.new(0.9, 0, 0, 58),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Visible = false,
@@ -1417,8 +1454,8 @@ do
 		end
 		goalStep.Text = "🧭 GOAL " .. step .. " OF " .. #Config.Tutorial
 		goalText.Text = player:GetAttribute("TutorialText") or ""
-		goalScale.Scale = 0.7
-		TweenService:Create(goalScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		goalScale.Scale = 0.55
+		TweenService:Create(goalScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 0.75 }):Play()
 		if typeof(target) == "Vector3" then
 			marker.Position = target
 			marker.Parent = workspace

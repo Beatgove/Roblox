@@ -532,10 +532,115 @@ local function decorate(map: Folder)
 				Size = Vector3.one * rng:NextNumber(0.8, 1.6),
 				Position = pos,
 				Color = leafColors[rng:NextInteger(1, #leafColors)],
-				Material = Enum.Material.Neon,
+				Material = Enum.Material.SmoothPlastic,
 				CanCollide = false,
 			}).Parent = deco
 		end
+	end
+
+	-- ===== Scenery so the map doesn't feel empty =====
+	local stone = Color3.fromRGB(170, 165, 160)
+	local function flat(name: string, size: Vector3, pos: Vector3, color: Color3, material: Enum.Material)
+		part({ Name = name, Size = size, Position = pos, Color = color, Material = material, CanCollide = false, CastShadow = false }).Parent = deco
+	end
+	-- Sidewalks along both sides of the belt, and a stone path from the belt to every base door.
+	local beltLen = (MapBuilder.BeltEnd - MapBuilder.BeltStart).Magnitude
+	for _, side in { 1, -1 } do
+		flat("Sidewalk", Vector3.new(beltLen + 10, 0.12, 5), Vector3.new(0, 0.06, side * 15.5), stone, Enum.Material.Cobblestone)
+		flat("Curb", Vector3.new(beltLen + 10, 0.3, 0.6), Vector3.new(0, 0.15, side * 18.3), Color3.fromRGB(235, 232, 228), Enum.Material.SmoothPlastic)
+		for _, x in MapBuilder.PlotXs do
+			local from, to = 18, MapBuilder.PlotZ - MapBuilder.PlotSize / 2 - 0.5
+			flat("Path", Vector3.new(12, 0.1, to - from), Vector3.new(x, 0.05, side * (from + to) / 2), stone, Enum.Material.Cobblestone)
+			for _, dx in { -6.6, 6.6 } do
+				flat("PathEdge", Vector3.new(1.2, 0.2, to - from), Vector3.new(x + dx, 0.1, side * (from + to) / 2), Color3.fromRGB(235, 232, 228), Enum.Material.SmoothPlastic)
+				-- Flower beds lining the path.
+				for z = from + 4, to - 4, 6 do
+					part({ Name = "Shrub", Shape = Enum.PartType.Ball, Size = Vector3.one * rng:NextNumber(2.2, 3), Position = Vector3.new(x + dx * 1.35, 0.9, side * z),
+						Color = Color3.fromRGB(80, 170, 80), Material = Enum.Material.Grass }).Parent = deco
+					part({ Name = "Bloom", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, Position = Vector3.new(x + dx * 1.35, 2.1, side * z),
+						Color = leafColors[rng:NextInteger(1, #leafColors)], Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+				end
+			end
+		end
+	end
+
+	-- Two slime fountains in the open squares between the bases.
+	local function fountain(pos: Vector3, color: Color3)
+		part({ Name = "FountainBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 16, 16), CFrame = CFrame.new(pos + Vector3.new(0, 0.8, 0)) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(225, 222, 218), Material = Enum.Material.Slate }).Parent = deco
+		part({ Name = "FountainWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 14, 14), CFrame = CFrame.new(pos + Vector3.new(0, 1.55, 0)) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(110, 190, 230), Material = Enum.Material.Glass, Transparency = 0.3, CanCollide = false }).Parent = deco
+		part({ Name = "FountainColumn", Shape = Enum.PartType.Cylinder, Size = Vector3.new(5, 2, 2), CFrame = CFrame.new(pos + Vector3.new(0, 3, 0)) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(225, 222, 218), Material = Enum.Material.Slate }).Parent = deco
+		local slime = part({ Name = "FountainSlime", Shape = Enum.PartType.Ball, Size = Vector3.new(4, 3.4, 4), Position = pos + Vector3.new(0, 6.6, 0), Color = color, Material = Enum.Material.SmoothPlastic })
+		slime.Parent = deco
+		for _, sx in { -1, 1 } do
+			part({ Name = "FountainEye", Shape = Enum.PartType.Ball, Size = Vector3.new(0.6, 0.9, 0.4), Position = pos + Vector3.new(sx * 0.8, 7, -1.85), Color = Color3.fromRGB(30, 25, 30), Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+		end
+		local splash = Instance.new("ParticleEmitter")
+		splash.Color = ColorSequence.new(Color3.fromRGB(190, 230, 255))
+		splash.Size = NumberSequence.new(0.5, 0.1)
+		splash.Transparency = NumberSequence.new(0.2, 1)
+		splash.Lifetime = NumberRange.new(1, 1.4)
+		splash.Rate = 30
+		splash.Speed = NumberRange.new(9, 12)
+		splash.SpreadAngle = Vector2.new(18, 18)
+		splash.Acceleration = Vector3.new(0, -25, 0)
+		splash.EmissionDirection = Enum.NormalId.Top
+		splash.Parent = slime
+		for k = 0, 7 do
+			local a = k / 8 * math.pi * 2
+			part({ Name = "Bench", Size = Vector3.new(4, 0.5, 1.4), CFrame = CFrame.new(pos + Vector3.new(math.cos(a) * 12, 1.4, math.sin(a) * 12)) * CFrame.Angles(0, -a + math.pi / 2, 0), Color = Color3.fromRGB(150, 100, 65), Material = Enum.Material.WoodPlanks }).Parent = deco
+		end
+	end
+	fountain(Vector3.new(110, 0, 32), Color3.fromRGB(120, 220, 140))
+	fountain(Vector3.new(-110, 0, -32), Color3.fromRGB(255, 150, 200))
+
+	-- Giant slime mushrooms, rocks and pine trees behind the bases and round the edges.
+	local function mushroom(pos: Vector3, scale: number)
+		local h = 6 * scale
+		part({ Name = "Stem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, 2 * scale, 2 * scale), CFrame = CFrame.new(pos + Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(245, 235, 215), Material = Enum.Material.SmoothPlastic }).Parent = deco
+		local capColor = ({ Color3.fromRGB(230, 80, 90), Color3.fromRGB(160, 110, 230), Color3.fromRGB(90, 180, 230) })[rng:NextInteger(1, 3)]
+		part({ Name = "Cap", Shape = Enum.PartType.Ball, Size = Vector3.new(7, 3.4, 7) * scale, Position = pos + Vector3.new(0, h + 0.4 * scale, 0), Color = capColor, Material = Enum.Material.SmoothPlastic }).Parent = deco
+		for k = 1, 4 do
+			local a = k * 1.7
+			part({ Name = "Spot", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9 * scale, Position = pos + Vector3.new(math.cos(a) * 2 * scale, h + 1.6 * scale, math.sin(a) * 2 * scale), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = deco
+		end
+	end
+	local function rock(pos: Vector3)
+		local size = Vector3.new(rng:NextNumber(4, 9), rng:NextNumber(3, 6), rng:NextNumber(4, 8))
+		part({ Name = "Rock", Size = size, CFrame = CFrame.new(pos + Vector3.new(0, size.Y / 2 - 0.6, 0)) * CFrame.Angles(rng:NextNumber(-0.2, 0.2), rng:NextNumber(0, 6.28), rng:NextNumber(-0.2, 0.2)), Color = Color3.fromRGB(130, 128, 135), Material = Enum.Material.Slate }).Parent = deco
+	end
+	local function pine(pos: Vector3)
+		local h = rng:NextNumber(14, 22)
+		part({ Name = "Trunk", Size = Vector3.new(1.6, h * 0.4, 1.6), Position = pos + Vector3.new(0, h * 0.2, 0), Color = Color3.fromRGB(110, 75, 55), Material = Enum.Material.Wood }).Parent = deco
+		for k = 0, 2 do
+			local w = (3 - k) * 3.4
+			part({ Name = "PineLeaves", Shape = Enum.PartType.Ball, Size = Vector3.new(w, h * 0.32, w), Position = pos + Vector3.new(0, h * (0.38 + k * 0.2), 0), Color = Color3.fromRGB(50, 130, 80), Material = Enum.Material.Grass }).Parent = deco
+		end
+	end
+	local backZ = MapBuilder.PlotZ + MapBuilder.PlotSize / 2 + 12
+	for _, side in { 1, -1 } do
+		for x = -330, 330, 14 do
+			local z = side * (backZ + rng:NextNumber(0, 40))
+			local roll = rng:NextNumber()
+			if roll < 0.45 then
+				pine(Vector3.new(x + rng:NextNumber(-4, 4), 0, z))
+			elseif roll < 0.65 then
+				mushroom(Vector3.new(x, 0, z), rng:NextNumber(0.8, 1.6))
+			elseif roll < 0.85 then
+				rock(Vector3.new(x, 0, z))
+			end
+		end
+	end
+	-- Rolling hills around the edge of the map.
+	for k = 0, 47 do
+		local a = k / 48 * math.pi * 2
+		local pos = Vector3.new(math.cos(a) * 370, -6, math.sin(a) * 290)
+		local r = rng:NextNumber(50, 80)
+		part({ Name = "Hill", Shape = Enum.PartType.Ball, Size = Vector3.new(r, r * 0.6, r), Position = pos, Color = Color3.fromRGB(100, 175, 85):Lerp(Color3.fromRGB(80, 150, 90), rng:NextNumber()), Material = Enum.Material.Grass }).Parent = deco
+	end
+	-- A few mushrooms and rocks dotted round the squares near the belt.
+	for _, p in { Vector3.new(-110, 0, 30), Vector3.new(110, 0, -30), Vector3.new(-200, 0, 34), Vector3.new(200, 0, -34), Vector3.new(0, 0, -40) } do
+		mushroom(p, 0.9)
+		rock(p + Vector3.new(7, 0, 3))
 	end
 end
 
@@ -812,7 +917,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 
 	-- The owner's name and avatar floating high above the roof, readable from across the map
 	-- (like Steal a Brainrot). "Sign" is an invisible anchor; PlotService fills in OwnerGui.
-	local sign = part({ Name = "Sign", Size = Vector3.one, CFrame = cf * CFrame.new(0, H + 16, 0), Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false })
+	local sign = part({ Name = "Sign", Size = Vector3.one, CFrame = cf * CFrame.new(0, H + 24, 0), Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false })
 	sign.Parent = plot
 	local board = Instance.new("BillboardGui")
 	board.Name = "OwnerGui"

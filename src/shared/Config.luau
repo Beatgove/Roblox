@@ -331,20 +331,41 @@ Config.Titles = {
 -- ===== Base looks: what each rebirth adds to your base (cumulative, see BaseDecor) =====
 Config.BaseTiers = {
 	{ rebirth = 1, name = "Stone floor and wall caps" },
-	{ rebirth = 2, name = "Flower boxes" },
-	{ rebirth = 3, name = "Glowing lanterns" },
+	{ rebirth = 2, name = "Rooftop garden and flower boxes" },
+	{ rebirth = 3, name = "Sweeping searchlights and lanterns" },
 	{ rebirth = 4, name = "Grand entrance gate" },
-	{ rebirth = 5, name = "Crystal clusters" },
+	{ rebirth = 5, name = "Indoor fountain and crystals" },
 	{ rebirth = 6, name = "Marble and gold" },
-	{ rebirth = 7, name = "Fireflies" },
-	{ rebirth = 8, name = "Royal banners" },
+	{ rebirth = 7, name = "A penthouse on your roof" },
+	{ rebirth = 8, name = "VIP rope line and royal banners" },
 	{ rebirth = 9, name = "Party lights over the entrance" },
-	{ rebirth = 10, name = "Sparkling aura" },
+	{ rebirth = 10, name = "Helipad with a slime copter" },
 	{ rebirth = 12, name = "Golden slime statue" },
 	{ rebirth = 15, name = "Floating crown" },
 	{ rebirth = 20, name = "Glowing floor" },
 	{ rebirth = 25, name = "Rainbow trim" },
 }
+
+-- ===== Rebirth rewards: a prize the moment you rebirth, on top of the base upgrade =====
+-- Uses the Rewards.Grant fields. Every rebirth also adds Config.RebirthLockBonus seconds of lock time.
+Config.RebirthLockBonus = 10
+Config.RebirthRewards = {
+	[1] = { label = "Lucky roll + 15 min 5x Luck", freeRoll = true, rollLuck = 5, luckMinutes = 15 },
+	[2] = { label = "Frosty (Rare) + 3 snacks", slime = "Frosty", snacks = 3 },
+	[3] = { label = "Galaxy (Epic) + a relic", slime = "Galaxy", relic = true },
+	[4] = { label = "Ninja (Epic) + 30 min 5x Luck", slime = "Ninja", luckMinutes = 30 },
+	[5] = { label = "Golden (Legendary)", slime = "Golden" },
+	[6] = { label = "Rainbow (Legendary) + a relic", slime = "Rainbow", relic = true },
+	[7] = { label = "Dragon (Legendary) + 5 snacks", slime = "Dragon", snacks = 5 },
+	[8] = { label = "Void (Mythic)", slime = "Void" },
+	[9] = { label = "Angel (Mythic) + a relic", slime = "Angel", relic = true },
+	[10] = { label = "Phoenix (Mythic) + 60 min 5x Luck", slime = "Phoenix", luckMinutes = 60 },
+	[12] = { label = "Cosmic (Divine)", slime = "Cosmic" },
+	[15] = { label = "Titan (Divine) + a relic", slime = "Titan", relic = true },
+	[20] = { label = "Celestial (Divine)", slime = "Celestial" },
+}
+-- Rebirths without their own prize get a super-lucky roll.
+Config.RebirthRewardDefault = { label = "Super lucky roll + 30 min 5x Luck", freeRoll = true, rollLuck = 15, luckMinutes = 30 }
 
 -- ===== Standout systems (from player feedback on steal games) =====
 -- Squirm: stolen slimes are slippery. While carried, they try to wriggle free and the thief
