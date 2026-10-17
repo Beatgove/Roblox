@@ -28,6 +28,7 @@ local IndexService = require(Services.IndexService)
 local LevelService = require(Services.LevelService)
 local FuseService = require(Services.FuseService)
 local BountyService = require(Services.BountyService)
+local NemesisService = require(Services.NemesisService)
 local BossService = require(Services.BossService)
 
 local plots = MapBuilder.Build()
@@ -51,6 +52,7 @@ IndexService.Start()
 LevelService.Start()
 FuseService.Start()
 BountyService.Start()
+NemesisService.Start()
 BossService.Start()
 require(Services.DebugService).Start({
 	DataService = DataService,

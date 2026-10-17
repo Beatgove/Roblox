@@ -591,6 +591,25 @@ handlers.revenge = function(d)
 	flash(Color3.fromRGB(255, 70, 70), 0.35, 0.5)
 	announce("REVENGE!", Color3.fromRGB(255, 80, 80), "Go steal one back from " .. d.name .. ". Their shield can't stop you!", nil, 3)
 end
+handlers.nemesis = function(d)
+	flash(Color3.fromRGB(150, 40, 200), 0.4, 0.6)
+	shake(1)
+	sound("Whoosh", 0.4, 1)
+	announce("☠️ NEMESIS!", Color3.fromRGB(200, 90, 255), d.name .. " robbed you twice. You're faster near them and their bounty pays +50%.", nil, 3.5)
+end
+handlers.avenged = function(d)
+	local mine = d.id == Players.LocalPlayer.UserId
+	if mine then
+		confetti(120)
+		flash(Color3.fromRGB(255, 215, 60), 0.4, 0.6)
+		announce("AVENGED!", Color3.fromRGB(255, 215, 60), "You got even with " .. d.on .. "!", nil, 3)
+		sound("Ping", 0.9, 0.9)
+		task.delay(0.15, sound, "Ping", 1.2, 0.9)
+		task.delay(0.3, sound, "Ping", 1.5, 0.9)
+	else
+		sound("Ping", 1.4, 0.4)
+	end
+end
 handlers.bounty = function(d)
 	confetti(60)
 	announce("BOUNTY!", Color3.fromRGB(255, 215, 60), "+" .. Util.Money(d.amount), nil, 1.6)

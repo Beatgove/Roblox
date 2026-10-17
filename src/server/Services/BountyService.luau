@@ -9,6 +9,7 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local Signals = require(script.Parent.Signals)
 local Net = require(script.Parent.Net)
+local NemesisService = require(script.Parent.NemesisService)
 
 local BountyService = {}
 
@@ -81,6 +82,12 @@ function BountyService.Claim(attacker: Player, target: Player)
 	-- Paid out of the thief's own cash, so bounties never create money (no farming with a friend).
 	local thiefData = DataService.Get(target)
 	local cap = math.max(Config.BountyMinPayout, PlotService.IncomePerSecond(attacker) * Config.BountyMaxIncomeSeconds)
+	-- Busting your Nemesis pays +50% (still out of their pocket).
+	local isNemesis = NemesisService.Is(attacker, target)
+	if isNemesis then
+		amount *= Config.Nemesis.bountyMult
+		cap *= Config.Nemesis.bountyMult
+	end
 	local paid = math.floor(math.min(amount, cap, if thiefData then thiefData.cash else 0))
 	bounties[target] = nil
 	updateTag(target)
@@ -95,7 +102,7 @@ function BountyService.Claim(attacker: Player, target: Player)
 	PlotService.AddCash(attacker, paid)
 	Signals.Progress(attacker, "bounty")
 	Net.Fx(attacker, "bounty", { amount = paid })
-	Net.Notify(attacker, "💰 BOUNTY CLAIMED on " .. target.DisplayName .. "! +" .. Util.Money(paid), "epic")
+	Net.Notify(attacker, "💰 BOUNTY CLAIMED on " .. (if isNemesis then "your Nemesis " else "") .. target.DisplayName .. "! +" .. Util.Money(paid), "epic")
 	Net.Notify(target, attacker.DisplayName .. " claimed the bounty on your head!", "bad")
 	if paid >= 10000 then
 		Net.NotifyAll("💰 " .. attacker.DisplayName .. " collected a " .. Util.Money(paid) .. " bounty on " .. target.DisplayName .. "!", "epic")

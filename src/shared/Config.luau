@@ -152,7 +152,7 @@ end
 
 -- ===== Player level =====
 -- XP for doing things. Levels give cash, every 5 levels gives luck, and titles show over your head.
-Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30, boss = 40, bounty = 30 }
+Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30, boss = 40, bounty = 30, avenge = 80 }
 Config.XPPerCollect = 1 / 500 -- plus 1 XP per $500 collected (capped per collect)
 function Config.XPForLevel(level: number): number
 	return math.floor(80 * level ^ 1.45)
@@ -191,6 +191,8 @@ end
 -- Revenge: after you're robbed, the thief's shield can't stop you for a while, you carry at
 -- full speed when stealing from them, and they glow for you.
 Config.RevengeSeconds = 90
+-- Nemesis: steals from the same thief before they become your Nemesis.
+Config.Nemesis = { steals = 2, chaseRange = 70, chaseSpeed = 1.2, bountyMult = 1.5 }
 -- Bounty: every steal puts a bounty on the thief. Slap, zap or trap them to cash it in.
 Config.BountyShare = 0.25 -- of the stolen slime's sell value
 Config.BountyMaxIncomeSeconds = 600 -- a claim pays at most this many seconds of the claimer's income

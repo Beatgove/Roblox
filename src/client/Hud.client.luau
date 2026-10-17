@@ -184,6 +184,7 @@ local kingChip, kingLabel = chip(Color3.fromRGB(110, 210, 80))
 local revengeChip, revengeLabel = chip(Color3.fromRGB(220, 50, 50))
 local bountyChip, bountyLabel = chip(Color3.fromRGB(230, 170, 30))
 local rookieChip, rookieLabel = chip(Color3.fromRGB(255, 200, 90))
+local nemesisChip, nemesisLabel = chip(Color3.fromRGB(140, 50, 200))
 
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
@@ -898,6 +899,28 @@ local function updateRevengeGlow(active: boolean)
 	end
 end
 
+-- Nemesis: a purple skull over the player who keeps robbing you (only on your screen).
+local nemesisMark: BillboardGui? = nil
+local function updateNemesisMark()
+	local target = Players:GetPlayerByUserId(player:GetAttribute("NemesisUserId") or 0)
+	local head = target and target.Character and target.Character:FindFirstChild("Head")
+	if head then
+		if not nemesisMark or nemesisMark.Adornee ~= head then
+			if nemesisMark then
+				nemesisMark:Destroy()
+			end
+			local mark = new("BillboardGui", { Name = "NemesisMark", Size = UDim2.fromOffset(150, 64), StudsOffset = Vector3.new(0, 11, 0), AlwaysOnTop = true, Parent = gui })
+			mark.Adornee = head
+			text({ Size = UDim2.fromScale(1, 0.62), Text = "☠️", Parent = mark })
+			text({ Position = UDim2.fromScale(0, 0.6), Size = UDim2.fromScale(1, 0.4), Text = "NEMESIS", TextColor3 = Color3.fromRGB(210, 120, 255), Parent = mark })
+			nemesisMark = mark
+		end
+	elseif nemesisMark then
+		nemesisMark:Destroy()
+		nemesisMark = nil
+	end
+end
+
 -- Squirm: when a stolen slime wriggles, tap HOLD ON in time or it slips away.
 local squirmBtn
 local squirmToken = 0
@@ -976,6 +999,10 @@ task.spawn(function()
 		rookieChip.Visible = player:GetAttribute("Rookie") == true
 		rookieLabel.Text = "🐣 ROOKIE SHIELD"
 		updateRevengeGlow(revengeLeft > 0)
+		local nemesisName = player:GetAttribute("NemesisName")
+		nemesisChip.Visible = nemesisName ~= nil
+		nemesisLabel.Text = "☠️ " .. (nemesisName or "") .. (if player:GetAttribute("NemesisNear") then " · ⚡ CHASE" else "")
+		updateNemesisMark()
 		if rainLeft > 0 then
 			banner.Visible = true
 			bannerText.Text = rainMsg

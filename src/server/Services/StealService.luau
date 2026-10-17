@@ -13,6 +13,7 @@ local SlimeModel = require(script.Parent.SlimeModel)
 local Net = require(script.Parent.Net)
 local Signals = require(script.Parent.Signals)
 local BountyService = require(script.Parent.BountyService)
+local NemesisService = require(script.Parent.NemesisService)
 
 local StealService = {}
 
@@ -284,6 +285,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				BountyService.Add(thief, PlotService.SellValue(slime) * Config.BountyShare)
 			end
 			if victim.Parent then
+				NemesisService.Record(victim, thief)
 				Net.Notify(victim, thief.DisplayName .. " stole your " .. name .. (if isRevenge then " back!" else ". REVENGE: their shield can't stop you for " .. Util.Duration(Config.RevengeSeconds) .. "!"), "bad")
 				Net.Fx(victim, "stolen", {})
 				if not isRevenge then
