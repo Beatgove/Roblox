@@ -1,5 +1,5 @@
 -- Grants a reward table shared by gifts, quests and daily rewards:
--- { cashSeconds, cashMin, luckMinutes, grow, slime, freeRoll, rollLuck }.
+-- { cashSeconds, cashMin, luckMinutes, grow, slime, freeRoll, rollLuck, snacks, relic }.
 -- Returns a short text describing what was given.
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
@@ -7,6 +7,8 @@ local Util = require(game.ReplicatedStorage.Shared.Util)
 local PlotService = require(script.Parent.PlotService)
 local DispenserService = require(script.Parent.DispenserService)
 local Net = require(script.Parent.Net)
+local SnackService = require(script.Parent.SnackService)
+local RelicService = require(script.Parent.RelicService)
 
 local Rewards = {}
 
@@ -43,6 +45,18 @@ function Rewards.Grant(player: Player, reward): string
 			PlotService.AddCash(player, amount)
 			table.insert(parts, "+" .. Util.Money(amount) .. " (pens full)")
 		end
+	end
+	if reward.snacks then
+		for _ = 1, reward.snacks do
+			local k = SnackService.Give(player, nil, 1, true)
+			if k then
+				table.insert(parts, Config.Snacks[k].icon .. " " .. k .. " snack")
+			end
+		end
+	end
+	if reward.relic then
+		RelicService.Give(player, nil, reward.source)
+		table.insert(parts, "a 🔮 relic")
 	end
 	return table.concat(parts, " + ")
 end

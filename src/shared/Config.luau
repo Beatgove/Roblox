@@ -150,6 +150,36 @@ function Config.DietMult(diet: string?): number
 	return if s then s.mult else 1
 end
 
+-- ===== Mini games (things to do while you wait for that one slime) =====
+-- Rewards scale with your income so they stay worth it, but pay about what your base
+-- earns in the same time (on top of it), so they're a bonus, not a replacement.
+Config.Fishing = {
+	pos = Vector3.new(228, 0, -42), radius = 17,
+	biteMin = 2, biteMax = 6, reelWindow = 1.1,
+	-- weight = chance share. Shown on the board by the pond.
+	loot = {
+		{ label = "Cash", weight = 55, reward = { cashSeconds = 6, cashMin = 40 } },
+		{ label = "Snack", weight = 24, reward = { snacks = 1 } },
+		{ label = "Big Cash", weight = 9, reward = { cashSeconds = 30, cashMin = 200 } },
+		{ label = "5 min 5x Luck", weight = 8, reward = { luckMinutes = 5 } },
+		{ label = "Free Slime Roll", weight = 3, reward = { freeRoll = true } },
+		{ label = "Relic", weight = 1, reward = { relic = true, source = "the Goo Pond" } },
+	},
+}
+Config.Arcade = {
+	pos = Vector3.new(228, 0, 44), seconds = 30, holes = 9,
+	upStart = 1.1, upEnd = 0.55, -- how long a slime stays up, start -> end of round
+	goldenChance = 0.1, bombChance = 0.12,
+	cashPerPoint = 0.8, minPerPoint = 25, -- reward = max(score x min, income x score x cashPerPoint)
+	snackAt = 20, luckAt = 30,
+}
+Config.Tower = {
+	pos = Vector3.new(-232, 0, 0), steps = 38, radius = 17, rise = 3.1, turn = math.rad(24),
+	cooldownSeconds = 15 * 60,
+	reward = { cashSeconds = 180, cashMin = 1000, snacks = 2 },
+	relicChance = 0.1,
+}
+
 -- ===== Base Relics (Balatro jokers / Hades boons) =====
 -- Rule-changing charms. Equip up to RelicSlots. They drop from the King Slime, bounties,
 -- quests and Index milestones, and they reset when you rebirth, so every run plays a bit
@@ -247,7 +277,7 @@ end
 
 -- ===== Player level =====
 -- XP for doing things. Levels give cash, every 5 levels gives luck, and titles show over your head.
-Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30, boss = 40, bounty = 30, avenge = 80, evolve = 50 }
+Config.XP = { buy = 5, roll = 6, collect = 0, merge = 25, steal = 40, slap = 2, gift = 10, quest = 60, fuse = 30, boss = 40, bounty = 30, avenge = 80, evolve = 50, minigame = 8 }
 Config.XPPerCollect = 1 / 500 -- plus 1 XP per $500 collected (capped per collect)
 function Config.XPForLevel(level: number): number
 	return math.floor(80 * level ^ 1.45)
@@ -378,6 +408,7 @@ Config.QuestPool = {
 	{ kind = "bounty", goal = 1, text = "Claim %d bounty on a thief" },
 	{ kind = "boss", goal = 1, text = "Help beat the King Slime %d time" },
 	{ kind = "evolve", goal = 1, text = "Evolve %d slime with snacks" },
+	{ kind = "minigame", goal = 3, text = "Play %d mini games (fishing, arcade, tower)" },
 }
 Config.QuestReward = { cashSeconds = 300, cashMin = 1500, luckMinutes = 5 }
 Config.AllQuestsBonus = { cashSeconds = 900, cashMin = 5000, luckMinutes = 15 }

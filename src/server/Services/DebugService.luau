@@ -1,6 +1,6 @@
 -- Studio-only test hooks. In a Play test, run from the command bar (Server view):
 --   game.ServerStorage.Debug:Invoke("king")
--- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | slime Id | snacks N | feed Slot | blackout | relic [Key]
+-- Commands: king | cash N | rebirth N | xp N | event Key | fuse | bounty N | gift | slimes N | slime Id | snacks N | feed Slot | blackout | relic [Key] | arcade | tower
 -- Never exists in live servers.
 
 local Players = game:GetService("Players")
@@ -56,6 +56,10 @@ function DebugService.Start(services)
 			for _, key in Config.SnackOrder do
 				services.SnackService.Give(player, key, n or 5, true)
 			end
+		elseif cmd == "arcade" then
+			services.ArcadeService.PlayAny(player)
+		elseif cmd == "tower" then
+			data.towerAt = 0
 		elseif cmd == "relic" then
 			services.RelicService.Give(player, arg, "debug")
 		elseif cmd == "blackout" then

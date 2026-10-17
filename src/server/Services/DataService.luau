@@ -44,6 +44,7 @@ local function defaultData()
 		fuse = { active = false }, -- Fuse Machine job: { active, endsAt, result = slime table }
 		indexRewards = {},
 		snacks = {}, -- snack key -> count owned
+		towerAt = 0, -- os.time() of the last Sky Tower prize
 		relics = {}, -- equipped relic keys (up to Config.RelicSlots), reset on rebirth
 		relicBag = {}, -- relic key -> true, owned this run
 		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true

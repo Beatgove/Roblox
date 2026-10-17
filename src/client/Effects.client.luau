@@ -599,6 +599,85 @@ handlers.relic = function(d)
 	task.delay(0.2, sound, "Ping", 1.1, 0.9)
 end
 
+-- ===== Mini games =====
+handlers.fishCast = function(d)
+	burst(d.pos, Color3.fromRGB(150, 255, 180), 10, { speed = 6 })
+	sound("Snap", 1.6, 0.4, d.pos)
+end
+handlers.fishBite = function(d)
+	burst(d.pos, Color3.fromRGB(150, 255, 180), 24, { speed = 12 })
+	ring(d.pos, Color3.fromRGB(150, 255, 180), 6)
+	sound("Ping", 1.5, 0.8)
+end
+handlers.fishCatch = function(d)
+	if d.pos then
+		burst(d.pos + Vector3.new(0, 2, 0), Color3.fromRGB(150, 255, 180), 40, { speed = 18 })
+		popText(d.pos + Vector3.new(0, 5, 0), "🎣 " .. d.label .. "!", Color3.fromRGB(150, 255, 180))
+	end
+	if d.rare then
+		confetti(80)
+		announce("🎣 BIG CATCH!", Color3.fromRGB(150, 255, 180), d.text, nil, 2.5)
+	else
+		announce("🎣 CAUGHT!", Color3.fromRGB(150, 255, 180), d.text, nil, 1.4)
+	end
+	sound("Ping", 1.2, 0.8)
+end
+handlers.fishMiss = function()
+	announce("It got away!", Color3.fromRGB(200, 200, 220), "Wait for the bite, then tap REEL fast.", nil, 1.4)
+	sound("Oof", 1.1, 0.4)
+end
+handlers.arcadeStart = function()
+	announce("🔨 WHACK!", Color3.fromRGB(255, 140, 210), "Click or tap the slimes. Golden = 3, bombs = -2!", nil, 2)
+	sound("Ping", 1, 0.8)
+end
+handlers.whack = function(d)
+	burst(d.pos, d.color, 14, { speed = 12 })
+	popText(d.pos + Vector3.new(0, 2, 0), (if d.points > 0 then "+" else "") .. d.points, if d.points > 0 then Color3.fromRGB(255, 230, 120) else Color3.fromRGB(255, 80, 80))
+	sound(if d.points > 0 then "Snap" else "Oof", if d.points > 1 then 1.8 else 1.3, 0.6)
+end
+handlers.arcadeEnd = function(d)
+	if d.record then
+		confetti(100)
+	end
+	announce("🔨 SCORE " .. d.score .. (if d.record then " · RECORD!" else ""), Color3.fromRGB(255, 140, 210), d.text, nil, 2.5)
+	sound("Ping", 1.3, 0.8)
+end
+handlers.towerStart = function()
+	announce("🗼 GO!", Color3.fromRGB(180, 150, 255), "Climb to the chest at the top!", nil, 1.5)
+	sound("Ping", 1.4, 0.7)
+end
+handlers.towerWin = function(d)
+	confetti(120)
+	flash(Color3.fromRGB(255, 230, 140), 0.4, 0.6)
+	announce(string.format("🗼 TOP! %.1fs", d.seconds) .. (if d.record then " · RECORD!" else ""), Color3.fromRGB(255, 220, 120), d.text, nil, 3)
+	burst(d.pos, Color3.fromRGB(255, 220, 120), 80, { speed = 24 })
+	sound("Ping", 0.9, 0.9)
+	task.delay(0.15, sound, "Ping", 1.2, 0.9)
+end
+-- Bounce pads on the Sky Tower: launch upward when you land on one.
+local lastBounce = 0
+local function hookBounce(pad: Instance)
+	if not pad:IsA("BasePart") then
+		return
+	end
+	local bp = pad :: BasePart
+	bp.Touched:Connect(function(hit)
+		local char = Players.LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root and hit:IsDescendantOf(char) and os.clock() - lastBounce > 0.6 then
+			lastBounce = os.clock()
+			local v = root.AssemblyLinearVelocity
+			root.AssemblyLinearVelocity = Vector3.new(v.X, 82, v.Z)
+			sound("Jump", 1.3, 0.8)
+			burst(bp.Position + Vector3.new(0, 1, 0), Color3.fromRGB(255, 80, 200), 20, { speed = 14 })
+		end
+	end)
+end
+for _, p in CollectionService:GetTagged("BouncePad") do
+	hookBounce(p)
+end
+CollectionService:GetInstanceAddedSignal("BouncePad"):Connect(hookBounce)
+
 -- Slime Snacks
 handlers.snack = function(d)
 	sound("Ping", 1.8, 0.5)

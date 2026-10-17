@@ -474,6 +474,13 @@ local function decorate(map: Folder)
 		lamp(Vector3.new(x, 0, 12), Color3.fromRGB(255, 220, 140))
 		lamp(Vector3.new(x, 0, -12), Color3.fromRGB(255, 220, 140))
 	end
+	-- Signposts at both ends of the street pointing to the mini games.
+	for _, s in { { x = 182, text = "THIS WAY: 🎣 GOO POND · 🔨 ARCADE", face = Enum.NormalId.Left }, { x = -182, text = "THIS WAY: 🗼 SKY TOWER", face = Enum.NormalId.Right } } do
+		local board = part({ Name = "FunSign", Size = Vector3.new(0.6, 5, 16), Position = Vector3.new(s.x, 9, -18), Color = Color3.fromRGB(60, 40, 100), Material = Enum.Material.WoodPlanks })
+		board.Parent = deco
+		part({ Name = "FunSignPost", Size = Vector3.new(0.8, 7, 0.8), Position = Vector3.new(s.x, 3.5, -18), Color = Color3.fromRGB(110, 75, 50), Material = Enum.Material.Wood }).Parent = deco
+		signGui(board, s.face, s.text, "FunText")
+	end
 	-- Gardens in the gaps between neighbouring bases: a tree, bushes and a lamp.
 	local bushColors = { Color3.fromRGB(80, 180, 80), Color3.fromRGB(100, 200, 90), Color3.fromRGB(70, 160, 100) }
 	for _, side in { 1, -1 } do
@@ -497,7 +504,8 @@ local function decorate(map: Folder)
 	end
 	-- Trees around the outside of the map.
 	for _ = 1, 56 do
-		local side = rng:NextInteger(1, 4)
+		-- Ends of the map (|x| > 182) hold the mini games, so trees go above and below them.
+		local side = rng:NextInteger(1, 2)
 		local pos
 		if side == 1 then
 			pos = Vector3.new(rng:NextNumber(-260, 260), 0, rng:NextNumber(110, 185))

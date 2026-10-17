@@ -11,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Util = require(ReplicatedStorage.Shared.Util)
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "HoldTight", "BuySnack", "PickSnack", "EquipRelic", "UnequipRelic", "Fx" } do
+for _, name in { "Notify", "Rebirth", "Banner", "RedeemCode", "ClaimDaily", "BuyGear", "ClaimGift", "ClaimQuest", "BuyUpgrade", "FuseStart", "FuseClaim", "HoldTight", "BuySnack", "PickSnack", "EquipRelic", "UnequipRelic", "Reel", "Fx" } do
 	Remotes:WaitForChild(name)
 end
 
@@ -186,6 +186,8 @@ local bountyChip, bountyLabel = chip(Color3.fromRGB(230, 170, 30))
 local rookieChip, rookieLabel = chip(Color3.fromRGB(255, 200, 90))
 local nemesisChip, nemesisLabel = chip(Color3.fromRGB(140, 50, 200))
 local blackoutChip, blackoutLabel = chip(Color3.fromRGB(50, 40, 110))
+local arcadeChip, arcadeLabel = chip(Color3.fromRGB(255, 120, 200))
+local towerChip, towerLabel = chip(Color3.fromRGB(150, 120, 255))
 
 -- ===== Banner (Slime Rain) =====
 local banner = new("Frame", {
@@ -1060,6 +1062,40 @@ Remotes.Fx.OnClientEvent:Connect(function(kind, d)
 	end
 end)
 
+-- Fishing: REEL! when the bobber dips.
+local reelBtn
+local reelToken = 0
+local function doReel()
+	if reelBtn.Visible then
+		reelBtn.Visible = false
+		Remotes.Reel:FireServer(reelToken)
+	end
+end
+reelBtn = button({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.62), Size = UDim2.fromOffset(260, 90), BackgroundColor3 = Color3.fromRGB(90, 220, 140), Text = "🎣 REEL! (F)", Visible = false, ZIndex = 5, Parent = gui }, doReel)
+local reelBar = new("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -8), Size = UDim2.new(0.8, 0, 0, 8), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 6, Parent = reelBtn }, { corner(4) })
+game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+	if not processed and (input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonX) then
+		doReel()
+	end
+end)
+Remotes.Fx.OnClientEvent:Connect(function(kind, d)
+	if kind == "fishBite" then
+		reelToken = d.token
+		reelBar.Size = UDim2.new(0.8, 0, 0, 8)
+		TweenService:Create(reelBar, TweenInfo.new(d.window, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 0, 8) }):Play()
+		reelBtn.Position = UDim2.fromScale(0.4 + math.random() * 0.2, 0.58 + math.random() * 0.1)
+		reelBtn.Visible = true
+		local token = d.token
+		task.delay(d.window, function()
+			if reelToken == token then
+				reelBtn.Visible = false
+			end
+		end)
+	elseif kind == "fishMiss" or kind == "fishCatch" then
+		reelBtn.Visible = false
+	end
+end)
+
 local rainEndsAt = 0
 local rainMsg = ""
 task.spawn(function()
@@ -1104,6 +1140,12 @@ task.spawn(function()
 		local blackoutLeft = (workspace:GetAttribute("BlackoutUntil") or 0) - nowT
 		blackoutChip.Visible = blackoutLeft > 0
 		blackoutLabel.Text = "🌑 BLACKOUT " .. Util.Duration(math.max(blackoutLeft, 0))
+		local arcadeLeft = (player:GetAttribute("ArcadeUntil") or 0) - nowT
+		arcadeChip.Visible = arcadeLeft > 0
+		arcadeLabel.Text = "🔨 SCORE " .. (player:GetAttribute("ArcadeScore") or 0) .. " · " .. math.ceil(math.max(arcadeLeft, 0)) .. "s"
+		local towerStart = player:GetAttribute("TowerStart")
+		towerChip.Visible = towerStart ~= nil
+		towerLabel.Text = string.format("🗼 CLIMB %.1fs", if towerStart then nowT - towerStart else 0)
 		local nemesisName = player:GetAttribute("NemesisName")
 		nemesisChip.Visible = nemesisName ~= nil
 		nemesisLabel.Text = "☠️ " .. (nemesisName or "") .. (if player:GetAttribute("NemesisNear") then " · ⚡ CHASE" else "")
@@ -1186,6 +1228,7 @@ local tips = {
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
 	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",
+	"Waiting for a rare slime? Go fishing at the 🎣 Goo Pond, play 🔨 Whack-a-Slime or climb the 🗼 Sky Tower!",
 	"Equip 🔮 RELICS for combos: lots of Commons + Common Crowd = big income!",
 	"During a 🌑 BLACKOUT base locks stop working. Raid in the dark, but avoid the Gloom!",
 	"Feed 5 of the same 🍽️ SNACK to a slime and it evolves into a new form that earns way more!",
