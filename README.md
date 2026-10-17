@@ -43,6 +43,9 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - ⛈️ Weekly Slime Storm: every Wednesday 23:00 UTC and Saturday 17:00 UTC (7 PM / 1 PM US Eastern), on every server at once, for 20 minutes. Storm-only slimes (Stormy, Thunderbolt, Tempest), 3x luck, 2x cash, ⚡ Charged trait strikes (x5), Storm Crates in the street, the King Slime, rain and lightning. Warnings at 10, 5 and 1 minute, and a countdown chip in the HUD. Change the times in `Config.Storm`.
 - First-time guide: new players get 3 pinned goals with a glowing arrow (buy a slime, collect cash, lock the base), then a free roll. Tips after that come one at a time.
 - 🌟 Slime Season: a free 30-tier reward track every calendar month (UTC). Season XP comes from quests, bounties, the King, mini games, steals, rebirths and more; tiers pay cash, luck, snacks, lucky rolls and relics, and tier 30 is the exclusive Starling slime. Tune it in `Config.Season`.
+- Bases look like little slime castles: two towers with glowing windows, stacked roofs and flags, side banners, round marble pens with a neon rim in the slime's rarity colour, and the owner's avatar on the sign. Locking the base switches on red laser bars across the front. Towers turn marble at Rebirth 5 and get golden roofs at Rebirth 10.
+- Steal alerts: someone walking into your base pings you (👀 INTRUDER). While a thief runs off with your slime, your tower sirens spin, the thief glows red through walls for you, a red trail points at them and a chip shows how far away they are.
+- 📱 Phone alerts: when someone steals from you, Roblox can send a notification to your phone ("Bob stole your Dragon! Get it back..."). Players are offered this the first time they're robbed. Needs a one-time setup after publishing, see step 3b below.
 - Friends: 💌 INVITE button opens Roblox's invite screen.
 - Save safety: each save is locked to one server, so fast rejoins and server hops can't lose or duplicate slimes.
 - Analytics: onboarding funnel (joined, bought, collected, locked, done) and events for steals, rebirths, mini games, the King, fusing and evolving. See them in Creator Hub > Analytics once the game is live.
@@ -91,6 +94,7 @@ src/server/Services/FishingService.luau  Goo Pond fishing
 src/server/Services/ArcadeService.luau  Whack-a-Slime
 src/server/Services/TowerService.luau  Sky Tower obby
 src/server/Services/EventDropService.luau  Themed boxes that fall during events
+src/server/Services/PhoneAlerts.luau  Phone notifications when you get robbed
 src/server/Services/SeasonService.luau  Monthly Slime Season track
 src/server/Services/StormService.luau  Weekly Slime Storm schedule
 src/server/Services/TutorialService.luau  First-time guide
@@ -131,6 +135,14 @@ Creator Hub > your experience > **Monetization**:
 - Also turn on **Private Servers** (Monetization > Private servers, e.g. 100 R$/month) and Premium Payouts happen automatically.
 
 Need icons? Any square 512x512 image works; a screenshot of a glowing slime is fine to start.
+
+## 3b. Turn on phone steal alerts (after publishing)
+
+Roblox only allows this once the game has 100+ visits, and sends at most 1 per player per day.
+1. Creator Hub > your game > **Engagement > Notifications > Create a Notification String**. Text: `{thief} stole your {slime}! Get it back in {experienceName}`. Copy its **Asset ID** into `Config.PhoneAlerts.stolenMessageId`.
+2. Creator Hub > **Open Cloud > API Keys > Create API Key**: add the **user.user-notification** permission for this game (write), and copy the key.
+3. Creator Hub > your game > **Secrets**: add a secret named `notifications_key` with that key, domain `apis.roblox.com`.
+4. Studio > Game Settings > Security > **Allow HTTP Requests** on. Republish.
 
 ## 4. Getting players (the hard part)
 

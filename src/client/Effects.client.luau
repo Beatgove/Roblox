@@ -364,7 +364,7 @@ handlers.luck = function()
 	sound("Ping", 1.4, 0.8)
 end
 handlers.alarm = function(d)
-	announce("🚨 THIEF! 🚨", Color3.fromRGB(255, 60, 70), d.thief .. " is stealing your slime! CATCH THEM!", Color3.new(1, 1, 1), 2.5)
+	announce("🚨 THIEF! 🚨", Color3.fromRGB(255, 60, 70), d.thief .. " is stealing your " .. (d.slime or "slime") .. "! CATCH THEM!", Color3.new(1, 1, 1), 2.5)
 	for i = 0, 5 do
 		task.delay(i * 0.3, function()
 			flash(Color3.fromRGB(255, 0, 30), 0.35, 0.25)
@@ -384,10 +384,30 @@ handlers.stealWin = function()
 	sound("Ping", 1, 0.8)
 	task.delay(0.12, sound, "Ping", 1.3, 0.8)
 end
+local askedPhoneAlerts = false
 handlers.stolen = function()
 	flash(Color3.fromRGB(255, 0, 30), 0.5, 0.8)
 	shake(1)
 	sound("Oof", 1, 0.6)
+	-- The first time you're robbed in a session, offer phone alerts for next time.
+	-- (Roblox shows its own prompt, at most once a month, and only to players who can get them.)
+	if not askedPhoneAlerts then
+		askedPhoneAlerts = true
+		task.delay(4, function()
+			local ens = game:GetService("ExperienceNotificationService")
+			local ok, can = pcall(ens.CanPromptOptInAsync, ens)
+			if ok and can then
+				announce("📱 GET STEAL ALERTS", Color3.fromRGB(120, 200, 255), "Turn on notifications and we'll tell you when someone robs you.", nil, 2.5)
+				task.wait(1.5)
+				pcall(ens.PromptOptIn, ens)
+			end
+		end)
+	end
+end
+handlers.intruder = function(d)
+	announce("👀 INTRUDER", Color3.fromRGB(255, 170, 60), d.name .. " is in your base!", nil, 1.4)
+	sound("Ping", 2.2, 0.6)
+	task.delay(0.15, sound, "Ping", 2.2, 0.6)
 end
 handlers.caught = function()
 	flash(Color3.fromRGB(255, 0, 30), 0.5, 0.6)
@@ -1214,6 +1234,10 @@ end)
 track("Spin", spinners, function(m)
 	return { inst = m, base = m:GetPivot(), phase = 0 }
 end)
+local sirens: { [Instance]: boolean } = {}
+track("Siren", sirens, function()
+	return true
+end)
 track("Pulse", pulsers, function(p)
 	return p.Color
 end)
@@ -1245,6 +1269,14 @@ RunService.RenderStepped:Connect(function()
 			continue
 		end
 		p.CFrame = a.base * CFrame.new(0, math.sin(t + a.phase) * 1.5, 0) * CFrame.Angles(0, t * 0.8, 0)
+	end
+	for p in sirens do
+		if not p.Parent then
+			sirens[p] = nil
+		elseif (p :: BasePart).Transparency < 1 then
+			local bp = p :: BasePart
+			bp.CFrame = CFrame.new(bp.Position) * CFrame.Angles(0, t * 9, 0)
+		end
 	end
 	for m, a in spinners do
 		if not m.Parent then

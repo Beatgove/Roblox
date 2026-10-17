@@ -17,6 +17,7 @@ local Signals = require(script.Parent.Signals)
 local PlotService = {}
 
 type Plot = {
+	intruders: { [Player]: number }?,
 	model: Model,
 	cframe: CFrame,
 	owner: Player?,
@@ -33,6 +34,21 @@ local plotOf: { [Player]: Plot } = {}
 -- Fired when a non-owner triggers a steal prompt: (thief, victim, slotIndex)
 PlotService.StealRequested = Instance.new("BindableEvent")
 PlotService.FeedRequested = Instance.new("BindableEvent") -- (player, slot) owner fed a snack
+
+-- Pens are round pedestals with a glowing rim (built by MapBuilder under each pad).
+local function setPen(pad: Instance, visible: boolean, ringColor: Color3?)
+	local pedestal = pad:FindFirstChild("Pedestal") :: BasePart?
+	local ring = pad:FindFirstChild("Ring") :: BasePart?
+	if pedestal then
+		pedestal.Transparency = if visible then 0 else 1
+	end
+	if ring then
+		ring.Transparency = if visible then 0.1 else 1
+		if ringColor then
+			ring.Color = ringColor
+		end
+	end
+end
 
 local function now()
 	return os.time()
@@ -270,9 +286,12 @@ function PlotService.Render(player: Player)
 	plot.stages = {}
 
 	local slots = PlotService.Slots(player)
+	local theme = plot.model:GetAttribute("Theme")
+	local emptyRing = if typeof(theme) == "Color3" then theme:Lerp(Color3.new(1, 1, 1), 0.35) else Color3.new(1, 1, 1)
 	for _, pad in plot.model.Pens:GetChildren() do
 		local slot = pad:GetAttribute("Slot")
-		pad.Transparency = if slot <= slots then 0 else 1
+		local slime = data.slimes[slot]
+		setPen(pad, slot <= slots, if slime then Config.RarityByName[Config.SlimeById[slime.id].rarity].color else emptyRing)
 	end
 
 	for i, slime in data.slimes do
@@ -600,6 +619,20 @@ end
 local function setOwnerSign(plot: Plot)
 	local label = plot.model.Sign.OwnerGui.Text
 	label.Text = if plot.owner then plot.owner.DisplayName .. "'s Base" else "Empty Base"
+	local avatar = plot.model.Sign.OwnerGui:FindFirstChild("Avatar") :: ImageLabel?
+	if avatar then
+		avatar.Image = ""
+		avatar.Visible = plot.owner ~= nil
+		local owner = plot.owner
+		if owner then
+			task.spawn(function()
+				local ok, image = pcall(Players.GetUserThumbnailAsync, Players, owner.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+				if ok and plot.owner == owner then
+					avatar.Image = image
+				end
+			end)
+		end
+	end
 end
 
 local function teleportHome(player: Player)
@@ -705,9 +738,10 @@ function PlotService.Release(player: Player)
 		plot.slimeFolder = nil
 	end
 	for _, pad in plot.model.Pens:GetChildren() do
-		pad.Transparency = 1
+		setPen(pad, false)
 	end
 	plot.owner = nil
+	plot.intruders = nil
 	plot.lockedUntil = 0
 	plot.paidLockUntil = 0
 	local relics = plot.model:FindFirstChild("Relics")
@@ -796,6 +830,56 @@ function PlotService.Start(builtPlots)
 				local locked = plot.owner ~= nil and PlotService.IsLocked(plot)
 				for _, wall in plot.model.Shield:GetChildren() do
 					wall.Transparency = if locked then 0.4 else 1
+				end
+				local lasers = plot.model:FindFirstChild("Lasers")
+				if lasers then
+					for _, d in lasers:GetDescendants() do
+						if d:IsA("Beam") then
+							d.Enabled = locked
+						elseif d:IsA("BasePart") then
+							d.Transparency = if locked then 0 else 1
+						end
+					end
+				end
+				-- Sirens on the towers spin while someone is running off with one of your slimes.
+				local robbed = false
+				if plot.owner then
+					for _, other in Players:GetPlayers() do
+						if other:GetAttribute("StealingFrom") == plot.owner.UserId then
+							robbed = true
+						end
+					end
+				end
+				local start = plot.model:FindFirstChild("StartDecor")
+				if start then
+					for _, d in start:GetChildren() do
+						if d.Name == "Siren" and d:IsA("BasePart") then
+							d.Transparency = if robbed then 0 else 1
+							local light = d:FindFirstChildOfClass("SpotLight")
+							if light then
+								light.Enabled = robbed
+							end
+						end
+					end
+				end
+				-- Heads-up when another player walks into your base.
+				if plot.owner and not locked then
+					plot.intruders = plot.intruders or {}
+					for _, other in Players:GetPlayers() do
+						local char = if other ~= plot.owner then other.Character else nil
+						local root = if char then char:FindFirstChild("HumanoidRootPart") :: BasePart? else nil
+						local inside = root ~= nil and inPlot(plot, root.Position)
+						local seen = plot.intruders[other]
+						if inside and not seen then
+							plot.intruders[other] = os.clock()
+							if not PlotService.IsRookie(plot.owner) then
+								Net.Notify(plot.owner, "👀 " .. other.DisplayName .. " just walked into your base!", "bad")
+								Net.Fx(plot.owner, "intruder", { name = other.DisplayName })
+							end
+						elseif not inside and seen and os.clock() - seen > 20 then
+							plot.intruders[other] = nil -- leave for 20 s and the next visit alerts again
+						end
+					end
 				end
 				local status = plot.model.LockButton:FindFirstChild("Status", true)
 				if status then

@@ -698,6 +698,40 @@ end
 player:GetAttributeChangedSignal("Relics"):Connect(refreshRelics)
 refreshRelics()
 
+-- Thief tracker: while someone runs off with your slime, they glow red through walls,
+-- a red trail points at them, and a chip shows how far away they are.
+do
+	local chipFrame, chipLabel = chip(Color3.fromRGB(220, 30, 50))
+	local highlight = new("Highlight", { FillColor = Color3.fromRGB(255, 30, 40), FillTransparency = 0.6, OutlineColor = Color3.fromRGB(255, 255, 255), DepthMode = Enum.HighlightDepthMode.AlwaysOnTop, Enabled = false, Parent = gui })
+	local trail = new("Beam", { Color = ColorSequence.new(Color3.fromRGB(255, 40, 50)), LightEmission = 1, Width0 = 0.5, Width1 = 0.2, FaceCamera = true, Transparency = NumberSequence.new(0.25), Enabled = false, Parent = workspace.Terrain })
+	RunService.Heartbeat:Connect(function()
+		local thief: Player? = nil
+		for _, other in Players:GetPlayers() do
+			if other:GetAttribute("StealingFrom") == player.UserId then
+				thief = other
+			end
+		end
+		local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local theirRoot = thief and thief.Character and thief.Character:FindFirstChild("HumanoidRootPart")
+		chipFrame.Visible = theirRoot ~= nil
+		highlight.Enabled = theirRoot ~= nil
+		trail.Enabled = theirRoot ~= nil and myRoot ~= nil
+		if not (thief and theirRoot) then
+			return
+		end
+		local t = thief :: Player
+		highlight.Adornee = t.Character
+		local dist = if myRoot then math.floor(((myRoot :: BasePart).Position - (theirRoot :: BasePart).Position).Magnitude) else 0
+		chipLabel.Text = "🚨 " .. t.DisplayName .. " · " .. dist .. "m"
+		if myRoot then
+			local a0 = myRoot:FindFirstChild("ThiefTrail0") or new("Attachment", { Name = "ThiefTrail0", Parent = myRoot })
+			local a1 = theirRoot:FindFirstChild("ThiefTrail1") or new("Attachment", { Name = "ThiefTrail1", Parent = theirRoot })
+			trail.Attachment0 = a0 :: Attachment
+			trail.Attachment1 = a1 :: Attachment
+		end
+	end)
+end
+
 -- Slime Season lives in its own block (this script is near Luau's 200-local limit).
 local seasonUI: { [string]: any } = {}
 do

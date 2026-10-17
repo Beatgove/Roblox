@@ -602,6 +602,9 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		table.insert(posts, Vector3.new(d, 0, half))
 	end
 	for _, p in posts do
+		if p.Z == half and math.abs(p.X) == half then
+			continue -- the back corners get towers instead
+		end
 		add({ Name = "WallPost", Size = Vector3.new(1.8, 4, 1.8), CFrame = cf * CFrame.new(p.X, 2, p.Z), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true })
 		add({ Name = "PostTop", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.7, CFrame = cf * CFrame.new(p.X, 4.5, p.Z), Color = soft, Material = Enum.Material.SmoothPlastic })
 	end
@@ -628,6 +631,64 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	-- Rims so the cash pad and lock button read as buttons.
 	add({ Name = "CollectorRim", Size = Vector3.new(9.6, 0.5, 9.6), CFrame = cf * CFrame.new(-16, 0.6, -18), Color = Color3.fromRGB(40, 90, 50), Material = Enum.Material.SmoothPlastic })
 	add({ Name = "LockRim", Size = Vector3.new(7.6, 0.7, 7.6), CFrame = cf * CFrame.new(16, 0.7, -18), Color = Color3.fromRGB(90, 30, 40), Material = Enum.Material.SmoothPlastic })
+
+	-- Back corner towers: a slime-castle silhouette you can spot from across the map,
+	-- with a glowing window, a stacked roof, a flag, and a siren that wakes up when
+	-- someone is stealing from this base.
+	for _, x in { -half, half } do
+		local base = cf * CFrame.new(x, 0, half)
+		local function disc(name: string, h: number, d: number, y: number, color: Color3, mat: Enum.Material?)
+			add({ Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, d, d), CFrame = base * CFrame.new(0, y, 0) * CFrame.Angles(0, 0, math.pi / 2), Color = color, Material = mat or Enum.Material.SmoothPlastic, CanCollide = name == "Tower" })
+		end
+		disc("Tower", 13, 5.5, 6.5, dark)
+		disc("TowerBand", 0.6, 5.9, 4, soft)
+		disc("TowerBand", 0.6, 5.9, 9, soft)
+		disc("Battlement", 1.2, 7, 13.4, soft)
+		disc("Roof", 1.2, 6, 14.6, theme)
+		disc("Roof", 1.2, 4.6, 15.8, theme)
+		disc("Roof", 1.2, 3.2, 17, theme)
+		disc("Roof", 1.2, 1.8, 18.2, theme)
+		local window = part({ Name = "TowerWindow", Size = Vector3.new(1.6, 2.6, 0.3), CFrame = base * CFrame.new(0, 6.6, -2.8), Color = Color3.fromRGB(255, 230, 150), Material = Enum.Material.Neon, CanCollide = false, CastShadow = false })
+		window.Parent = start
+		local wl = Instance.new("PointLight")
+		wl.Color = window.Color
+		wl.Range = 10
+		wl.Brightness = 0.8
+		wl.Parent = window
+		add({ Name = "FlagPole", Size = Vector3.new(0.3, 5, 0.3), CFrame = base * CFrame.new(0, 21.2, 0), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Metal })
+		add({ Name = "Flag", Size = Vector3.new(3.2, 2, 0.15), CFrame = base * CFrame.new(if x < 0 then -1.7 else 1.7, 22.6, 0), Color = theme, Material = Enum.Material.Fabric })
+		-- The siren sits on the battlement, hidden until an alarm (PlotService turns it on).
+		local siren = part({ Name = "Siren", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.8, CFrame = base * CFrame.new(0, 19.6, 0), Color = Color3.fromRGB(255, 30, 40), Material = Enum.Material.Neon, CanCollide = false, CastShadow = false, Transparency = 1 })
+		siren.Parent = start
+		local beam = Instance.new("SpotLight")
+		beam.Color = Color3.fromRGB(255, 40, 40)
+		beam.Range = 40
+		beam.Angle = 50
+		beam.Brightness = 6
+		beam.Face = Enum.NormalId.Front
+		beam.Enabled = false
+		beam.Parent = siren
+		CollectionService:AddTag(siren, "Siren")
+	end
+
+	-- Banners hanging on the side walls.
+	for _, sx in { -1, 1 } do
+		for _, z in { -13, 13 } do
+			local x = sx * (half - 0.9)
+			add({ Name = "Banner", Size = Vector3.new(0.15, 4.2, 2.6), CFrame = cf * CFrame.new(x, 5.4, z), Color = theme, Material = Enum.Material.Fabric })
+			add({ Name = "BannerStripe", Size = Vector3.new(0.2, 0.5, 2.6), CFrame = cf * CFrame.new(x, 4.2, z), Color = soft, Material = Enum.Material.Neon })
+			add({ Name = "BannerRod", Size = Vector3.new(0.3, 0.3, 3.2), CFrame = cf * CFrame.new(x, 7.6, z), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+		end
+	end
+
+	-- Red laser bars across the open front, switched on while the base is locked.
+	local lasers = Instance.new("Folder")
+	lasers.Name = "Lasers"
+	lasers.Parent = plot
+	for _, y in { 1.4, 2.8, 4.2 } do
+		part({ Name = "Laser", Size = Vector3.new(MapBuilder.PlotSize - 3, 0.22, 0.22), CFrame = cf * CFrame.new(0, y, -half), Color = Color3.fromRGB(255, 30, 40), Material = Enum.Material.Neon,
+			CanCollide = false, CanQuery = false, CastShadow = false, Transparency = 1 }).Parent = lasers
+	end
 
 	-- Shield walls, only visible while the base is locked.
 	local shield = Instance.new("Folder")
@@ -668,6 +729,14 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 				CanCollide = false,
 			})
 			pad:SetAttribute("Slot", n)
+			-- A round display pedestal with a glowing rim; PlotService shows it for unlocked
+			-- pens and tints the rim with the rarity of the slime on it.
+			local pedestal = part({ Name = "Pedestal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 7.6, 7.6), CFrame = pad.CFrame * CFrame.new(0, -0.05, 0) * CFrame.Angles(0, 0, math.pi / 2),
+				Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble, Transparency = 1, CanCollide = false, CastShadow = false })
+			pedestal.Parent = pad
+			local ring = part({ Name = "Ring", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 9.2, 9.2), CFrame = pad.CFrame * CFrame.new(0, -0.15, 0) * CFrame.Angles(0, 0, math.pi / 2),
+				Color = theme, Material = Enum.Material.Neon, Transparency = 1, CanCollide = false, CastShadow = false })
+			ring.Parent = pad
 			pad.Parent = pens
 		end
 	end
@@ -700,7 +769,26 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	})
 	sign.Parent = plot
 	-- Front (-Z in plot space) faces into the base, toward the entrance.
-	signGui(sign, Enum.NormalId.Front, "Empty Base", "OwnerGui")
+	local ownerText = signGui(sign, Enum.NormalId.Front, "Empty Base", "OwnerGui")
+	-- Owner's avatar on the left of the sign (PlotService fills in the picture).
+	ownerText.Size = UDim2.fromScale(0.78, 1)
+	ownerText.Position = UDim2.fromScale(0.21, 0)
+	local avatar = Instance.new("ImageLabel")
+	avatar.Name = "Avatar"
+	avatar.Size = UDim2.fromScale(0.18, 0.9)
+	avatar.Position = UDim2.fromScale(0.015, 0.05)
+	avatar.BackgroundColor3 = Color3.new(1, 1, 1)
+	avatar.BackgroundTransparency = 0.2
+	avatar.Image = ""
+	avatar.Parent = ownerText.Parent
+	local avatarCorner = Instance.new("UICorner")
+	avatarCorner.CornerRadius = UDim.new(0.5, 0)
+	avatarCorner.Parent = avatar
+	local frame = Instance.new("UIStroke")
+	frame.Color = Color3.new(1, 1, 1)
+	frame.Thickness = 4
+	frame.Parent = avatar
+	add({ Name = "SignFrame", Size = Vector3.new(31.4, 7.4, 0.8), CFrame = cf * CFrame.new(0, 7, half - 0.6), Color = soft, Material = Enum.Material.SmoothPlastic })
 
 	local spawnPoint = Instance.new("Part")
 	spawnPoint.Name = "SpawnPoint"

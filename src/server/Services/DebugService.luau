@@ -56,6 +56,8 @@ function DebugService.Start(services)
 			for _, key in Config.SnackOrder do
 				services.SnackService.Give(player, key, n or 5, true)
 			end
+		elseif cmd == "lock" then
+			services.PlotService.Lock(player, n or 30, true)
 		elseif cmd == "season" then
 			services.SeasonService.AddXP(player, n or 500)
 		elseif cmd == "storm" then

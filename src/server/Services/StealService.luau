@@ -14,6 +14,7 @@ local Net = require(script.Parent.Net)
 local Signals = require(script.Parent.Signals)
 local BountyService = require(script.Parent.BountyService)
 local NemesisService = require(script.Parent.NemesisService)
+local PhoneAlerts = require(script.Parent.PhoneAlerts)
 
 local StealService = {}
 
@@ -215,6 +216,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	-- Revenge steals run at full speed.
 	humanoid.WalkSpeed = if isRevenge then (humanoid:GetAttribute("BaseSpeed") or 16) else Config.CarryWalkSpeed + (humanoid:GetAttribute("CarryBonus") or 0)
 	thief:SetAttribute("Carrying", name)
+	thief:SetAttribute("StealingFrom", victim.UserId) -- victim's HUD tracks them; their base siren goes off
 	thief:SetAttribute("RevengeCarry", isRevenge)
 	-- Stealing ends your own Rookie Shield.
 	local thiefData = DataService.Get(thief)
@@ -234,7 +236,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 
 	Net.Notify(thief, "You grabbed " .. name .. "! Run back to your base!", "epic")
 	Net.Notify(victim, "🚨 " .. thief.DisplayName .. " is stealing your " .. name .. "! Catch them!", "bad")
-	Net.Fx(victim, "alarm", { thief = thief.DisplayName })
+	Net.Fx(victim, "alarm", { thief = thief.DisplayName, slime = name })
 	Net.Fx(thief, "grab", {})
 
 	local finished = false
@@ -254,6 +256,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		squirms[thief] = nil
 		if thief.Parent then
 			thief:SetAttribute("Carrying", nil)
+			thief:SetAttribute("StealingFrom", nil)
 			thief:SetAttribute("RevengeCarry", nil)
 			thief:SetAttribute("CarrySlow", nil)
 		end
@@ -301,6 +304,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				end
 				Net.Notify(victim, thief.DisplayName .. " stole your " .. name .. (if isRevenge then " back!" else ". REVENGE: their shield can't stop you for " .. Util.Duration(Config.RevengeSeconds) .. "!"), "bad")
 				Net.Fx(victim, "stolen", {})
+				PhoneAlerts.Stolen(victim, thief, slime.id)
 				if not isRevenge then
 					setRevenge(victim, thief)
 					Net.Fx(victim, "revenge", { name = thief.DisplayName })

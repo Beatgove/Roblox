@@ -47,8 +47,30 @@ local function restyle(model: Model, name: string, color: Color3?, material: Enu
 	end
 end
 
+-- Restyles parts in the starting look (towers, roofs...), remembering their original style.
+local function restyleStart(model: Model, name: string, color: Color3?, material: Enum.Material?)
+	local start = model:FindFirstChild("StartDecor")
+	if not start then
+		return
+	end
+	for _, d in start:GetChildren() do
+		if d:IsA("BasePart") and d.Name == name then
+			if d:GetAttribute("OrigColor") == nil then
+				d:SetAttribute("OrigColor", d.Color)
+				d:SetAttribute("OrigMaterial", d.Material.Name)
+			end
+			d.Color = color or d:GetAttribute("OrigColor")
+			d.Material = material or (Enum.Material :: any)[d:GetAttribute("OrigMaterial")]
+		end
+	end
+end
+
 function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 	remember(model)
+	-- Towers get grander as you rebirth: marble at 5, golden roofs at 10.
+	restyleStart(model, "Tower", if rebirths >= 5 then Color3.fromRGB(240, 236, 248) else nil, if rebirths >= 5 then Enum.Material.Marble else nil)
+	restyleStart(model, "Roof", if rebirths >= 10 then Color3.fromRGB(255, 200, 50) else nil, if rebirths >= 10 then Enum.Material.Metal else nil)
+	restyleStart(model, "Battlement", if rebirths >= 10 then Color3.fromRGB(255, 220, 110) else nil, if rebirths >= 10 then Enum.Material.Metal else nil)
 	local old = model:FindFirstChild("Decor")
 	if old then
 		old:Destroy()
@@ -102,9 +124,9 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		end
 	end
 
-	-- 3: lanterns on the four corners
+	-- 3: lanterns on the front corners and halfway down the sides (the back corners have towers)
 	if rebirths >= 3 then
-		for _, c in { Vector3.new(-HALF, 0, -HALF), Vector3.new(HALF, 0, -HALF), Vector3.new(-HALF, 0, HALF), Vector3.new(HALF, 0, HALF) } do
+		for _, c in { Vector3.new(-HALF, 0, -HALF), Vector3.new(HALF, 0, -HALF), Vector3.new(-HALF, 0, 0), Vector3.new(HALF, 0, 0) } do
 			part(folder, { Name = "Post", Size = Vector3.new(1, 8, 1), CFrame = at(c.X, 4, c.Z), Color = Color3.fromRGB(60, 45, 70), Material = Enum.Material.Metal })
 			local lamp = part(folder, { Name = "Lantern", Size = Vector3.new(1.8, 2, 1.8), CFrame = at(c.X, 9, c.Z), Color = Color3.fromRGB(255, 220, 140), Material = Enum.Material.Neon })
 			CollectionService:AddTag(lamp, "Pulse")

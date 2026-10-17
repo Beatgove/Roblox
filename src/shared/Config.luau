@@ -650,4 +650,18 @@ for i = 1, 30 do
 	Config.Season.tiers[i] = t
 end
 
+-- Phone alerts (Roblox experience notifications) when someone steals from you.
+-- Roblox allows 1 per player per day per game, only to players 13+ who opted in, and
+-- only once the game has 100+ visits. Setup after publishing (see README):
+--   1. Creator Hub > your game > Engagement > Notifications > create a string such as
+--      "{thief} stole your {slime}! Get it back in {experienceName}" and copy its Asset ID here.
+--   2. Create an Open Cloud API key with the notification permission and save it as a
+--      game secret named below (Creator Hub > your game > Secrets).
+--   3. Game Settings > Security > Allow HTTP Requests.
+Config.PhoneAlerts = {
+	stolenMessageId = "", -- paste the notification string's Asset ID
+	secretName = "notifications_key",
+	everyHours = 20, -- don't try more often than this per player (Roblox caps it at 1/day anyway)
+}
+
 return Config
