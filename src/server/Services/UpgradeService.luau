@@ -19,6 +19,10 @@ local function buy(player: Player, key: string)
 		Net.Notify(player, def.name .. " is maxed out!", "info")
 		return
 	end
+	if key == "Pens" and PlotService.Slots(player) >= Config.MaxSlots then
+		Net.Notify(player, "Your base is already as big as it gets!", "info")
+		return
+	end
 	local cost = Config.UpgradeCost(key, level)
 	if data.cash < cost then
 		Net.Notify(player, def.name .. " level " .. (level + 1) .. " costs " .. Util.Money(cost), "bad")

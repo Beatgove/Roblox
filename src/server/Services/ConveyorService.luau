@@ -94,8 +94,14 @@ local function spawnSlime()
 end
 
 -- One loop moves every belt slime: forward along the belt with little hops.
+local lastStep = 0
 local function stepBelt()
 	local t = os.clock()
+	-- 30 Hz is smooth enough and halves the replication traffic.
+	if t - lastStep < 1 / 30 then
+		return
+	end
+	lastStep = t
 	for i = #moving, 1, -1 do
 		local m = moving[i]
 		if not m.model.Parent then

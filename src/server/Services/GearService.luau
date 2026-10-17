@@ -197,7 +197,7 @@ local function setMovement(player: Player)
 	hum:SetAttribute("CarryBonus", if key == "SpeedCoil" then 6 else 0)
 	hum.UseJumpPower = false
 	hum.JumpHeight = if key == "GravityCoil" then Config.Gear.GravityCoil.jumpHeight else DEFAULT_JUMP
-	if not StealService.IsCarrying(player) then
+	if not StealService.IsCarrying(player) or player:GetAttribute("RevengeCarry") then
 		hum.WalkSpeed = speed
 	else
 		hum.WalkSpeed = Config.CarryWalkSpeed + (hum:GetAttribute("CarryBonus") or 0)

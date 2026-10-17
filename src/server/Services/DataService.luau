@@ -64,6 +64,9 @@ local function reconcile(data)
 		end
 	end
 	data.slimes = clean
+	if data.fuse.active and not (data.fuse.result and Config.SlimeById[data.fuse.result.id]) then
+		data.fuse = { active = false }
+	end
 	-- Older saves: everything currently owned counts as discovered.
 	for _, s in data.slimes do
 		data.index[s.id] = true

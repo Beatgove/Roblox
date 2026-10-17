@@ -176,7 +176,7 @@ function Config.SquirmChance(rarityOrder: number): number
 end
 -- Revenge: after you're robbed, the thief's shield can't stop you for a while, you carry at
 -- full speed when stealing from them, and they glow for you.
-Config.RevengeSeconds = 180
+Config.RevengeSeconds = 90
 -- Bounty: every steal puts a bounty on the thief. Slap, zap or trap them to cash it in.
 Config.BountyShare = 0.25 -- of the stolen slime's sell value
 Config.BountyMaxIncomeSeconds = 600 -- a claim pays at most this many seconds of the claimer's income

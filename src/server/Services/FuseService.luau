@@ -72,6 +72,12 @@ local function start(player: Player, slots)
 			table.insert(list, i)
 		end
 	end
+	for _, i in list do
+		if Config.SlimeById[data.slimes[i].id].rarity == "Exclusive" then
+			Net.Notify(player, "Exclusive slimes are too special to fuse!", "bad")
+			return
+		end
+	end
 	if #list ~= Config.FuseCount then
 		Net.Notify(player, "Pick " .. Config.FuseCount .. " slimes to fuse.", "bad")
 		return

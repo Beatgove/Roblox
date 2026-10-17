@@ -23,7 +23,7 @@ Research from October 2026: reviews, dev posts and patch notes for Steal a Brain
 ## What makes Steal a Slime different now
 
 1. **Squirming slimes.** Stolen slimes fight back. While a thief carries one it can wriggle, and the thief must tap HOLD ON in time or it slips free and hops home. Rarer slimes squirm more, so the best steals are the hardest. No other steal game has this, and it fits slimes.
-2. **Revenge.** When you're robbed, for 3 minutes the thief's shield can't stop you, you carry at full speed when stealing from them, and they glow red on your screen.
+2. **Revenge.** When you're robbed, for 90 seconds the thief's shield can't stop you, you carry at full speed when stealing from them, and they glow red on your screen.
 3. **Bounties.** Every steal puts cash on the thief's head (a WANTED tag). Anyone who slaps, zaps or traps them claims it. Thieves become targets, and defenders get paid.
 4. **King Slime.** A giant boss crashes into the map every 12 minutes. The whole server slaps it together while it hops around stomping people away. Everyone who helped gets paid, and the top slapper gets a lucky roll. Rivals end up on the same side for a minute.
 5. **Rookie Shield.** New players can't be robbed while they learn the game.

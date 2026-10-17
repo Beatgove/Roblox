@@ -129,6 +129,24 @@ function PlotService.IncomePerSecond(player: Player): number
 	return total * PlotService.IncomeMultiplier(player)
 end
 
+-- Slimes taken from a player that haven't landed anywhere yet (carried or bouncing home).
+-- Rebirth waits for these so nothing can be smuggled into a fresh base.
+local inTransit: { [Player]: number } = {}
+function PlotService.Transit(player: Player, delta: number)
+	inTransit[player] = math.max((inTransit[player] or 0) + delta, 0)
+end
+
+-- Adds a slime, or pays its sell value if the pens are full, so a slime is never lost.
+function PlotService.AddOrPay(player: Player, slime): boolean
+	if PlotService.AddSlime(player, slime) then
+		return true
+	end
+	local value = PlotService.SellValue(slime)
+	PlotService.AddCash(player, value)
+	Net.Notify(player, "Your pens were full, so your " .. slime.id .. " was sold for " .. Util.Money(value) .. ".", "info")
+	return false
+end
+
 -- New players can't be robbed until they've found their feet (see Config.RookieEarnedLimit).
 function PlotService.IsRookie(player: Player): boolean
 	local data = DataService.Get(player)
@@ -490,6 +508,14 @@ function PlotService.Rebirth(player: Player)
 	if not data then
 		return
 	end
+	if player:GetAttribute("Carrying") or (inTransit[player] or 0) > 0 then
+		Net.Notify(player, "Finish the chase first! You can't rebirth while a slime is on the move.", "bad")
+		return
+	end
+	if data.fuse.active then
+		Net.Notify(player, "Claim your Fuse Machine slime before you rebirth!", "bad")
+		return
+	end
 	local cost = Config.RebirthCost(data.rebirths)
 	if data.cash < cost then
 		Net.Notify(player, "You need " .. Util.Money(cost) .. " to rebirth", "bad")
@@ -596,6 +622,7 @@ function PlotService.Assign(player: Player)
 end
 
 function PlotService.Release(player: Player)
+	inTransit[player] = nil
 	local plot = plotOf[player]
 	if not plot then
 		return
@@ -700,7 +727,8 @@ function PlotService.Start(builtPlots)
 				end
 				if locked then
 					for _, other in Players:GetPlayers() do
-						local root = other ~= plot.owner and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+						local avenging = plot.owner ~= nil and other:GetAttribute("RevengeUserId") == plot.owner.UserId and (other:GetAttribute("RevengeUntil") or 0) > workspace:GetServerTimeNow()
+						local root = other ~= plot.owner and not avenging and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
 						if root and inPlot(plot, root.Position) then
 							other.Character:PivotTo(plot.cframe * CFrame.new(0, 4, -34))
 							Net.Notify(other, "That base is shielded!", "bad")

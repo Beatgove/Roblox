@@ -82,7 +82,7 @@ local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 		end
 		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits }) then
 			-- Pens filled up during the animation: refund (a free roll pays the slime's value).
-			PlotService.AddCash(player, if free then def.price else cost)
+			PlotService.AddCash(player, if free then PlotService.SellValue({ id = def.id, mut = mut, traits = traits }) else cost)
 			Net.Notify(player, "Pens full, roll refunded.", "bad")
 			return
 		end

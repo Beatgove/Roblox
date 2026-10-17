@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Util = require(game.ReplicatedStorage.Shared.Util)
+local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local Signals = require(script.Parent.Signals)
 local Net = require(script.Parent.Net)
@@ -77,10 +78,20 @@ function BountyService.Claim(attacker: Player, target: Player)
 	if attacker == target or not amount or amount <= 0 then
 		return
 	end
+	-- Paid out of the thief's own cash, so bounties never create money (no farming with a friend).
+	local thiefData = DataService.Get(target)
 	local cap = math.max(Config.BountyMinPayout, PlotService.IncomePerSecond(attacker) * Config.BountyMaxIncomeSeconds)
-	local paid = math.floor(math.min(amount, cap))
+	local paid = math.floor(math.min(amount, cap, if thiefData then thiefData.cash else 0))
 	bounties[target] = nil
 	updateTag(target)
+	if paid <= 0 then
+		Net.Notify(attacker, "You busted " .. target.DisplayName .. ", but they're broke. No bounty to collect!", "info")
+		return
+	end
+	if thiefData then
+		thiefData.cash -= paid
+		PlotService.Sync(target)
+	end
 	PlotService.AddCash(attacker, paid)
 	Signals.Progress(attacker, "bounty")
 	Net.Fx(attacker, "bounty", { amount = paid })

@@ -104,7 +104,7 @@ local function claim(player: Player, i: number)
 		quests.bonus = true
 		local bonus = Rewards.Grant(player, Config.AllQuestsBonus)
 		Net.Notify(player, "🏆 ALL QUESTS DONE! Bonus: " .. bonus .. "!", "epic")
-		Net.Fx(player, "daily", { day = 7 })
+		Net.Fx(player, "milestone", { title = "ALL QUESTS DONE!", sub = "Bonus reward unlocked" })
 	end
 	QuestService.Sync(player)
 end

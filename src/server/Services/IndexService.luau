@@ -18,13 +18,14 @@ function IndexService.Check(player: Player)
 	for _, m in Config.IndexMilestones do
 		local key = tostring(m.count)
 		if count >= m.count and not data.indexRewards[key] then
-			data.indexRewards[key] = true
-			-- Deferred so the reward lands after the new slime finishes rendering.
+			-- Deferred so the reward lands after the new slime finishes rendering; the flag is set
+			-- when it's actually granted so leaving in that second can't lose it.
 			task.delay(1, function()
-				if player.Parent then
+				if player.Parent and not data.indexRewards[key] then
+					data.indexRewards[key] = true
 					local text = Rewards.Grant(player, m)
 					Net.Notify(player, "📖 INDEX " .. m.count .. " REACHED! Reward: " .. text, "epic")
-					Net.Fx(player, "daily", { day = 7 })
+					Net.Fx(player, "milestone", { title = "INDEX " .. m.count .. "!", sub = text })
 				end
 			end)
 		end

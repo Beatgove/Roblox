@@ -447,6 +447,14 @@ handlers.daily = function(d)
 		task.delay(0.1 * i, sound, "Ping", 1 + i * 0.2, 0.8)
 	end
 end
+handlers.milestone = function(d)
+	confetti(90)
+	flash(Color3.fromRGB(255, 120, 200), 0.35, 0.5)
+	announce(d.title, Color3.fromRGB(255, 180, 230), d.sub, nil, 2)
+	for i = 0, 3 do
+		task.delay(0.1 * i, sound, "Ping", 1 + i * 0.2, 0.8)
+	end
+end
 handlers.code = function()
 	confetti(80)
 	sound("Ping", 1.2, 0.8)

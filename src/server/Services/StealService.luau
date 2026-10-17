@@ -115,8 +115,11 @@ end
 local function bounceHome(slime, fromPos: Vector3, owner: Player, fallback: Player?)
 	local target = PlotService.NextPenPosition(owner)
 	if not target then
-		if fallback and fallback.Parent then
-			PlotService.AddSlime(fallback, slime)
+		PlotService.Transit(owner, -1)
+		if owner.Parent and PlotService.GetPlot(owner) then
+			PlotService.AddOrPay(owner, slime)
+		elseif fallback and fallback.Parent then
+			PlotService.AddOrPay(fallback, slime)
 		end
 		return
 	end
@@ -151,11 +154,13 @@ local function bounceHome(slime, fromPos: Vector3, owner: Player, fallback: Play
 		if alpha >= 1 then
 			conn:Disconnect()
 			model:Destroy()
+			PlotService.Transit(owner, -1)
 			if owner.Parent and PlotService.GetPlot(owner) then
-				PlotService.AddSlime(owner, slime)
-				Net.Notify(owner, "Your " .. Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits) .. " bounced back home!", "good")
+				if PlotService.AddOrPay(owner, slime) then
+					Net.Notify(owner, "Your " .. Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits) .. " bounced back home!", "good")
+				end
 			elseif fallback and fallback.Parent then
-				PlotService.AddSlime(fallback, slime)
+				PlotService.AddOrPay(fallback, slime)
 			end
 		end
 	end)
@@ -199,6 +204,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		return
 	end
 	carrying[thief] = true
+	PlotService.Transit(victim, 1)
 	local name = Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits)
 
 	local stage = Util.Stage(os.time() - slime.born)
@@ -208,6 +214,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	-- Revenge steals run at full speed.
 	humanoid.WalkSpeed = if isRevenge then (humanoid:GetAttribute("BaseSpeed") or 16) else Config.CarryWalkSpeed + (humanoid:GetAttribute("CarryBonus") or 0)
 	thief:SetAttribute("Carrying", name)
+	thief:SetAttribute("RevengeCarry", isRevenge)
 	-- Stealing ends your own Rookie Shield.
 	local thiefData = DataService.Get(thief)
 	if thiefData and PlotService.IsRookie(thief) then
@@ -239,6 +246,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		squirms[thief] = nil
 		if thief.Parent then
 			thief:SetAttribute("Carrying", nil)
+			thief:SetAttribute("RevengeCarry", nil)
 		end
 		local dropPos = if carried and carried.PrimaryPart then carried.PrimaryPart.Position else root.Position
 		if carried then
@@ -251,8 +259,17 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			humanoid.WalkSpeed = humanoid:GetAttribute("BaseSpeed") or 16
 		end
 
-		if outcome == "success" then
-			PlotService.AddSlime(thief, slime)
+		if outcome == "success" and not PlotService.AddSlime(thief, slime) then
+			-- The thief's pens filled during the run: the slime goes back to its owner.
+			Net.Notify(thief, "Your pens are full! The slime hopped back home.", "bad")
+			if victim.Parent and PlotService.GetPlot(victim) then
+				bounceHome(slime, dropPos, victim, thief)
+			else
+				PlotService.Transit(victim, -1)
+				PlotService.AddOrPay(thief, slime)
+			end
+		elseif outcome == "success" then
+			PlotService.Transit(victim, -1)
 			local data = DataService.Get(thief)
 			if data then
 				data.steals += 1
@@ -290,9 +307,12 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				Net.Fx(victim, "stealWin", {})
 			end
 			bounceHome(slime, dropPos, victim, nil)
-		elseif thief.Parent then
+		else
 			-- Owner left mid-raid: the thief keeps it.
-			PlotService.AddSlime(thief, slime)
+			PlotService.Transit(victim, -1)
+			if thief.Parent then
+				PlotService.AddOrPay(thief, slime)
+			end
 		end
 	end
 

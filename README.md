@@ -26,7 +26,7 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Player levels: XP from everything you do, cash every level, luck every 5 levels, titles over your head from Slime Rookie to Slime Legend.
 - Index milestones: finding 5, 10, 15, 20, 25 and 30 slimes pays out automatically.
 - Squirming slimes: carried slimes wriggle, and the thief has to tap HOLD ON (or press F) in time or it slips free and bounces home. Rarer slimes squirm more.
-- Revenge: get robbed and for 3 minutes the thief's shield can't stop you, you carry at full speed, and they glow red for you.
+- Revenge: get robbed and for 90 seconds the thief's shield can't stop you, you carry at full speed, and they glow red for you.
 - Bounties: every steal puts a WANTED bounty on the thief; slap, zap or trap them to claim it.
 - King Slime: a co-op boss every 12 minutes. Slap it with the whole server; everyone who helped gets paid and the top slapper gets a lucky roll.
 - Rookie Shield: new players can't be robbed until they've earned $3K, rebirthed or stolen themselves.

@@ -682,8 +682,16 @@ local function rebuildFuseGrid()
 		local st = new("UIStroke", { Color = r.color, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = card })
 		text({ Position = UDim2.fromOffset(4, 6), Size = UDim2.new(1, -8, 0, 30), Text = Config.DisplayName(s.id, s.mut, s.stars, s.traits), Parent = card })
 		text({ Position = UDim2.fromOffset(4, 40), Size = UDim2.new(1, -8, 0, 20), Font = Enum.Font.GothamBold, TextStrokeTransparency = 1, TextColor3 = r.color, Text = def.rarity, Parent = card })
+		local exclusive = def.rarity == "Exclusive"
+		if exclusive then
+			card.BackgroundTransparency = 0.6
+		end
 		card.Activated:Connect(function()
 			if fuseState.active then
+				return
+			end
+			if exclusive then
+				toast("Exclusive slimes are too special to fuse!", "bad")
 				return
 			end
 			click()
@@ -1044,7 +1052,7 @@ local tips = {
 	"Level up by playing. Every level pays cash, and new titles show over your head.",
 	"Find more slimes for the 📖 INDEX to unlock big milestone rewards.",
 	"Stolen slimes SQUIRM! Tap HOLD ON fast or they slip away and bounce home.",
-	"Got robbed? You get REVENGE: the thief's shield can't stop you for 3 minutes.",
+	"Got robbed? You get REVENGE: the thief's shield can't stop you for 90 seconds.",
 	"Thieves get a 💰 bounty. Slap a WANTED player to claim it!",
 	"👑 The King Slime shows up every 12 minutes. Slap it with everyone for big cash!",
 }
