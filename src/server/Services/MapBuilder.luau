@@ -957,9 +957,9 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		part({ Name = "Trim", Size = t[1], CFrame = cf * CFrame.new(t[2]), Color = muted, Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = plot
 	end
 
-	-- Outer walls. The back and sides are big glass panes over a low wall, like Steal a
-	-- Brainrot's bases, so you can see the slimes inside and daylight gets in; the front has a
-	-- wide doorway with a header above.
+	-- Outer walls: big glass panes over a low wall all round, like Steal a Brainrot's bases, so
+	-- you can see the slimes inside and daylight gets in. The front has a wide doorway with a
+	-- solid header above it for the name board.
 	local side = half - door
 	for _, w in {
 		{ Vector3.new(S, KNEE, 1), Vector3.new(0, KNEE / 2, half) },
@@ -968,8 +968,10 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		{ Vector3.new(S, HEADER, 1), Vector3.new(0, H - HEADER / 2, half) },
 		{ Vector3.new(1, HEADER, S), Vector3.new(-half, H - HEADER / 2, 0) },
 		{ Vector3.new(1, HEADER, S), Vector3.new(half, H - HEADER / 2, 0) },
-		{ Vector3.new(side, H, 1), Vector3.new(-(door + side / 2), H / 2, -half) },
-		{ Vector3.new(side, H, 1), Vector3.new(door + side / 2, H / 2, -half) },
+		{ Vector3.new(side, KNEE, 1), Vector3.new(-(door + side / 2), KNEE / 2, -half) },
+		{ Vector3.new(side, KNEE, 1), Vector3.new(door + side / 2, KNEE / 2, -half) },
+		{ Vector3.new(side, HEADER, 1), Vector3.new(-(door + side / 2), H - HEADER / 2, -half) },
+		{ Vector3.new(side, HEADER, 1), Vector3.new(door + side / 2, H - HEADER / 2, -half) },
 		{ Vector3.new(door * 2, H - DH, 1), Vector3.new(0, DH + (H - DH) / 2, -half) },
 	} do
 		part({ Name = "Wall", Size = w[1], CFrame = cf * CFrame.new(w[2]), Color = muted, Material = Enum.Material.SmoothPlastic }).Parent = plot
@@ -979,6 +981,8 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		{ Vector3.new(S, glassH, 0.4), Vector3.new(0, KNEE + glassH / 2, half) },
 		{ Vector3.new(0.4, glassH, S), Vector3.new(-half, KNEE + glassH / 2, 0) },
 		{ Vector3.new(0.4, glassH, S), Vector3.new(half, KNEE + glassH / 2, 0) },
+		{ Vector3.new(side, glassH, 0.4), Vector3.new(-(door + side / 2), KNEE + glassH / 2, -half) },
+		{ Vector3.new(side, glassH, 0.4), Vector3.new(door + side / 2, KNEE + glassH / 2, -half) },
 	} do
 		part({ Name = "GlassWall", Size = g[1], CFrame = cf * CFrame.new(g[2]), Color = Color3.fromRGB(200, 235, 255), Material = Enum.Material.Glass, Transparency = 0.6, CastShadow = false }).Parent = plot
 	end
@@ -1037,8 +1041,10 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		{ Vector3.new(S - 2, headIn, 0.2), Vector3.new(0, H - 0.2 - headIn / 2, half - 0.6) },
 		{ Vector3.new(0.2, headIn, S - 2), Vector3.new(-half + 0.6, H - 0.2 - headIn / 2, 0) },
 		{ Vector3.new(0.2, headIn, S - 2), Vector3.new(half - 0.6, H - 0.2 - headIn / 2, 0) },
-		{ Vector3.new(side - 1, H - 1.6, 0.2), Vector3.new(-(door + side / 2) - 0.5, 0.8 + (H - 1.6) / 2, -half + 0.6) },
-		{ Vector3.new(side - 1, H - 1.6, 0.2), Vector3.new(door + side / 2 + 0.5, 0.8 + (H - 1.6) / 2, -half + 0.6) },
+		{ Vector3.new(side - 1, kneeIn, 0.2), Vector3.new(-(door + side / 2) - 0.5, 0.8 + kneeIn / 2, -half + 0.6) },
+		{ Vector3.new(side - 1, kneeIn, 0.2), Vector3.new(door + side / 2 + 0.5, 0.8 + kneeIn / 2, -half + 0.6) },
+		{ Vector3.new(side - 1, headIn, 0.2), Vector3.new(-(door + side / 2) - 0.5, H - 0.2 - headIn / 2, -half + 0.6) },
+		{ Vector3.new(side - 1, headIn, 0.2), Vector3.new(door + side / 2 + 0.5, H - 0.2 - headIn / 2, -half + 0.6) },
 	} do
 		add({ Name = "InnerWall", Size = l[1], CFrame = cf * CFrame.new(l[2]), Color = cream, Material = Enum.Material.SmoothPlastic })
 	end
@@ -1057,6 +1063,8 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		{ Vector3.new(S - 2, 0.3, 1.8), Vector3.new(0, KNEE + 0.15, half) },
 		{ Vector3.new(1.8, 0.3, S - 2), Vector3.new(-half, KNEE + 0.15, 0) },
 		{ Vector3.new(1.8, 0.3, S - 2), Vector3.new(half, KNEE + 0.15, 0) },
+		{ Vector3.new(side - 2, 0.3, 1.8), Vector3.new(-(door + side / 2) - 1, KNEE + 0.15, -half) },
+		{ Vector3.new(side - 2, 0.3, 1.8), Vector3.new(door + side / 2 + 1, KNEE + 0.15, -half) },
 	} do
 		add({ Name = "Sill", Size = b[1], CFrame = cf * CFrame.new(b[2]), Color = soft, Material = Enum.Material.SmoothPlastic })
 	end

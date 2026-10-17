@@ -459,14 +459,13 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		} do
 			solid({ Name = "FloorBand", Size = b[1], CFrame = at(b[2].X, H + 0.35, b[2].Z), Color = theme:Lerp(Color3.fromRGB(40, 35, 50), 0.6), Material = Enum.Material.SmoothPlastic })
 		end
-		-- Like downstairs: the front is solid with two windows, the back and sides are big glass
-		-- panes between a low wall and a band under the roof.
+		-- Like downstairs: big glass panes all round, between a low wall and a band under the roof.
 		local WH = RISE - 0.7
 		local KNEE, HEAD = 3, 2.5
 		local glassH = WH - KNEE - HEAD
 		local cream = Color3.fromRGB(194, 182, 168)
 		for _, w in {
-			{ Vector3.new(HALF * 2 + 1, 1, 1), Vector3.new(0, 0, -HALF), true },
+			{ Vector3.new(HALF * 2 + 1, 1, 1), Vector3.new(0, 0, -HALF), false },
 			{ Vector3.new(HALF * 2 + 1, 1, 1), Vector3.new(0, 0, HALF), false },
 			{ Vector3.new(1, 1, HALF * 2 + 1), Vector3.new(-HALF, 0, 0), false },
 			{ Vector3.new(1, 1, HALF * 2 + 1), Vector3.new(HALF, 0, 0), false },
@@ -486,10 +485,6 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 				solid({ Name = "UpperGlass", Size = if alongX then Vector3.new(w[1].X, glassH, 0.4) else Vector3.new(0.4, glassH, w[1].Z), CFrame = at(w[2].X, gy, w[2].Z), Color = Color3.fromRGB(200, 235, 255), Material = Enum.Material.Glass, Transparency = 0.6 })
 				part(folder, { Name = "UpperSill", Size = if alongX then Vector3.new(w[1].X - 2, 0.3, 1.8) else Vector3.new(1.8, 0.3, w[1].Z - 2), CFrame = at(w[2].X, FY + KNEE + 0.15, w[2].Z), Color = Color3.fromRGB(214, 211, 206), Material = Enum.Material.SmoothPlastic })
 			end
-		end
-		for _, x in { -12, 12 } do
-			part(folder, { Name = "UpperWindowFrame", Size = Vector3.new(10.4, 6.4, 1.7), CFrame = at(x, FY + 7, -HALF), Color = Color3.fromRGB(214, 211, 206), Material = Enum.Material.SmoothPlastic })
-			part(folder, { Name = "UpperWindow", Size = Vector3.new(9.4, 5.4, 1.9), CFrame = at(x, FY + 7, -HALF), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.35 })
 		end
 		part(folder, { Name = "UpperTopCeiling", Size = Vector3.new(inner * 2, 0.2, inner * 2), CFrame = at(0, TOP - 0.1, 0), Color = ceilingColor, Material = Enum.Material.SmoothPlastic })
 		require(script.Parent.MapBuilder).AddRoomLights(folder, cf, FY, TOP, theme)
