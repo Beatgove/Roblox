@@ -3,6 +3,7 @@
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local PhysicsService = game:GetService("PhysicsService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Util = require(game.ReplicatedStorage.Shared.Util)
@@ -40,7 +41,8 @@ local function setPen(pad: Instance, visible: boolean, ringColor: Color3?)
 	local pedestal = pad:FindFirstChild("Pedestal") :: BasePart?
 	local ring = pad:FindFirstChild("Ring") :: BasePart?
 	if pedestal then
-		pedestal.Transparency = if visible then 0 else 1
+		-- Locked pens still show as faded podiums, so the base looks full like Steal a Brainrot.
+		pedestal.Transparency = if visible then 0 else 0.6
 	end
 	if ring then
 		ring.Transparency = if visible then 0.1 else 1
@@ -598,7 +600,7 @@ function PlotService.Rebirth(player: Player)
 	PlotService.Render(player)
 	local plot = plotOf[player]
 	if plot then
-		BaseDecor.Apply(plot.model, plot.cframe, data.rebirths)
+		BaseDecor.Apply(plot.model, plot.cframe, data.rebirths, data.baseSkin)
 		Net.FxAll("baseUpgrade", { pos = plot.cframe.Position })
 		Signals.Progress(player, "rebirth")
 	end
@@ -619,6 +621,11 @@ end
 local function setOwnerSign(plot: Plot)
 	local label = plot.model.Sign.OwnerGui.Text
 	label.Text = if plot.owner then plot.owner.DisplayName .. "'s Base" else "Empty Base"
+	local facade = plot.model:FindFirstChild("FacadeSign", true)
+	local facadeText = facade and facade:FindFirstChild("Text", true) :: TextLabel?
+	if facadeText then
+		facadeText.Text = label.Text
+	end
 	local avatar = plot.model.Sign.OwnerGui:FindFirstChild("Avatar") :: ImageLabel?
 	if avatar then
 		avatar.Image = ""
@@ -645,10 +652,36 @@ end
 
 local function inPlot(plot: Plot, position: Vector3): boolean
 	local localPos = plot.cframe:PointToObjectSpace(position)
-	local half = 26
-	return math.abs(localPos.X) <= half and math.abs(localPos.Z) <= half and localPos.Y < 20
+	local half = 34 -- MapBuilder.PlotSize / 2
+	return math.abs(localPos.X) <= half and math.abs(localPos.Z) <= half and localPos.Y < 22
 end
 PlotService.InPlot = inPlot
+
+-- Base skins you've unlocked (by Slime Index count), in Config order.
+function PlotService.UnlockedSkins(player: Player)
+	local count = PlotService.IndexCount(player)
+	local list = {}
+	for _, skin in Config.BaseSkins do
+		if count >= skin.need then
+			table.insert(list, skin)
+		end
+	end
+	return list
+end
+
+local function skinLabel(plot: Plot)
+	local label = plot.model.SkinStand:FindFirstChild("SkinLabel", true) :: TextLabel?
+	local data = if plot.owner then DataService.Get(plot.owner) else nil
+	if label then
+		local name = "Classic"
+		for _, skin in Config.BaseSkins do
+			if data and skin.key == data.baseSkin then
+				name = skin.name
+			end
+		end
+		label.Text = "🎨 " .. name
+	end
+end
 
 local function setupPlotInteractions(plot: Plot)
 	local collector = plot.model.Collector
@@ -697,6 +730,41 @@ local function setupPlotInteractions(plot: Plot)
 			Net.Notify(who, "Lock ready in " .. Util.Duration(wait), "bad")
 		end
 	end)
+
+	-- 🎨 Skin stand: cycles through the base skins you've unlocked.
+	local skinPrompt = Instance.new("ProximityPrompt")
+	skinPrompt.Name = "SkinPrompt"
+	skinPrompt.ActionText = "Change Skin"
+	skinPrompt.ObjectText = "Base Skin"
+	skinPrompt.HoldDuration = 0
+	skinPrompt.MaxActivationDistance = 8
+	skinPrompt.RequiresLineOfSight = false
+	skinPrompt.Parent = plot.model.SkinStand
+	skinPrompt.Triggered:Connect(function(who)
+		local data = DataService.Get(who)
+		if who ~= plot.owner or not data then
+			return
+		end
+		local list = PlotService.UnlockedSkins(who)
+		local at = 1
+		for i, skin in list do
+			if skin.key == data.baseSkin then
+				at = i
+			end
+		end
+		local skin = list[at % #list + 1]
+		data.baseSkin = skin.key
+		BaseDecor.Apply(plot.model, plot.cframe, data.rebirths, skin.key)
+		skinLabel(plot)
+		Net.Fx(who, "baseUpgrade", { pos = plot.cframe.Position })
+		local nextSkin
+		for _, s in Config.BaseSkins do
+			if not nextSkin and s.need > PlotService.IndexCount(who) then
+				nextSkin = s
+			end
+		end
+		Net.Notify(who, "🎨 Base skin: " .. skin.name .. (if nextSkin then " · Next: " .. nextSkin.name .. " at " .. nextSkin.need .. " slimes in your Index" else ""), "good")
+	end)
 end
 
 function PlotService.Assign(player: Player)
@@ -709,8 +777,18 @@ function PlotService.Assign(player: Player)
 			plotOf[player] = plot
 			setOwnerSign(plot)
 			local data = DataService.Get(player)
-			BaseDecor.Apply(plot.model, plot.cframe, if data then data.rebirths else 0)
+			BaseDecor.Apply(plot.model, plot.cframe, if data then data.rebirths else 0, if data then data.baseSkin else nil)
 			player:SetAttribute("PlotIndex", plot.model:GetAttribute("Index"))
+			if data then
+				local ok = false
+				for _, skin in PlotService.UnlockedSkins(player) do
+					ok = ok or skin.key == data.baseSkin
+				end
+				if not ok then
+					data.baseSkin = "Classic"
+				end
+			end
+			skinLabel(plot)
 			PlotService.Render(player)
 			player.CharacterAdded:Connect(function(char)
 				char:WaitForChild("HumanoidRootPart", 10)
@@ -750,6 +828,7 @@ function PlotService.Release(player: Player)
 	end
 	plotOf[player] = nil
 	BaseDecor.Apply(plot.model, plot.cframe, 0)
+	skinLabel(plot)
 	setOwnerSign(plot)
 end
 
@@ -767,6 +846,16 @@ function PlotService.Start(builtPlots)
 		}
 		table.insert(plots, plot)
 		setupPlotInteractions(plot)
+		-- The doorway blocks everyone in the default group while locked; the owner's
+		-- character is moved into this plot's Pass group so it walks straight through.
+		local i = #plots
+		PhysicsService:RegisterCollisionGroup("Door" .. i)
+		PhysicsService:RegisterCollisionGroup("Pass" .. i)
+		PhysicsService:CollisionGroupSetCollidable("Door" .. i, "Pass" .. i, false)
+		local door = plot.model:FindFirstChild("Door") :: BasePart?
+		if door then
+			door.CollisionGroup = "Door" .. i
+		end
 	end
 
 	-- Income tick.
@@ -822,14 +911,59 @@ function PlotService.Start(builtPlots)
 		end
 	end)
 
+	-- Which plot's door each character walks through: their own, or the base they're
+	-- taking revenge on.
+	local function passGroup(player: Player): string
+		local target: Plot? = plotOf[player]
+		local revengeId = player:GetAttribute("RevengeUserId")
+		if revengeId and (player:GetAttribute("RevengeUntil") or 0) > workspace:GetServerTimeNow() then
+			for _, p in plots do
+				if p.owner and p.owner.UserId == revengeId then
+					target = p
+				end
+			end
+		end
+		return if target then "Pass" .. (table.find(plots, target) or 0) else "Default"
+	end
+	local function setGroup(char: Model, group: string)
+		if char:GetAttribute("PassGroup") == group then
+			return
+		end
+		char:SetAttribute("PassGroup", group)
+		for _, d in char:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.CollisionGroup = group
+			end
+		end
+	end
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function(char)
+			char.DescendantAdded:Connect(function(d)
+				local group = char:GetAttribute("PassGroup")
+				if d:IsA("BasePart") and type(group) == "string" then
+					d.CollisionGroup = group
+				end
+			end)
+		end)
+	end)
+
 	-- Lock visuals and pushing intruders out of locked bases.
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
+			for _, player in Players:GetPlayers() do
+				if player.Character then
+					setGroup(player.Character, passGroup(player))
+				end
+			end
 			for _, plot in plots do
 				local locked = plot.owner ~= nil and PlotService.IsLocked(plot)
+				local door = plot.model:FindFirstChild("Door") :: BasePart?
+				if door then
+					door.CanCollide = locked
+				end
 				for _, wall in plot.model.Shield:GetChildren() do
-					wall.Transparency = if locked then 0.4 else 1
+					wall.Transparency = if locked then 0.85 else 1
 				end
 				local lasers = plot.model:FindFirstChild("Lasers")
 				if lasers then
@@ -895,7 +1029,7 @@ function PlotService.Start(builtPlots)
 						local avenging = plot.owner ~= nil and other:GetAttribute("RevengeUserId") == plot.owner.UserId and (other:GetAttribute("RevengeUntil") or 0) > workspace:GetServerTimeNow()
 						local root = other ~= plot.owner and not avenging and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
 						if root and inPlot(plot, root.Position) then
-							other.Character:PivotTo(plot.cframe * CFrame.new(0, 4, -34))
+							other.Character:PivotTo(plot.cframe * CFrame.new(0, 4, -46))
 							Net.Notify(other, "That base is shielded!", "bad")
 						end
 					end

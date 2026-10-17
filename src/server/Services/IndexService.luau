@@ -15,6 +15,11 @@ function IndexService.Check(player: Player)
 		return
 	end
 	local count = PlotService.IndexCount(player)
+	for _, skin in Config.BaseSkins do
+		if skin.need > 0 and count == skin.need then
+			Net.Notify(player, "🎨 New base skin unlocked: " .. skin.name .. "! Tap the paint stand by your door to use it.", "epic")
+		end
+	end
 	for _, m in Config.IndexMilestones do
 		local key = tostring(m.count)
 		if count >= m.count and not data.indexRewards[key] then

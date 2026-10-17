@@ -49,6 +49,7 @@ local function defaultData()
 		relicBag = {}, -- relic key -> true, owned this run
 		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true
 		season = { id = "", xp = 0, claimed = {} }, -- Slime Season track (resets monthly)
+		baseSkin = "Classic", -- Config.BaseSkins key shown on your base
 		lastPhoneAlert = 0, -- os.time() of the last phone notification we sent
 		tutorial = 0, -- first-time guide step (Config.Tutorial); 99 = done
 		quests = { day = -1, list = {}, bonus = false }, -- today's daily quests

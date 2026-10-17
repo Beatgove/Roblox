@@ -6,7 +6,9 @@ local CollectionService = game:GetService("CollectionService")
 
 local BaseDecor = {}
 
-local HALF = 26 -- MapBuilder.PlotSize / 2
+local HALF = 34 -- MapBuilder.PlotSize / 2
+local H = 18 -- MapBuilder.WallHeight
+local DOOR = 10 -- half of MapBuilder.DoorWidth
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 
@@ -65,15 +67,33 @@ local function restyleStart(model: Model, name: string, color: Color3?, material
 	end
 end
 
-function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
+-- Base skin (Config.BaseSkins): recolours the castle walls, posts, battlements and towers.
+local function applySkin(model: Model, key: string?)
+	local skin
+	for _, s in Config.BaseSkins do
+		if s.key == key then
+			skin = s
+		end
+	end
+	if not skin or not skin.wall then
+		return
+	end
+	local wallMat = (Enum.Material :: any)[skin.wallMat]
+	local trimMat = (Enum.Material :: any)[skin.trimMat]
+	restyle(model, "Wall", skin.wall, wallMat)
+	for _, name in { "WallPost", "Parapet", "Skirting" } do
+		restyleStart(model, name, skin.trim, trimMat)
+	end
+end
+
+local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 	remember(model)
-	-- Towers get grander as you rebirth: marble at 5, golden roofs at 10.
-	restyleStart(model, "Tower", if rebirths >= 5 then Color3.fromRGB(240, 236, 248) else nil, if rebirths >= 5 then Enum.Material.Marble else nil)
-	restyleStart(model, "Roof", if rebirths >= 10 then Color3.fromRGB(255, 200, 50) else nil, if rebirths >= 10 then Enum.Material.Metal else nil)
-	restyleStart(model, "Battlement", if rebirths >= 10 then Color3.fromRGB(255, 220, 110) else nil, if rebirths >= 10 then Enum.Material.Metal else nil)
 	local old = model:FindFirstChild("Decor")
 	if old then
 		old:Destroy()
+	end
+	for _, name in { "WallPost", "Parapet", "Skirting" } do
+		restyleStart(model, name)
 	end
 	restyle(model, "Floor")
 	restyle(model, "Wall")
@@ -95,17 +115,20 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		{ from = Vector3.new(HALF, 0, -HALF), to = Vector3.new(HALF, 0, HALF) },
 		{ from = Vector3.new(-HALF, 0, HALF), to = Vector3.new(HALF, 0, HALF) },
 	}
+	local capWalls = table.clone(walls)
+	table.insert(capWalls, { from = Vector3.new(-HALF, 0, -HALF), to = Vector3.new(-DOOR, 0, -HALF) })
+	table.insert(capWalls, { from = Vector3.new(DOOR, 0, -HALF), to = Vector3.new(HALF, 0, -HALF) })
 
 	-- 1: stone floor and white caps on the walls
 	restyle(model, "Floor", Color3.fromRGB(200, 195, 205), Enum.Material.Slate)
-	for _, w in walls do
+	for _, w in capWalls do
 		local mid = (w.from + w.to) / 2
 		local len = (w.to - w.from).Magnitude + 1.4
 		local alongX = math.abs(w.to.X - w.from.X) > 0.1
-		part(folder, { Name = "Cap", Size = if alongX then Vector3.new(len, 0.4, 1.4) else Vector3.new(1.4, 0.4, len), CFrame = at(mid.X, 3.2, mid.Z), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.SmoothPlastic })
+		part(folder, { Name = "Cap", Size = if alongX then Vector3.new(len, 0.4, 1.4) else Vector3.new(1.4, 0.4, len), CFrame = at(mid.X, H + 0.2, mid.Z), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.SmoothPlastic })
 	end
 
-	-- 2: flower boxes along the wall tops
+	-- 2: window boxes of flowers hanging on the inside of the walls
 	if rebirths >= 2 then
 		local flowerColors = { Color3.fromRGB(255, 90, 140), Color3.fromRGB(255, 220, 80), Color3.fromRGB(180, 120, 255), light }
 		local n = 0
@@ -114,12 +137,14 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 			for d = 6, len - 6, 10 do
 				n += 1
 				local p = w.from + (w.to - w.from).Unit * d
-				part(folder, { Name = "FlowerBox", Size = Vector3.new(2.6, 0.8, 2.6), CFrame = at(p.X, 3.8, p.Z), Color = Color3.fromRGB(120, 80, 50), Material = Enum.Material.WoodPlanks })
+				-- Nudge inward, off the wall face.
+				p -= Vector3.new(math.sign(p.X) * (if math.abs(p.X) >= HALF - 0.1 then 1.6 else 0), 0, math.sign(p.Z) * (if math.abs(p.Z) >= HALF - 0.1 then 1.6 else 0))
+				part(folder, { Name = "FlowerBox", Size = Vector3.new(2.6, 0.8, 2.6), CFrame = at(p.X, 6.8, p.Z), Color = Color3.fromRGB(120, 80, 50), Material = Enum.Material.WoodPlanks })
 				for k = 1, 3 do
 					local off = Vector3.new(math.cos(k * 2.1) * 0.7, 0, math.sin(k * 2.1) * 0.7)
-					part(folder, { Name = "Flower", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(p.X + off.X, 4.6, p.Z + off.Z), Color = flowerColors[(n + k) % #flowerColors + 1], Material = Enum.Material.SmoothPlastic })
+					part(folder, { Name = "Flower", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(p.X + off.X, 7.6, p.Z + off.Z), Color = flowerColors[(n + k) % #flowerColors + 1], Material = Enum.Material.SmoothPlastic })
 				end
-				part(folder, { Name = "Leaves", Size = Vector3.new(2.2, 0.3, 2.2), CFrame = at(p.X, 4.25, p.Z), Color = Color3.fromRGB(70, 170, 70), Material = Enum.Material.Grass })
+				part(folder, { Name = "Leaves", Size = Vector3.new(2.2, 0.3, 2.2), CFrame = at(p.X, 7.25, p.Z), Color = Color3.fromRGB(70, 170, 70), Material = Enum.Material.Grass })
 			end
 		end
 	end
@@ -127,25 +152,24 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 	-- 3: lanterns on the front corners and halfway down the sides (the back corners have towers)
 	if rebirths >= 3 then
 		for _, c in { Vector3.new(-HALF, 0, -HALF), Vector3.new(HALF, 0, -HALF), Vector3.new(-HALF, 0, 0), Vector3.new(HALF, 0, 0) } do
-			part(folder, { Name = "Post", Size = Vector3.new(1, 8, 1), CFrame = at(c.X, 4, c.Z), Color = Color3.fromRGB(60, 45, 70), Material = Enum.Material.Metal })
-			local lamp = part(folder, { Name = "Lantern", Size = Vector3.new(1.8, 2, 1.8), CFrame = at(c.X, 9, c.Z), Color = Color3.fromRGB(255, 220, 140), Material = Enum.Material.Neon })
+			local lamp = part(folder, { Name = "Lantern", Size = Vector3.new(1.8, 2, 1.8), CFrame = at(c.X, H + 3.4, c.Z), Color = Color3.fromRGB(255, 220, 140), Material = Enum.Material.Neon })
 			CollectionService:AddTag(lamp, "Pulse")
 			local pl = Instance.new("PointLight")
 			pl.Color = Color3.fromRGB(255, 210, 140)
 			pl.Range = 18
 			pl.Brightness = 1.5
 			pl.Parent = lamp
-			part(folder, { Name = "LanternRoof", Size = Vector3.new(2.4, 0.4, 2.4), CFrame = at(c.X, 10.2, c.Z), Color = Color3.fromRGB(60, 45, 70), Material = Enum.Material.Metal })
+			part(folder, { Name = "LanternRoof", Size = Vector3.new(2.4, 0.4, 2.4), CFrame = at(c.X, H + 4.6, c.Z), Color = Color3.fromRGB(60, 45, 70), Material = Enum.Material.Metal })
 		end
 	end
 
 	-- 4: a grand entrance gate on the open side, with your rebirth count
 	if rebirths >= 4 then
-		for _, x in { -9, 9 } do
-			part(folder, { Name = "GatePillar", Size = Vector3.new(2.4, 13, 2.4), CFrame = at(x, 6.5, -HALF), Color = Color3.fromRGB(240, 235, 245), Material = Enum.Material.Marble })
+		for _, x in { -DOOR - 1.1, DOOR + 1.1 } do
+			part(folder, { Name = "GatePillar", Size = Vector3.new(2.6, 13.2, 2.8), CFrame = at(x, 6.6, -HALF), Color = Color3.fromRGB(240, 235, 245), Material = Enum.Material.Marble })
 			part(folder, { Name = "GateOrb", Shape = Enum.PartType.Ball, Size = Vector3.one * 2.4, CFrame = at(x, 14.2, -HALF), Color = theme, Material = Enum.Material.Neon })
 		end
-		local beam = part(folder, { Name = "GateBeam", Size = Vector3.new(21, 2, 2), CFrame = at(0, 12, -HALF), Color = theme, Material = Enum.Material.Neon })
+		local beam = part(folder, { Name = "GateBeam", Size = Vector3.new(DOOR * 2 + 5, 2, 1.2), CFrame = at(0, 13, -HALF - 1.2), Color = theme, Material = Enum.Material.Neon })
 		local gui = Instance.new("SurfaceGui")
 		gui.Face = Enum.NormalId.Back -- faces outward, toward the belt
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
@@ -194,7 +218,7 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 
 	-- 7: fireflies drifting over the pens
 	if rebirths >= 7 then
-		local zone = part(folder, { Name = "Fireflies", Size = Vector3.new(44, 1, 34), CFrame = at(0, 6, 8), Transparency = 1 })
+		local zone = part(folder, { Name = "Fireflies", Size = Vector3.new(56, 1, 56), CFrame = at(0, 8, 0), Transparency = 1 })
 		local e = Instance.new("ParticleEmitter")
 		e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 		e.Color = ColorSequence.new(Color3.fromRGB(255, 240, 140), Color3.fromRGB(200, 255, 140))
@@ -223,12 +247,12 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		for k = 0, 12 do
 			local x = -HALF + k * (HALF * 2 / 12)
 			local sag = -2.2 * (1 - ((x / HALF) ^ 2))
-			local bulb = part(folder, { Name = "PartyBulb", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(x, 8 + sag, -HALF), Color = colors[k % #colors + 1], Material = Enum.Material.Neon })
+			local bulb = part(folder, { Name = "PartyBulb", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.9, CFrame = at(x, H + 2 + sag, -HALF - 2), Color = colors[k % #colors + 1], Material = Enum.Material.Neon })
 			if k % 3 == 0 then
 				CollectionService:AddTag(bulb, "Pulse")
 			end
 		end
-		part(folder, { Name = "PartyWire", Size = Vector3.new(HALF * 2, 0.1, 0.1), CFrame = at(0, 8.4, -HALF), Color = Color3.fromRGB(40, 40, 50), Material = Enum.Material.SmoothPlastic })
+		part(folder, { Name = "PartyWire", Size = Vector3.new(HALF * 2, 0.1, 0.1), CFrame = at(0, H + 2.4, -HALF - 2), Color = Color3.fromRGB(40, 40, 50), Material = Enum.Material.SmoothPlastic })
 	end
 
 	-- 10: sparkles drifting up from the floor edges
@@ -236,7 +260,7 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		for _, w in walls do
 			local mid = (w.from + w.to) / 2
 			local alongX = math.abs(w.to.X - w.from.X) > 0.1
-			local emitterPart = part(folder, { Name = "Aura", Size = if alongX then Vector3.new(52, 0.2, 1) else Vector3.new(1, 0.2, 52), CFrame = at(mid.X, 0.6, mid.Z), Transparency = 1 })
+			local emitterPart = part(folder, { Name = "Aura", Size = if alongX then Vector3.new(HALF * 2, 0.2, 1) else Vector3.new(1, 0.2, HALF * 2), CFrame = at(mid.X, 0.6, mid.Z), Transparency = 1 })
 			local e = Instance.new("ParticleEmitter")
 			e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 			e.Color = ColorSequence.new(light, Color3.fromRGB(255, 230, 120))
@@ -250,10 +274,10 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		end
 	end
 
-	-- 12: a golden slime statue on top of the back wall sign
+	-- 12: a golden slime statue at the end of the red carpet
 	if rebirths >= 12 then
-		part(folder, { Name = "Plinth", Size = Vector3.new(6, 1.2, 4), CFrame = at(0, 10.6, HALF - 1), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble })
-		local s = part(folder, { Name = "StatueSlime", Shape = Enum.PartType.Ball, Size = Vector3.one * 5, CFrame = at(0, 13.4, HALF - 1), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal, Reflectance = 0.35 })
+		part(folder, { Name = "Plinth", Size = Vector3.new(6, 1.2, 4), CFrame = at(0, 1.1, HALF - 4), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Marble })
+		local s = part(folder, { Name = "StatueSlime", Shape = Enum.PartType.Ball, Size = Vector3.one * 5, CFrame = at(0, 4.2, HALF - 4), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal, Reflectance = 0.35 })
 		for _, side in { -1, 1 } do
 			part(folder, { Name = "StatueEye", Shape = Enum.PartType.Ball, Size = Vector3.new(0.8, 1.1, 0.4), CFrame = s.CFrame * CFrame.new(side * 0.9, 0.4, -2.3), Color = Color3.fromRGB(30, 25, 20), Material = Enum.Material.SmoothPlastic })
 		end
@@ -264,14 +288,14 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 		local crownFolder = Instance.new("Model")
 		crownFolder.Name = "Crown"
 		crownFolder.Parent = folder
-		part(crownFolder, { Name = "CrownBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 9, 9), CFrame = at(0, 30, 6) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
+		part(crownFolder, { Name = "CrownBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 9, 9), CFrame = at(0, H + 26, 6) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
 		for k = 0, 5 do
 			local a = k / 6 * math.pi * 2
-			part(crownFolder, { Name = "Spike", Size = Vector3.new(1, 3.4, 1), CFrame = at(math.cos(a) * 3.8, 32.6, 6 + math.sin(a) * 3.8), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
-			part(crownFolder, { Name = "Gem", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.1, CFrame = at(math.cos(a) * 3.8, 34.6, 6 + math.sin(a) * 3.8), Color = theme, Material = Enum.Material.Neon })
+			part(crownFolder, { Name = "Spike", Size = Vector3.new(1, 3.4, 1), CFrame = at(math.cos(a) * 3.8, H + 28.6, 6 + math.sin(a) * 3.8), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Neon })
+			part(crownFolder, { Name = "Gem", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.1, CFrame = at(math.cos(a) * 3.8, H + 30.6, 6 + math.sin(a) * 3.8), Color = theme, Material = Enum.Material.Neon })
 		end
 		-- Spin around the crown's own upright axis.
-		crownFolder.WorldPivot = at(0, 32, 6)
+		crownFolder.WorldPivot = at(0, H + 28, 6)
 		CollectionService:AddTag(crownFolder, "Spin")
 	end
 
@@ -298,6 +322,11 @@ function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number)
 			end
 		end
 	end
+end
+
+function BaseDecor.Apply(model: Model, cf: CFrame, rebirths: number, skin: string?)
+	applyTiers(model, cf, rebirths)
+	applySkin(model, skin)
 end
 
 -- The next tier this player will unlock, for the Rebirth menu.

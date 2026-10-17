@@ -59,7 +59,7 @@ local function render(player: Player)
 		gem.CanQuery = false
 		gem.CastShadow = false
 		gem.Size = Vector3.new(2.2, 2.2, 2.2)
-		gem.CFrame = plot.cframe * CFrame.new(x, 20, 26 - 1) * CFrame.Angles(math.rad(45), 0, math.rad(45))
+		gem.CFrame = plot.cframe * CFrame.new(x, 24, 34 - 3) * CFrame.Angles(math.rad(45), 0, math.rad(45))
 		gem.Color = color
 		gem.Material = Enum.Material.Neon
 		gem.Parent = folder

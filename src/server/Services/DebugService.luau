@@ -32,9 +32,15 @@ function DebugService.Start(services)
 			data.rebirths = n or (data.rebirths + 1)
 			local plot = services.PlotService.GetPlot(player)
 			if plot then
-				services.BaseDecor.Apply(plot.model, plot.cframe, data.rebirths)
+				services.BaseDecor.Apply(plot.model, plot.cframe, data.rebirths, data.baseSkin)
 			end
 			services.PlotService.Sync(player)
+		elseif cmd == "skin" then
+			data.baseSkin = arg or "Classic"
+			local plot = services.PlotService.GetPlot(player)
+			if plot then
+				services.BaseDecor.Apply(plot.model, plot.cframe, data.rebirths, data.baseSkin)
+			end
 		elseif cmd == "xp" then
 			services.LevelService.AddXP(player, n or 500)
 		elseif cmd == "event" then

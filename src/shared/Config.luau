@@ -191,7 +191,7 @@ end
 -- Rewards scale with your income so they stay worth it, but pay about what your base
 -- earns in the same time (on top of it), so they're a bonus, not a replacement.
 Config.Fishing = {
-	pos = Vector3.new(228, 0, -42), radius = 17,
+	pos = Vector3.new(272, 0, -42), radius = 17,
 	biteMin = 2, biteMax = 6, reelWindow = 1.1,
 	-- weight = chance share. Shown on the board by the pond.
 	loot = {
@@ -204,14 +204,14 @@ Config.Fishing = {
 	},
 }
 Config.Arcade = {
-	pos = Vector3.new(228, 0, 44), seconds = 30, holes = 9,
+	pos = Vector3.new(272, 0, 44), seconds = 30, holes = 9,
 	upStart = 1.1, upEnd = 0.55, -- how long a slime stays up, start -> end of round
 	goldenChance = 0.1, bombChance = 0.12,
 	cashPerPoint = 0.8, minPerPoint = 25, -- reward = max(score x min, income x score x cashPerPoint)
 	snackAt = 20, luckAt = 30,
 }
 Config.Tower = {
-	pos = Vector3.new(-232, 0, 0), steps = 38, radius = 17, rise = 3.1, turn = math.rad(24),
+	pos = Vector3.new(-276, 0, 0), steps = 38, radius = 17, rise = 3.1, turn = math.rad(24),
 	cooldownSeconds = 15 * 60,
 	reward = { cashSeconds = 180, cashMin = 1000, snacks = 2 },
 	relicChance = 0.1,
@@ -406,6 +406,18 @@ Config.IndexMilestones = {
 	{ count = 20, label = "$1M + 30 min Luck", cash = 1000000, luckMinutes = 30 },
 	{ count = 25, label = "$50M", cash = 50000000 },
 	{ count = 30, label = "$1B + Lucky roll", cash = 1000000000, freeRoll = true, rollLuck = 10 },
+}
+
+-- ===== Base skins (unlocked by discovering slimes, like Steal a Brainrot's index skins) =====
+-- need = different slimes in your Slime Index. Change skin at the 🎨 stand in your base.
+-- wall/trim recolour the castle walls, posts, battlements and towers.
+Config.BaseSkins = {
+	{ key = "Classic", name = "Classic", need = 0 },
+	{ key = "Stone", name = "Stone Keep", need = 6, wall = Color3.fromRGB(150, 148, 158), wallMat = "Cobblestone", trim = Color3.fromRGB(105, 100, 115), trimMat = "Slate" },
+	{ key = "Candy", name = "Candy Castle", need = 12, wall = Color3.fromRGB(255, 170, 215), wallMat = "SmoothPlastic", trim = Color3.fromRGB(255, 250, 255), trimMat = "SmoothPlastic" },
+	{ key = "Frost", name = "Frost Fort", need = 18, wall = Color3.fromRGB(190, 235, 255), wallMat = "Ice", trim = Color3.fromRGB(240, 250, 255), trimMat = "Glacier" },
+	{ key = "Gold", name = "Golden Fort", need = 24, wall = Color3.fromRGB(255, 205, 70), wallMat = "Metal", trim = Color3.fromRGB(255, 240, 170), trimMat = "Metal" },
+	{ key = "Galaxy", name = "Galaxy Citadel", need = 30, wall = Color3.fromRGB(60, 30, 120), wallMat = "Foil", trim = Color3.fromRGB(170, 120, 255), trimMat = "Neon" },
 }
 
 -- ===== Gear (bought with cash in the GEAR menu, kept forever) =====

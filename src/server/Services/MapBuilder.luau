@@ -6,16 +6,20 @@ local Lighting = game:GetService("Lighting")
 
 local MapBuilder = {}
 
-MapBuilder.BeltStart = Vector3.new(-175, 0, 0)
-MapBuilder.BeltEnd = Vector3.new(175, 0, 0)
+MapBuilder.BeltStart = Vector3.new(-205, 0, 0)
+MapBuilder.BeltEnd = Vector3.new(205, 0, 0)
 MapBuilder.BeltTopY = 1.5
-MapBuilder.PlotSize = 52
+MapBuilder.PlotSize = 68
+MapBuilder.WallHeight = 18
+MapBuilder.DoorWidth = 20
+MapBuilder.DoorHeight = 12
 -- Base layout: 4 bases on each side of the belt, with room to breathe between them.
-MapBuilder.PlotXs = { -129, -43, 43, 129 }
-MapBuilder.PlotZ = 74
+MapBuilder.PlotXs = { -165, -55, 55, 165 }
+MapBuilder.PlotZ = 84
 
-local PEN_X = { -18, -9, 0, 9, 18 }
-local PEN_Z = { -4, 5, 14, 23 }
+-- Two rows of pens down each side of the aisle, front row first.
+local PEN_X = { -25, -15, 15, 25 }
+local PEN_Z = { -14, -4, 6, 16, 26 }
 local THEMES = {
 	Color3.fromRGB(255, 90, 140),
 	Color3.fromRGB(90, 170, 255),
@@ -81,11 +85,11 @@ end
 
 local function buildLighting()
 	Lighting.ClockTime = 15.2
-	Lighting.Brightness = 3
-	Lighting.OutdoorAmbient = Color3.fromRGB(150, 140, 180)
+	Lighting.Brightness = 2.2
+	Lighting.OutdoorAmbient = Color3.fromRGB(135, 135, 150)
 	Lighting.Ambient = Color3.fromRGB(70, 60, 90)
 	Lighting.EnvironmentDiffuseScale = 1
-	Lighting.EnvironmentSpecularScale = 1
+	Lighting.EnvironmentSpecularScale = 0.5
 	Lighting.GlobalShadows = true
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
@@ -94,24 +98,24 @@ local function buildLighting()
 	local atm = Instance.new("Atmosphere")
 	atm.Density = 0.32
 	atm.Offset = 0.15
-	atm.Color = Color3.fromRGB(255, 200, 230)
-	atm.Decay = Color3.fromRGB(120, 90, 200)
-	atm.Glare = 0.4
-	atm.Haze = 1.6
+	atm.Color = Color3.fromRGB(215, 225, 240)
+	atm.Decay = Color3.fromRGB(120, 130, 170)
+	atm.Glare = 0.05
+	atm.Haze = 0.8
 	atm.Parent = Lighting
 
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 1
-	bloom.Size = 28
-	bloom.Threshold = 0.9
+	bloom.Intensity = 0.3
+	bloom.Size = 16
+	bloom.Threshold = 1.6
 	bloom.Parent = Lighting
 
 	local cc = Instance.new("ColorCorrectionEffect")
 	cc.Name = "ColorCorrection" -- the client tints this during server events
-	cc.Saturation = 0.28
+	cc.Saturation = 0
 	cc.Contrast = 0.08
-	cc.Brightness = 0.02
-	cc.TintColor = Color3.fromRGB(255, 248, 255)
+	cc.Brightness = 0
+	cc.TintColor = Color3.fromRGB(255, 255, 255)
 	cc.Parent = Lighting
 
 	local rays = Instance.new("SunRaysEffect")
@@ -122,7 +126,7 @@ local function buildLighting()
 	local clouds = Instance.new("Clouds")
 	clouds.Cover = 0.55
 	clouds.Density = 0.6
-	clouds.Color = Color3.fromRGB(255, 230, 250)
+	clouds.Color = Color3.fromRGB(245, 245, 250)
 	clouds.Parent = workspace.Terrain
 end
 
@@ -470,12 +474,12 @@ local function decorate(map: Folder)
 	end
 
 	-- Walkway lamps along both sides of the belt.
-	for x = -165, 165, 30 do
+	for x = -195, 195, 30 do
 		lamp(Vector3.new(x, 0, 12), Color3.fromRGB(255, 220, 140))
 		lamp(Vector3.new(x, 0, -12), Color3.fromRGB(255, 220, 140))
 	end
 	-- Signposts at both ends of the street pointing to the mini games.
-	for _, s in { { x = 182, text = "THIS WAY: 🎣 GOO POND · 🔨 ARCADE", face = Enum.NormalId.Left }, { x = -182, text = "THIS WAY: 🗼 SKY TOWER", face = Enum.NormalId.Right } } do
+	for _, s in { { x = 215, text = "THIS WAY: 🎣 GOO POND · 🔨 ARCADE", face = Enum.NormalId.Left }, { x = -215, text = "THIS WAY: 🗼 SKY TOWER", face = Enum.NormalId.Right } } do
 		local board = part({ Name = "FunSign", Size = Vector3.new(0.6, 5, 16), Position = Vector3.new(s.x, 9, -18), Color = Color3.fromRGB(60, 40, 100), Material = Enum.Material.WoodPlanks })
 		board.Parent = deco
 		part({ Name = "FunSignPost", Size = Vector3.new(0.8, 7, 0.8), Position = Vector3.new(s.x, 3.5, -18), Color = Color3.fromRGB(110, 75, 50), Material = Enum.Material.Wood }).Parent = deco
@@ -499,7 +503,7 @@ local function decorate(map: Folder)
 	end
 	-- Floating crystals above the belt.
 	local crystalColors = { Color3.fromRGB(120, 255, 200), Color3.fromRGB(255, 120, 220), Color3.fromRGB(140, 160, 255) }
-	for i, x in { -150, -100, -50, 0, 50, 100, 150 } do
+	for i, x in { -180, -120, -60, 0, 60, 120, 180 } do
 		crystal(Vector3.new(x, 26, 0), crystalColors[(i - 1) % #crystalColors + 1])
 	end
 	-- Trees around the outside of the map.
@@ -508,19 +512,19 @@ local function decorate(map: Folder)
 		local side = rng:NextInteger(1, 2)
 		local pos
 		if side == 1 then
-			pos = Vector3.new(rng:NextNumber(-260, 260), 0, rng:NextNumber(110, 185))
+			pos = Vector3.new(rng:NextNumber(-330, 330), 0, rng:NextNumber(140, 250))
 		elseif side == 2 then
-			pos = Vector3.new(rng:NextNumber(-260, 260), 0, rng:NextNumber(-185, -110))
+			pos = Vector3.new(rng:NextNumber(-330, 330), 0, rng:NextNumber(-250, -140))
 		elseif side == 3 then
-			pos = Vector3.new(rng:NextNumber(-260, -182), 0, rng:NextNumber(-100, 100))
+			pos = Vector3.new(rng:NextNumber(-345, -305), 0, rng:NextNumber(-120, 120))
 		else
-			pos = Vector3.new(rng:NextNumber(182, 260), 0, rng:NextNumber(-100, 100))
+			pos = Vector3.new(rng:NextNumber(305, 345), 0, rng:NextNumber(-120, 120))
 		end
 		tree(pos)
 	end
 	-- Colourful flowers scattered on the grass.
 	for _ = 1, 180 do
-		local pos = Vector3.new(rng:NextNumber(-270, 270), 0.3, rng:NextNumber(-190, 190))
+		local pos = Vector3.new(rng:NextNumber(-350, 350), 0.3, rng:NextNumber(-270, 270))
 		if math.abs(pos.Z) > 104 or math.abs(pos.X) > 172 then
 			part({
 				Name = "Flower",
@@ -536,15 +540,28 @@ local function decorate(map: Folder)
 end
 
 local function buildPlot(map: Folder, index: number, center: Vector3, facing: number)
-	local half = MapBuilder.PlotSize / 2
+	-- A big roofed base like Steal a Brainrot's: a coloured building with a wide front door
+	-- (laser door when locked), pens in two rows either side of a red-carpet aisle, lights in
+	-- the ceiling and the owner's name floating high above the roof.
+	local S = MapBuilder.PlotSize
+	local half = S / 2
+	local H = MapBuilder.WallHeight
+	local DH = MapBuilder.DoorHeight
+	local door = MapBuilder.DoorWidth / 2
 	local cf = CFrame.new(center) * CFrame.Angles(0, facing, 0)
 	local plot = Instance.new("Model")
 	plot.Name = "Plot" .. index
 	plot:SetAttribute("Index", index)
+	local theme = THEMES[(index - 1) % #THEMES + 1]
+	plot:SetAttribute("Theme", theme)
+	-- Muted tones of the base colour: easy on the eyes, still easy to tell bases apart.
+	local muted = theme:Lerp(Color3.fromRGB(200, 200, 205), 0.45)
+	local soft = Color3.fromRGB(238, 236, 232)
+	local dark = theme:Lerp(Color3.fromRGB(60, 60, 70), 0.6)
 
 	local floor = part({
 		Name = "Floor",
-		Size = Vector3.new(MapBuilder.PlotSize, 0.5, MapBuilder.PlotSize),
+		Size = Vector3.new(S, 0.5, S),
 		CFrame = cf * CFrame.new(0, 0.25, 0),
 		Color = Color3.fromRGB(196, 150, 108),
 		Material = Enum.Material.WoodPlanks,
@@ -552,113 +569,139 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	floor.Parent = plot
 	plot.PrimaryPart = floor
 
-	-- Low walls on three sides; the front (toward the belt) is open.
-	local theme = THEMES[(index - 1) % #THEMES + 1]
-	local wallColor = theme
-	plot:SetAttribute("Theme", theme)
 	-- Neon trim around the floor edge in the base colour.
 	for _, t in {
-		{ Vector3.new(MapBuilder.PlotSize, 0.3, 0.6), Vector3.new(0, 0.6, -half) },
-		{ Vector3.new(0.6, 0.3, MapBuilder.PlotSize), Vector3.new(-half, 0.6, 0) },
-		{ Vector3.new(0.6, 0.3, MapBuilder.PlotSize), Vector3.new(half, 0.6, 0) },
+		{ Vector3.new(S, 0.3, 0.6), Vector3.new(0, 0.6, half - 0.8) },
+		{ Vector3.new(0.6, 0.3, S), Vector3.new(-half + 0.8, 0.6, 0) },
+		{ Vector3.new(0.6, 0.3, S), Vector3.new(half - 0.8, 0.6, 0) },
+		{ Vector3.new(half - door, 0.3, 0.6), Vector3.new(-(door + half) / 2, 0.6, -half + 0.8) },
+		{ Vector3.new(half - door, 0.3, 0.6), Vector3.new((door + half) / 2, 0.6, -half + 0.8) },
 	} do
-		part({ Name = "Trim", Size = t[1], CFrame = cf * CFrame.new(t[2]), Color = theme, Material = Enum.Material.Neon, CanCollide = false }).Parent = plot
-	end
-	for _, w in {
-		{ Vector3.new(MapBuilder.PlotSize, 3, 1), Vector3.new(0, 1.5, half) },
-		{ Vector3.new(1, 3, MapBuilder.PlotSize), Vector3.new(-half, 1.5, 0) },
-		{ Vector3.new(1, 3, MapBuilder.PlotSize), Vector3.new(half, 1.5, 0) },
-	} do
-		part({ Name = "Wall", Size = w[1], CFrame = cf * CFrame.new(w[2]), Color = wallColor }).Parent = plot
+		part({ Name = "Trim", Size = t[1], CFrame = cf * CFrame.new(t[2]), Color = muted, Material = Enum.Material.SmoothPlastic, CanCollide = false }).Parent = plot
 	end
 
-	-- Starting look: posts along the walls, a border on the floor, an entrance with
-	-- glowing pillars, a welcome rug and hedges outside. Rebirths add more (BaseDecor).
-	local soft = theme:Lerp(Color3.new(1, 1, 1), 0.45)
-	local dark = theme:Lerp(Color3.new(0, 0, 0), 0.35)
+	-- Outer walls: full height on three sides, the front has a wide doorway with a header above.
+	local side = half - door
+	for _, w in {
+		{ Vector3.new(S, H, 1), Vector3.new(0, H / 2, half) },
+		{ Vector3.new(1, H, S), Vector3.new(-half, H / 2, 0) },
+		{ Vector3.new(1, H, S), Vector3.new(half, H / 2, 0) },
+		{ Vector3.new(side, H, 1), Vector3.new(-(door + side / 2), H / 2, -half) },
+		{ Vector3.new(side, H, 1), Vector3.new(door + side / 2, H / 2, -half) },
+		{ Vector3.new(door * 2, H - DH, 1), Vector3.new(0, DH + (H - DH) / 2, -half) },
+	} do
+		part({ Name = "Wall", Size = w[1], CFrame = cf * CFrame.new(w[2]), Color = muted, Material = Enum.Material.SmoothPlastic }).Parent = plot
+	end
+
 	local start = Instance.new("Folder")
 	start.Name = "StartDecor"
 	start.Parent = plot
-	local function add(props)
+	local function add(props): Part
 		props.CanCollide = props.CanCollide or false
-		props.CastShadow = false
-		part(props).Parent = start
+		props.CastShadow = props.CastShadow or false
+		local p = part(props)
+		p.Parent = start
+		return p
+	end
+
+	-- The roof, with an overhang, a white parapet and a glowing rim.
+	add({ Name = "RoofSlab", Size = Vector3.new(S + 3, 1.2, S + 3), CFrame = cf * CFrame.new(0, H + 0.6, 0), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true, CastShadow = true })
+	for _, r in {
+		{ Vector3.new(S + 3, 1.4, 1), Vector3.new(0, H + 1.9, half + 1) },
+		{ Vector3.new(S + 3, 1.4, 1), Vector3.new(0, H + 1.9, -half - 1) },
+		{ Vector3.new(1, 1.4, S + 3), Vector3.new(-half - 1, H + 1.9, 0) },
+		{ Vector3.new(1, 1.4, S + 3), Vector3.new(half + 1, H + 1.9, 0) },
+	} do
+		add({ Name = "Parapet", Size = r[1], CFrame = cf * CFrame.new(r[2]), Color = soft, Material = Enum.Material.SmoothPlastic, CanCollide = true })
+	end
+	-- Two-tone walls: a dark skirting at the bottom and a light band under the roof.
+	for _, b in {
+		{ Vector3.new(S + 0.4, 1.6, 1.4), Vector3.new(0, 0.8, half) },
+		{ Vector3.new(1.4, 1.6, S + 0.4), Vector3.new(-half, 0.8, 0) },
+		{ Vector3.new(1.4, 1.6, S + 0.4), Vector3.new(half, 0.8, 0) },
+		{ Vector3.new(side, 1.6, 1.4), Vector3.new(-(door + side / 2), 0.8, -half) },
+		{ Vector3.new(side, 1.6, 1.4), Vector3.new(door + side / 2, 0.8, -half) },
+	} do
+		add({ Name = "Skirting", Size = b[1], CFrame = cf * CFrame.new(b[2]), Color = dark, Material = Enum.Material.SmoothPlastic })
 	end
 	for _, b in {
-		{ Vector3.new(MapBuilder.PlotSize - 2, 0.08, 1.6), Vector3.new(0, 0.54, -half + 1.8) },
-		{ Vector3.new(MapBuilder.PlotSize - 2, 0.08, 1.6), Vector3.new(0, 0.54, half - 1.8) },
-		{ Vector3.new(1.6, 0.08, MapBuilder.PlotSize - 2), Vector3.new(-half + 1.8, 0.54, 0) },
-		{ Vector3.new(1.6, 0.08, MapBuilder.PlotSize - 2), Vector3.new(half - 1.8, 0.54, 0) },
+		{ Vector3.new(S + 0.4, 1.2, 1.4), Vector3.new(0, H - 0.6, half) },
+		{ Vector3.new(1.4, 1.2, S + 0.4), Vector3.new(-half, H - 0.6, 0) },
+		{ Vector3.new(1.4, 1.2, S + 0.4), Vector3.new(half, H - 0.6, 0) },
+		{ Vector3.new(S + 0.4, 1.2, 1.4), Vector3.new(0, H - 0.6, -half) },
 	} do
-		add({ Name = "FloorBorder", Size = b[1], CFrame = cf * CFrame.new(b[2]), Color = soft, Material = Enum.Material.SmoothPlastic })
+		add({ Name = "Band", Size = b[1], CFrame = cf * CFrame.new(b[2]), Color = soft, Material = Enum.Material.SmoothPlastic })
 	end
-	add({ Name = "WelcomeRug", Size = Vector3.new(9, 0.08, 14), CFrame = cf * CFrame.new(0, 0.55, -half + 8), Color = soft, Material = Enum.Material.Fabric })
-	add({ Name = "RugStripe", Size = Vector3.new(7, 0.1, 12), CFrame = cf * CFrame.new(0, 0.56, -half + 8), Color = theme, Material = Enum.Material.Fabric })
-	-- Posts with round tops at the corners and along the walls.
-	local posts = { Vector3.new(-half, 0, -half), Vector3.new(half, 0, -half), Vector3.new(-half, 0, half), Vector3.new(half, 0, half) }
-	for _, d in { -13, 0, 13 } do
-		table.insert(posts, Vector3.new(-half, 0, d))
-		table.insert(posts, Vector3.new(half, 0, d))
-		table.insert(posts, Vector3.new(d, 0, half))
+	-- Corner pillars.
+	for _, c in { Vector3.new(-half, 0, -half), Vector3.new(half, 0, -half), Vector3.new(-half, 0, half), Vector3.new(half, 0, half) } do
+		add({ Name = "WallPost", Size = Vector3.new(2.6, H + 1, 2.6), CFrame = cf * CFrame.new(c.X, (H + 1) / 2, c.Z), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true })
 	end
-	for _, p in posts do
-		if p.Z == half and math.abs(p.X) == half then
-			continue -- the back corners get towers instead
+	-- Cream walls and a light ceiling inside, so the slimes stand out.
+	local cream = Color3.fromRGB(250, 244, 232)
+	for _, l in {
+		{ Vector3.new(S - 2, H - 1.6, 0.2), Vector3.new(0, 0.8 + (H - 1.6) / 2, half - 0.6) },
+		{ Vector3.new(0.2, H - 1.6, S - 2), Vector3.new(-half + 0.6, 0.8 + (H - 1.6) / 2, 0) },
+		{ Vector3.new(0.2, H - 1.6, S - 2), Vector3.new(half - 0.6, 0.8 + (H - 1.6) / 2, 0) },
+		{ Vector3.new(side - 1, H - 1.6, 0.2), Vector3.new(-(door + side / 2) - 0.5, 0.8 + (H - 1.6) / 2, -half + 0.6) },
+		{ Vector3.new(side - 1, H - 1.6, 0.2), Vector3.new(door + side / 2 + 0.5, 0.8 + (H - 1.6) / 2, -half + 0.6) },
+	} do
+		add({ Name = "InnerWall", Size = l[1], CFrame = cf * CFrame.new(l[2]), Color = cream, Material = Enum.Material.SmoothPlastic })
+	end
+	add({ Name = "Ceiling", Size = Vector3.new(S - 1, 0.2, S - 1), CFrame = cf * CFrame.new(0, H - 0.1, 0), Color = cream, Material = Enum.Material.SmoothPlastic })
+	-- Pillars down the outside walls break up the big flat sides.
+	for _, d in { -11.5, 11.5 } do
+		add({ Name = "WallPost", Size = Vector3.new(2, H, 1.6), CFrame = cf * CFrame.new(d, H / 2, half + 0.5), Color = dark, Material = Enum.Material.SmoothPlastic })
+	end
+	for _, z in { -11, 3, 16.5 } do
+		for _, sx in { -1, 1 } do
+			add({ Name = "WallPost", Size = Vector3.new(1.6, H, 2), CFrame = cf * CFrame.new(sx * (half + 0.5), H / 2, z), Color = dark, Material = Enum.Material.SmoothPlastic })
 		end
-		add({ Name = "WallPost", Size = Vector3.new(1.8, 4, 1.8), CFrame = cf * CFrame.new(p.X, 2, p.Z), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true })
-		add({ Name = "PostTop", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.7, CFrame = cf * CFrame.new(p.X, 4.5, p.Z), Color = soft, Material = Enum.Material.SmoothPlastic })
 	end
-	-- Entrance pillars with glowing orbs, so every base has a front door from day one.
-	for _, x in { -half, half } do
-		add({ Name = "EntrancePillar", Size = Vector3.new(2.2, 6, 2.2), CFrame = cf * CFrame.new(x, 3, -half), Color = soft, Material = Enum.Material.SmoothPlastic, CanCollide = true })
-		local orb = part({ Name = "EntranceOrb", Shape = Enum.PartType.Ball, Size = Vector3.one * 2, CFrame = cf * CFrame.new(x, 7, -half), Color = theme, Material = Enum.Material.Neon, CanCollide = false, CastShadow = false })
-		orb.Parent = start
+	-- Windows down the sides, so you can peek in at the slimes.
+	for _, sx in { -1, 1 } do
+		for _, z in { -18, -4, 10, 23.5 } do
+			add({ Name = "WindowFrame", Size = Vector3.new(1.7, 6.4, 8.4), CFrame = cf * CFrame.new(sx * half, 8.5, z), Color = soft, Material = Enum.Material.SmoothPlastic })
+			add({ Name = "Window", Size = Vector3.new(1.9, 5.4, 7.4), CFrame = cf * CFrame.new(sx * half, 8.5, z), Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Glass, Transparency = 0.35 })
+		end
+	end
+
+	-- Inside: a red carpet down the middle, borders, and lights in the ceiling.
+	add({ Name = "WelcomeRug", Size = Vector3.new(13, 0.08, S - 4), CFrame = cf * CFrame.new(0, 0.55, 0), Color = Color3.fromRGB(200, 40, 60), Material = Enum.Material.Fabric })
+	add({ Name = "RugStripe", Size = Vector3.new(11, 0.1, S - 6), CFrame = cf * CFrame.new(0, 0.56, 0), Color = Color3.fromRGB(230, 60, 80), Material = Enum.Material.Fabric })
+	for _, x in { -6.8, 6.8 } do
+		add({ Name = "FloorBorder", Size = Vector3.new(0.6, 0.1, S - 4), CFrame = cf * CFrame.new(x, 0.57, 0), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+	end
+	for _, x in { -16, 16 } do
+		for _, z in { -20, 0, 20 } do
+			local lamp = add({ Name = "CeilingLight", Size = Vector3.new(4, 0.3, 4), CFrame = cf * CFrame.new(x, H - 0.3, z), Color = Color3.fromRGB(255, 250, 240), Material = Enum.Material.SmoothPlastic })
+			local pl = Instance.new("PointLight")
+			pl.Range = 22
+			pl.Brightness = 0.6
+			pl.Color = Color3.fromRGB(255, 245, 225)
+			pl.Parent = lamp
+		end
+	end
+	-- A big stripe in the base colour along the back wall.
+	add({ Name = "BackStripe", Size = Vector3.new(S - 4, 1.2, 0.3), CFrame = cf * CFrame.new(0, 4, half - 0.8), Color = muted, Material = Enum.Material.SmoothPlastic })
+
+	-- The doorway: pillars either side, glowing orbs, laser emitters, and a name board over it.
+	for _, x in { -door - 1.2, door + 1.2 } do
+		add({ Name = "EntrancePillar", Size = Vector3.new(2.4, DH + 1, 2.8), CFrame = cf * CFrame.new(x, (DH + 1) / 2, -half - 0.4), Color = soft, Material = Enum.Material.SmoothPlastic, CanCollide = true })
+		add({ Name = "LaserEmitter", Size = Vector3.new(0.5, DH - 1, 1), CFrame = cf * CFrame.new(x + (if x < 0 then 1.4 else -1.4), DH / 2, -half), Color = Color3.fromRGB(50, 50, 60), Material = Enum.Material.Metal })
+		local orb = add({ Name = "EntranceOrb", Shape = Enum.PartType.Ball, Size = Vector3.one * 2.2, CFrame = cf * CFrame.new(x, DH + 2.2, -half - 0.6), Color = theme, Material = Enum.Material.Neon })
 		local glow = Instance.new("PointLight")
 		glow.Color = theme
-		glow.Range = 14
+		glow.Range = 16
 		glow.Brightness = 1.2
 		glow.Parent = orb
 		CollectionService:AddTag(orb, "Pulse")
 	end
-	-- Hedges hugging the outside of the side and back walls.
-	for _, h in {
-		{ Vector3.new(3, 4, MapBuilder.PlotSize - 6), Vector3.new(-half - 2.2, 2, 2) },
-		{ Vector3.new(3, 4, MapBuilder.PlotSize - 6), Vector3.new(half + 2.2, 2, 2) },
-		{ Vector3.new(MapBuilder.PlotSize - 6, 4, 3), Vector3.new(0, 2, half + 2.2) },
-	} do
-		add({ Name = "Hedge", Size = h[1], CFrame = cf * CFrame.new(h[2]), Color = Color3.fromRGB(80, 170, 80), Material = Enum.Material.Grass, CanCollide = true })
-	end
-	-- Rims so the cash pad and lock button read as buttons.
-	add({ Name = "CollectorRim", Size = Vector3.new(9.6, 0.5, 9.6), CFrame = cf * CFrame.new(-16, 0.6, -18), Color = Color3.fromRGB(40, 90, 50), Material = Enum.Material.SmoothPlastic })
-	add({ Name = "LockRim", Size = Vector3.new(7.6, 0.7, 7.6), CFrame = cf * CFrame.new(16, 0.7, -18), Color = Color3.fromRGB(90, 30, 40), Material = Enum.Material.SmoothPlastic })
+	local facade = add({ Name = "FacadeSign", Size = Vector3.new(door * 2 + 4, 3.6, 0.6), CFrame = cf * CFrame.new(0, DH + (H - DH) / 2 + 0.6, -half - 0.8), Color = Color3.fromRGB(30, 25, 40), Material = Enum.Material.SmoothPlastic })
+	signGui(facade, Enum.NormalId.Front, "Empty Base", "FacadeGui")
 
-	-- Back corner towers: a slime-castle silhouette you can spot from across the map,
-	-- with a glowing window, a stacked roof, a flag, and a siren that wakes up when
-	-- someone is stealing from this base.
+	-- Sirens on the front corners of the roof, hidden until an alarm (PlotService turns them on).
 	for _, x in { -half, half } do
-		local base = cf * CFrame.new(x, 0, half)
-		local function disc(name: string, h: number, d: number, y: number, color: Color3, mat: Enum.Material?)
-			add({ Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, d, d), CFrame = base * CFrame.new(0, y, 0) * CFrame.Angles(0, 0, math.pi / 2), Color = color, Material = mat or Enum.Material.SmoothPlastic, CanCollide = name == "Tower" })
-		end
-		disc("Tower", 13, 5.5, 6.5, dark)
-		disc("TowerBand", 0.6, 5.9, 4, soft)
-		disc("TowerBand", 0.6, 5.9, 9, soft)
-		disc("Battlement", 1.2, 7, 13.4, soft)
-		disc("Roof", 1.2, 6, 14.6, theme)
-		disc("Roof", 1.2, 4.6, 15.8, theme)
-		disc("Roof", 1.2, 3.2, 17, theme)
-		disc("Roof", 1.2, 1.8, 18.2, theme)
-		local window = part({ Name = "TowerWindow", Size = Vector3.new(1.6, 2.6, 0.3), CFrame = base * CFrame.new(0, 6.6, -2.8), Color = Color3.fromRGB(255, 230, 150), Material = Enum.Material.Neon, CanCollide = false, CastShadow = false })
-		window.Parent = start
-		local wl = Instance.new("PointLight")
-		wl.Color = window.Color
-		wl.Range = 10
-		wl.Brightness = 0.8
-		wl.Parent = window
-		add({ Name = "FlagPole", Size = Vector3.new(0.3, 5, 0.3), CFrame = base * CFrame.new(0, 21.2, 0), Color = Color3.fromRGB(245, 240, 250), Material = Enum.Material.Metal })
-		add({ Name = "Flag", Size = Vector3.new(3.2, 2, 0.15), CFrame = base * CFrame.new(if x < 0 then -1.7 else 1.7, 22.6, 0), Color = theme, Material = Enum.Material.Fabric })
-		-- The siren sits on the battlement, hidden until an alarm (PlotService turns it on).
-		local siren = part({ Name = "Siren", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.8, CFrame = base * CFrame.new(0, 19.6, 0), Color = Color3.fromRGB(255, 30, 40), Material = Enum.Material.Neon, CanCollide = false, CastShadow = false, Transparency = 1 })
+		local siren = part({ Name = "Siren", Shape = Enum.PartType.Ball, Size = Vector3.one * 2, CFrame = cf * CFrame.new(x, H + 3.4, -half), Color = Color3.fromRGB(255, 30, 40), Material = Enum.Material.Neon, CanCollide = false, CastShadow = false, Transparency = 1 })
 		siren.Parent = start
 		local beam = Instance.new("SpotLight")
 		beam.Color = Color3.fromRGB(255, 40, 40)
@@ -671,34 +714,40 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		CollectionService:AddTag(siren, "Siren")
 	end
 
-	-- Banners hanging on the side walls.
-	for _, sx in { -1, 1 } do
-		for _, z in { -13, 13 } do
-			local x = sx * (half - 0.9)
-			add({ Name = "Banner", Size = Vector3.new(0.15, 4.2, 2.6), CFrame = cf * CFrame.new(x, 5.4, z), Color = theme, Material = Enum.Material.Fabric })
-			add({ Name = "BannerStripe", Size = Vector3.new(0.2, 0.5, 2.6), CFrame = cf * CFrame.new(x, 4.2, z), Color = soft, Material = Enum.Material.Neon })
-			add({ Name = "BannerRod", Size = Vector3.new(0.3, 0.3, 3.2), CFrame = cf * CFrame.new(x, 7.6, z), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
-		end
+	-- Hedges hugging the outside of the side and back walls.
+	for _, h in {
+		{ Vector3.new(3, 4, S - 8), Vector3.new(-half - 2.6, 2, 2) },
+		{ Vector3.new(3, 4, S - 8), Vector3.new(half + 2.6, 2, 2) },
+		{ Vector3.new(S - 8, 4, 3), Vector3.new(0, 2, half + 2.6) },
+	} do
+		add({ Name = "Hedge", Size = h[1], CFrame = cf * CFrame.new(h[2]), Color = Color3.fromRGB(80, 170, 80), Material = Enum.Material.Grass, CanCollide = true })
 	end
+	-- Rims so the cash pad and lock button read as buttons.
+	add({ Name = "CollectorRim", Size = Vector3.new(9.6, 0.5, 9.6), CFrame = cf * CFrame.new(-22, 0.6, -26), Color = Color3.fromRGB(40, 90, 50), Material = Enum.Material.SmoothPlastic })
+	add({ Name = "LockRim", Size = Vector3.new(7.6, 0.7, 7.6), CFrame = cf * CFrame.new(22, 0.7, -26), Color = Color3.fromRGB(90, 30, 40), Material = Enum.Material.SmoothPlastic })
 
-	-- Red laser bars across the open front, switched on while the base is locked.
+	-- The doorway itself: open, until the base is locked. Then it's solid for everyone except
+	-- the owner (and anyone with a revenge pass), using collision groups (PlotService).
+	part({ Name = "Door", Size = Vector3.new(door * 2, DH, 1.2), CFrame = cf * CFrame.new(0, DH / 2, -half), Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false }).Parent = plot
+
+	-- Red laser bars across the doorway, switched on while the base is locked.
 	local lasers = Instance.new("Folder")
 	lasers.Name = "Lasers"
 	lasers.Parent = plot
-	for _, y in { 1.4, 2.8, 4.2 } do
-		part({ Name = "Laser", Size = Vector3.new(MapBuilder.PlotSize - 3, 0.22, 0.22), CFrame = cf * CFrame.new(0, y, -half), Color = Color3.fromRGB(255, 30, 40), Material = Enum.Material.Neon,
+	for y = 1.2, DH - 1.5, 1.4 do
+		part({ Name = "Laser", Size = Vector3.new(door * 2, 0.22, 0.22), CFrame = cf * CFrame.new(0, y, -half - 0.2), Color = Color3.fromRGB(255, 30, 40), Material = Enum.Material.Neon,
 			CanCollide = false, CanQuery = false, CastShadow = false, Transparency = 1 }).Parent = lasers
 	end
 
-	-- Shield walls, only visible while the base is locked.
+	-- A forcefield shell around the building, only visible while the base is locked.
 	local shield = Instance.new("Folder")
 	shield.Name = "Shield"
 	shield.Parent = plot
 	for _, w in {
-		{ Vector3.new(MapBuilder.PlotSize, 14, 0.4), Vector3.new(0, 7, -half) },
-		{ Vector3.new(MapBuilder.PlotSize, 14, 0.4), Vector3.new(0, 7, half) },
-		{ Vector3.new(0.4, 14, MapBuilder.PlotSize), Vector3.new(-half, 7, 0) },
-		{ Vector3.new(0.4, 14, MapBuilder.PlotSize), Vector3.new(half, 7, 0) },
+		{ Vector3.new(S + 4, H + 3, 0.4), Vector3.new(0, (H + 3) / 2, -half - 2) },
+		{ Vector3.new(S + 4, H + 3, 0.4), Vector3.new(0, (H + 3) / 2, half + 2) },
+		{ Vector3.new(0.4, H + 3, S + 4), Vector3.new(-half - 2, (H + 3) / 2, 0) },
+		{ Vector3.new(0.4, H + 3, S + 4), Vector3.new(half + 2, (H + 3) / 2, 0) },
 	} do
 		part({
 			Name = "ShieldWall",
@@ -744,7 +793,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	local collector = part({
 		Name = "Collector",
 		Size = Vector3.new(8, 0.6, 8),
-		CFrame = cf * CFrame.new(-16, 0.8, -18),
+		CFrame = cf * CFrame.new(-22, 0.8, -26),
 		Color = Color3.fromRGB(60, 220, 100),
 		Material = Enum.Material.Neon,
 	})
@@ -754,33 +803,55 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	local lock = part({
 		Name = "LockButton",
 		Size = Vector3.new(6, 1, 6),
-		CFrame = cf * CFrame.new(16, 0.9, -18),
+		CFrame = cf * CFrame.new(22, 0.9, -26),
 		Color = Color3.fromRGB(255, 60, 80),
 		Material = Enum.Material.Neon,
 	})
 	lock.Parent = plot
 	billboard(lock, 4, "LOCK BASE", Vector2.new(9, 2.2)).Name = "Status"
 
-	local sign = part({
-		Name = "Sign",
-		Size = Vector3.new(30, 6, 1),
-		CFrame = cf * CFrame.new(0, 7, half - 1),
-		Color = wallColor,
-	})
+	-- The owner's name and avatar floating high above the roof, readable from across the map
+	-- (like Steal a Brainrot). "Sign" is an invisible anchor; PlotService fills in OwnerGui.
+	local sign = part({ Name = "Sign", Size = Vector3.one, CFrame = cf * CFrame.new(0, H + 16, 0), Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false })
 	sign.Parent = plot
-	-- Front (-Z in plot space) faces into the base, toward the entrance.
-	local ownerText = signGui(sign, Enum.NormalId.Front, "Empty Base", "OwnerGui")
-	-- Owner's avatar on the left of the sign (PlotService fills in the picture).
-	ownerText.Size = UDim2.fromScale(0.78, 1)
-	ownerText.Position = UDim2.fromScale(0.21, 0)
+	local board = Instance.new("BillboardGui")
+	board.Name = "OwnerGui"
+	board.Size = UDim2.fromScale(60, 12) -- studs, so it reads like a giant sign in the world
+	board.LightInfluence = 0
+	board.MaxDistance = 2000
+	board.Parent = sign
+	local panel = Instance.new("Frame")
+	panel.Name = "Panel"
+	panel.Size = UDim2.fromScale(1, 1)
+	panel.BackgroundColor3 = Color3.fromRGB(25, 20, 35)
+	panel.BackgroundTransparency = 0.25
+	panel.Parent = board
+	local panelCorner = Instance.new("UICorner")
+	panelCorner.CornerRadius = UDim.new(0.25, 0)
+	panelCorner.Parent = panel
+	local panelStroke = Instance.new("UIStroke")
+	panelStroke.Color = theme
+	panelStroke.Thickness = 6
+	panelStroke.Parent = panel
+	local ownerText = Instance.new("TextLabel")
+	ownerText.Name = "Text"
+	ownerText.Size = UDim2.fromScale(0.76, 0.9)
+	ownerText.Position = UDim2.fromScale(0.22, 0.05)
+	ownerText.BackgroundTransparency = 1
+	ownerText.Font = Enum.Font.FredokaOne
+	ownerText.TextScaled = true
+	ownerText.TextColor3 = Color3.new(1, 1, 1)
+	ownerText.TextStrokeTransparency = 0
+	ownerText.Text = "Empty Base"
+	ownerText.Parent = board
 	local avatar = Instance.new("ImageLabel")
 	avatar.Name = "Avatar"
-	avatar.Size = UDim2.fromScale(0.18, 0.9)
-	avatar.Position = UDim2.fromScale(0.015, 0.05)
+	avatar.Size = UDim2.fromScale(0.17, 0.84)
+	avatar.Position = UDim2.fromScale(0.025, 0.08)
 	avatar.BackgroundColor3 = Color3.new(1, 1, 1)
-	avatar.BackgroundTransparency = 0.2
+	avatar.BackgroundTransparency = 0.1
 	avatar.Image = ""
-	avatar.Parent = ownerText.Parent
+	avatar.Parent = board
 	local avatarCorner = Instance.new("UICorner")
 	avatarCorner.CornerRadius = UDim.new(0.5, 0)
 	avatarCorner.Parent = avatar
@@ -788,7 +859,12 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	frame.Color = Color3.new(1, 1, 1)
 	frame.Thickness = 4
 	frame.Parent = avatar
-	add({ Name = "SignFrame", Size = Vector3.new(31.4, 7.4, 0.8), CFrame = cf * CFrame.new(0, 7, half - 0.6), Color = soft, Material = Enum.Material.SmoothPlastic })
+
+	-- 🎨 Skin stand: the owner picks a base skin here (PlotService, Config.BaseSkins).
+	add({ Name = "SkinPost", Size = Vector3.new(0.6, 3.2, 0.6), CFrame = cf * CFrame.new(-13.5, 1.6, -31), Color = Color3.fromRGB(110, 75, 50), Material = Enum.Material.Wood })
+	local stand = part({ Name = "SkinStand", Size = Vector3.new(3.4, 2.6, 0.3), CFrame = cf * CFrame.new(-13.5, 3.6, -31) * CFrame.Angles(math.rad(-20), math.pi, 0), Color = Color3.fromRGB(250, 245, 235), Material = Enum.Material.SmoothPlastic, CanCollide = false })
+	stand.Parent = plot
+	billboard(stand, 2.6, "🎨 BASE SKIN", Vector2.new(7, 1.6)).Name = "SkinLabel"
 
 	local spawnPoint = Instance.new("Part")
 	spawnPoint.Name = "SpawnPoint"
@@ -796,7 +872,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	spawnPoint.CanCollide = false
 	spawnPoint.Transparency = 1
 	spawnPoint.Size = Vector3.one
-	spawnPoint.CFrame = cf * CFrame.new(0, 4, -14) * CFrame.Angles(0, math.pi, 0)
+	spawnPoint.CFrame = cf * CFrame.new(0, 4, -22) * CFrame.Angles(0, math.pi, 0)
 	spawnPoint.Parent = plot
 
 	plot.Parent = map
@@ -813,7 +889,7 @@ function MapBuilder.Build()
 
 	part({
 		Name = "Ground",
-		Size = Vector3.new(580, 2, 420),
+		Size = Vector3.new(720, 2, 560),
 		Position = Vector3.new(0, -1, 0),
 		Color = Color3.fromRGB(110, 190, 90),
 		Material = Enum.Material.Grass,
