@@ -111,7 +111,7 @@ function RelicService.Give(player: Player, key: string?, source: string?)
 	local rarity = Config.RelicRarities[def.rarity]
 	if data.relicBag[k] then
 		local cash = math.max(500, math.floor(PlotService.IncomePerSecond(player) * Config.RelicDupCashSeconds))
-		PlotService.AddCash(player, cash)
+		PlotService.AddCash(player, cash, "Relic")
 		Net.Notify(player, def.icon .. " Duplicate " .. def.name .. " relic turned into " .. Util.Money(cash) .. "!", "good")
 		return
 	end
@@ -158,8 +158,8 @@ local function unequip(player: Player, key: any)
 end
 
 function RelicService.Start()
-	Net.EquipRelicEvent.OnServerEvent:Connect(equip)
-	Net.UnequipRelicEvent.OnServerEvent:Connect(unequip)
+	Net.On(Net.EquipRelicEvent, equip)
+	Net.On(Net.UnequipRelicEvent, unequip)
 
 	Signals.Quest.Event:Connect(function(player: Player, kind: string, amount: number)
 		local chance = Config.RelicDropChance[kind]

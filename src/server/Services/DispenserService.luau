@@ -10,6 +10,7 @@ local MapBuilder = require(script.Parent.MapBuilder)
 local Roller = require(script.Parent.Roller)
 local Net = require(script.Parent.Net)
 local Signals = require(script.Parent.Signals)
+local Analytics = require(script.Parent.Analytics)
 
 local DispenserService = {}
 
@@ -65,6 +66,7 @@ local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 		lastRoll[player] = t
 	end
 	data.cash -= cost
+	Analytics.Spend(player, cost, "DispenserRoll")
 	data.rolls += 1
 	PlotService.Sync(player)
 	Signals.Progress(player, "roll")
@@ -85,7 +87,7 @@ local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 		end
 		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits }, MapBuilder.DispenserPosition - Vector3.new(0, 0, 7)) then -- out of the front of the machine
 			-- Pens filled up during the animation: refund (a free roll pays the slime's value).
-			PlotService.AddCash(player, if free then PlotService.SellValue({ id = def.id, mut = mut, traits = traits }) else cost)
+			PlotService.AddCash(player, if free then PlotService.SellValue({ id = def.id, mut = mut, traits = traits }) else cost, "DispenserRefund")
 			Net.Notify(player, "Pens full, roll refunded.", "bad")
 			return
 		end

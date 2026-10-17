@@ -103,7 +103,7 @@ function BountyService.Claim(attacker: Player, target: Player)
 		thiefData.cash -= paid
 		PlotService.Sync(target)
 	end
-	PlotService.AddCash(attacker, paid)
+	PlotService.AddCash(attacker, paid, "Bounty")
 	Signals.Progress(attacker, "bounty")
 	Net.Fx(attacker, "bounty", { amount = paid })
 	Net.Notify(attacker, "💰 BOUNTY CLAIMED on " .. (if isNemesis then "your Nemesis " else "") .. target.DisplayName .. "! +" .. Util.Money(paid), "epic")

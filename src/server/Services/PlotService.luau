@@ -14,6 +14,7 @@ local Net = require(script.Parent.Net)
 local BaseDecor = require(script.Parent.BaseDecor)
 local Roller = require(script.Parent.Roller)
 local Signals = require(script.Parent.Signals)
+local Analytics = require(script.Parent.Analytics)
 
 local PlotService = {}
 
@@ -168,7 +169,7 @@ function PlotService.AddOrPay(player: Player, slime): boolean
 		return true
 	end
 	local value = PlotService.SellValue(slime)
-	PlotService.AddCash(player, value)
+	PlotService.AddCash(player, value, "PenFull")
 	Net.Notify(player, "Your pens were full, so your " .. Config.SlimeName(slime.id) .. " was sold for " .. Util.Money(value) .. ".", "info")
 	return false
 end
@@ -244,12 +245,14 @@ function PlotService.Sync(player: Player)
 	end
 end
 
-function PlotService.AddCash(player: Player, amount: number)
+-- source names where the cash came from in the economy analytics (quest, daily, steal...).
+function PlotService.AddCash(player: Player, amount: number, source: string?)
 	local data = DataService.Get(player)
 	if not data then
 		return
 	end
 	data.cash += amount
+	Analytics.Earn(player, amount, source or "Reward")
 	data.totalEarned += math.max(0, amount)
 	PlotService.Sync(player)
 end
@@ -809,7 +812,7 @@ function PlotService.Sell(player: Player, slot: number)
 	end
 	PlotService.RemoveSlime(player, slot)
 	local value = PlotService.SellValue(slime)
-	PlotService.AddCash(player, value)
+	PlotService.AddCash(player, value, "Sell")
 	Net.Notify(player, "Sold " .. Config.SlimeName(slime.id) .. " for " .. Util.Money(value), "good")
 end
 
@@ -869,6 +872,8 @@ function PlotService.Rebirth(player: Player)
 		return
 	end
 	data.rebirths += 1
+	Analytics.Spend(player, cost, "Rebirth", "Gameplay")
+	Analytics.Progress(player, "Rebirth", data.rebirths)
 	data.cash = Config.StartingCash
 	data.bank = 0
 	data.slimes = {}
@@ -978,7 +983,7 @@ local function setupPlotInteractions(plot: Plot)
 		debounce = true
 		local amount = math.floor(data.bank)
 		data.bank -= amount
-		PlotService.AddCash(owner, amount)
+		PlotService.AddCash(owner, amount, "Income")
 		Signals.Progress(owner, "collect", amount)
 		Net.Fx(owner, "collect", { pos = collector.Position, amount = amount })
 		task.delay(0.5, function()
@@ -1152,6 +1157,7 @@ function PlotService.Start(builtPlots)
 					if Passes.Owns(player, "AutoCollect") then
 						data.cash += income
 						data.totalEarned += income
+						Analytics.Earn(player, income, "Income")
 						Signals.Progress(player, "collect", income)
 					else
 						data.bank += income

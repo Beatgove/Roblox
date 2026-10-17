@@ -260,7 +260,7 @@ end
 
 function FishingService.Start()
 	build()
-	Net.ReelEvent.OnServerEvent:Connect(reel)
+	Net.On(Net.ReelEvent, reel)
 	Players.PlayerRemoving:Connect(cleanup)
 end
 

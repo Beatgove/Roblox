@@ -28,7 +28,7 @@ end
 local function grantProduct(player: Player, product): boolean
 	if product.kind == "Cash" then
 		local amount = math.max(product.min, PlotService.IncomePerSecond(player) * product.seconds)
-		PlotService.AddCash(player, amount)
+		PlotService.AddCash(player, amount, "RobuxCash")
 		Net.Notify(player, "+" .. Util.Money(amount) .. " cash! Thanks for the support!", "epic")
 	elseif product.kind == "Luck" then
 		DispenserService.GiveLuck(player, product.seconds)

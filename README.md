@@ -183,6 +183,23 @@ New games get almost no traffic by default. In order of cost:
 
 Tuning knobs, all in `Config.luau`: slime prices/income (pace), `GrowthStages` (how often players return), `RebirthCost`, `SpawnInterval`, rarity weights.
 
+## Live ops: admin commands and Admin Abuse
+
+Type these in game chat. They work for the game's owner, group members ranked 254+, anyone in `Config.Admins` (add moderator UserIds there), and you alone in Studio. Commands reach every server; put `here` first (`/admin here king`) to run one in your server only.
+
+- `/admin event CashFrenzy 5` starts an event for 5 minutes
+- `/admin abuse 30` starts Admin Abuse now: back-to-back events, slime boxes and a King Slime every third event
+- `/admin king`, `/admin storm 3`, `/admin blackout`, `/admin drop 5`
+- `/admin say text` shows a filtered banner to everyone
+
+Admin Abuse also runs on its own every Saturday at 18:00 UTC (`Config.AdminAbuse`), with warnings at 10, 5 and 1 minute and a countdown chip on the HUD for the last day.
+
+## Under the hood
+
+- Every remote goes through `Net.On`: per-player rate limit, argument size checks, and errors caught so one bad call can't break a handler.
+- Economy and funnel analytics: every Cash source and sink, rebirths and levels go to Creator Hub > Analytics > Economy / Funnels once the game is published.
+- GitHub Actions (`.github/workflows/check.yml`) builds the place, type-checks and compiles every script on each push. Tool versions are pinned in `rokit.toml`.
+
 ## Rebuilding after code edits
 
 With [Rojo](https://rojo.space): `rojo build default.project.json -o StealASlime.rbxl`, or `rojo serve` + the Rojo Studio plugin to live-sync.

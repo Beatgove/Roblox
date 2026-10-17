@@ -55,7 +55,7 @@ local function claim(player: Player)
 	local parts = {}
 	if reward.cashSeconds then
 		local amount = math.max(reward.cashMin or 0, math.floor(PlotService.IncomePerSecond(player) * reward.cashSeconds))
-		PlotService.AddCash(player, amount)
+		PlotService.AddCash(player, amount, "Daily")
 		table.insert(parts, "+" .. Util.Money(amount))
 	end
 	if reward.luckMinutes then
@@ -72,7 +72,7 @@ local function claim(player: Player)
 			table.insert(parts, reward.slime .. " slime")
 		else
 			local value = Config.SlimeById[reward.slime].price
-			PlotService.AddCash(player, value)
+			PlotService.AddCash(player, value, "Daily")
 			table.insert(parts, "+" .. Util.Money(value) .. " (pens full)")
 		end
 	end
@@ -83,7 +83,7 @@ local function claim(player: Player)
 end
 
 function DailyService.Start()
-	Net.ClaimDailyEvent.OnServerEvent:Connect(claim)
+	Net.On(Net.ClaimDailyEvent, claim)
 	-- Keep the calendar fresh for players online across midnight.
 	task.spawn(function()
 		while true do

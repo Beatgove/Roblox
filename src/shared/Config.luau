@@ -128,6 +128,21 @@ Config.Storm = {
 	stormPick = 0.5, -- during the Storm, chance a roll picks a storm slime when its rarity has one
 }
 
+-- Admins can run live events from chat in every server at once: "/admin help" lists the
+-- commands. The game's creator (or the owning group's rank 254+) is always an admin; add
+-- moderators' user ids here.
+Config.Admins = {}
+Config.AdminGroupRank = 254
+-- Weekly Admin Abuse (the Steal a Brainrot staple): every server runs events back to back,
+-- with extra King Slime visits and boxes raining down. Saturday 2 PM US Eastern, right after
+-- the Slime Storm, so the weekend has one big hour to come back for.
+Config.AdminAbuse = {
+	times = { { wday = 7, hour = 18 } }, -- UTC
+	minutes = 30,
+	eventSeconds = 150, -- each event in the chain
+	warnMinutes = { 10, 5, 1 },
+}
+
 -- Event drops: while an event (or a Blackout) runs, themed boxes fall into the street.
 -- First player to touch one gets it. A themed box can also infuse a random pen slime
 -- with the event's trait. Any event can drop a rare Lucky Box instead.

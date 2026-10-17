@@ -11,6 +11,7 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local Net = require(script.Parent.Net)
 local Signals = require(script.Parent.Signals)
+local Analytics = require(script.Parent.Analytics)
 
 local SnackService = {}
 
@@ -148,6 +149,7 @@ local function buy(player: Player, key: any)
 		return
 	end
 	data.cash -= price
+	Analytics.Spend(player, price, "Snack_" .. key)
 	PlotService.Sync(player)
 	SnackService.Give(player, key, 1, true)
 	player:SetAttribute("SnackPick", key)
@@ -155,8 +157,8 @@ local function buy(player: Player, key: any)
 end
 
 function SnackService.Start()
-	Net.BuySnackEvent.OnServerEvent:Connect(buy)
-	Net.PickSnackEvent.OnServerEvent:Connect(function(player, key)
+	Net.On(Net.BuySnackEvent, buy)
+	Net.On(Net.PickSnackEvent, function(player, key)
 		if type(key) == "string" and Config.Snacks[key] then
 			player:SetAttribute("SnackPick", key)
 		end

@@ -81,6 +81,13 @@ Analytics.Start()
 BossService.Start()
 SlimeVoices.Start()
 HolidayService.Start()
+require(Services.AdminService).Start({
+	EventService = EventService,
+	BossService = BossService,
+	BlackoutService = BlackoutService,
+	EventDropService = EventDropService,
+	StormService = StormService,
+})
 require(Services.DebugService).Start({
 	DataService = DataService,
 	Net = Net,
@@ -125,7 +132,7 @@ local function welcomeBack(player: Player, data)
 		local away = math.min(t - data.lastOnline, Config.OfflineCapSeconds)
 		local earned = math.floor(PlotService.IncomePerSecond(player) * away * Config.OfflineRate)
 		if away > 60 and earned > 0 then
-			PlotService.AddCash(player, earned)
+			PlotService.AddCash(player, earned, "Offline")
 			Net.Notify(player, "Welcome back! Your slimes made " .. Util.Money(earned) .. " and grew while you were away.", "epic")
 		end
 	end
@@ -170,7 +177,7 @@ Players.PlayerRemoving:Connect(function(player)
 	rebirthDebounce[player] = nil
 end)
 
-Net.RebirthEvent.OnServerEvent:Connect(function(player)
+Net.On(Net.RebirthEvent, function(player)
 	local t = os.clock()
 	if rebirthDebounce[player] and t - rebirthDebounce[player] < 2 then
 		return

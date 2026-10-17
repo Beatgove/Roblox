@@ -14,6 +14,7 @@ local BountyService = require(script.Parent.BountyService)
 local BossService = require(script.Parent.BossService)
 local Net = require(script.Parent.Net)
 local MapBuilder = require(script.Parent.MapBuilder)
+local Analytics = require(script.Parent.Analytics)
 
 local GearService = {}
 
@@ -407,6 +408,7 @@ local function buy(player: Player, key: string)
 		return
 	end
 	data.cash -= def.price
+	Analytics.Spend(player, def.price, "Gear_" .. key)
 	data.gear[key] = true
 	PlotService.Sync(player)
 	GearService.Give(player)
@@ -426,7 +428,7 @@ function GearService.OnPlayer(player: Player)
 end
 
 function GearService.Start()
-	Net.BuyGearEvent.OnServerEvent:Connect(buy)
+	Net.On(Net.BuyGearEvent, buy)
 	-- The Slap Shop counter opens the Gear menu.
 	if MapBuilder.SlapShop then
 		local prompt = Instance.new("ProximityPrompt")

@@ -6,6 +6,7 @@ local DataService = require(script.Parent.DataService)
 local Rewards = require(script.Parent.Rewards)
 local Signals = require(script.Parent.Signals)
 local Net = require(script.Parent.Net)
+local Analytics = require(script.Parent.Analytics)
 
 local LevelService = {}
 
@@ -71,6 +72,7 @@ function LevelService.AddXP(player: Player, amount: number)
 		data.xp -= Config.XPForLevel(data.level)
 		data.level += 1
 		leveled = true
+		Analytics.Progress(player, "Level", data.level)
 		local reward = { cashSeconds = 120, cashMin = 250 * data.level }
 		if data.level % 5 == 0 then
 			reward.luckMinutes = 10

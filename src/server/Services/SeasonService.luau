@@ -93,7 +93,7 @@ function SeasonService.OnPlayer(player: Player)
 end
 
 function SeasonService.Start()
-	Net.ClaimSeasonEvent.OnServerEvent:Connect(claim)
+	Net.On(Net.ClaimSeasonEvent, claim)
 	Signals.Quest.Event:Connect(function(player: Player, kind: string)
 		local pts = S.points[kind]
 		if pts then

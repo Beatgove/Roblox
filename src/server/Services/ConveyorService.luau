@@ -11,6 +11,7 @@ local MapBuilder = require(script.Parent.MapBuilder)
 local Roller = require(script.Parent.Roller)
 local Net = require(script.Parent.Net)
 local Signals = require(script.Parent.Signals)
+local Analytics = require(script.Parent.Analytics)
 
 local ConveyorService = {}
 
@@ -76,6 +77,7 @@ local function spawnSlime()
 		end
 		claimed = true
 		data.cash -= price
+		Analytics.Spend(player, price, "Conveyor_" .. tostring(model.Name))
 		Net.FxAll("buy", { pos = model.PrimaryPart.Position, color = rarity.color, order = rarity.order })
 		Net.FxAll("voice", { id = def.id, buyer = player.UserId, pos = model.PrimaryPart.Position })
 		Net.Fx(player, "reveal", { name = name, rarity = def.rarity, mut = mut, quiet = rarity.order < 4 and mut == nil })

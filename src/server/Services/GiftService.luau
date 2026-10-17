@@ -51,7 +51,7 @@ local function claim(player: Player, i: number)
 end
 
 function GiftService.Start()
-	Net.ClaimGiftEvent.OnServerEvent:Connect(claim)
+	Net.On(Net.ClaimGiftEvent, claim)
 	Players.PlayerRemoving:Connect(function(p)
 		joinedAt[p] = nil
 		claimed[p] = nil

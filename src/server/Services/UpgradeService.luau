@@ -5,6 +5,7 @@ local Util = require(game.ReplicatedStorage.Shared.Util)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local Net = require(script.Parent.Net)
+local Analytics = require(script.Parent.Analytics)
 
 local UpgradeService = {}
 
@@ -30,6 +31,7 @@ local function buy(player: Player, key: string)
 		return
 	end
 	data.cash -= cost
+	Analytics.Spend(player, cost, "Upgrade_" .. key)
 	data.upgrades[key] = level + 1
 	if key == "Pens" then
 		PlotService.Render(player)
@@ -41,7 +43,7 @@ local function buy(player: Player, key: string)
 end
 
 function UpgradeService.Start()
-	Net.BuyUpgradeEvent.OnServerEvent:Connect(buy)
+	Net.On(Net.BuyUpgradeEvent, buy)
 end
 
 return UpgradeService

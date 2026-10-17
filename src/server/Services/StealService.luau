@@ -299,7 +299,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				NemesisService.Record(victim, thief)
 				if Config.HasRelic(DataService.Get(victim), "Insurance") then
 					local payout = math.floor(PlotService.SellValue(slime) * 0.25)
-					PlotService.AddCash(victim, payout)
+					PlotService.AddCash(victim, payout, "StealPayout")
 					Net.Notify(victim, "📄 Insurance paid you " .. Util.Money(payout) .. " for the stolen slime.", "good")
 				end
 				Net.Notify(victim, thief.DisplayName .. " stole your " .. name .. (if isRevenge then " back!" else ". REVENGE: their shield can't stop you for " .. Util.Duration(Config.RevengeSeconds) .. "!"), "bad")
@@ -384,7 +384,7 @@ end
 
 function StealService.Start()
 	PlotService.StealRequested.Event:Connect(startSteal)
-	Net.HoldTightEvent.OnServerEvent:Connect(function(player, token)
+	Net.On(Net.HoldTightEvent, function(player, token)
 		local sq = squirms[player]
 		if sq and token == sq.token then
 			squirms[player] = nil

@@ -12,6 +12,7 @@ local MapBuilder = require(script.Parent.MapBuilder)
 local Roller = require(script.Parent.Roller)
 local Signals = require(script.Parent.Signals)
 local Net = require(script.Parent.Net)
+local Analytics = require(script.Parent.Analytics)
 
 local FuseService = {}
 
@@ -104,6 +105,7 @@ local function start(player: Player, slots)
 	local mut = if bestMut and math.random() < Config.FuseKeepMutationChance then bestMut else nil
 
 	data.cash -= fee
+	Analytics.Spend(player, fee, "FuseFee", "Gameplay")
 	table.sort(list, function(a, b)
 		return a > b
 	end)
@@ -149,8 +151,8 @@ function FuseService.OnPlayer(player: Player)
 end
 
 function FuseService.Start()
-	Net.FuseStartEvent.OnServerEvent:Connect(start)
-	Net.FuseClaimEvent.OnServerEvent:Connect(claim)
+	Net.On(Net.FuseStartEvent, start)
+	Net.On(Net.FuseClaimEvent, claim)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "FusePrompt"
 	prompt.ActionText = "Open Fuse Machine"

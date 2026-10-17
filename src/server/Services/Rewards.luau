@@ -16,7 +16,7 @@ function Rewards.Grant(player: Player, reward): string
 	local parts = {}
 	if reward.cashSeconds or reward.cash then
 		local amount = math.max(reward.cashMin or reward.cash or 0, math.floor(PlotService.IncomePerSecond(player) * (reward.cashSeconds or 0)))
-		PlotService.AddCash(player, amount)
+		PlotService.AddCash(player, amount, "Reward")
 		table.insert(parts, "+" .. Util.Money(amount))
 	end
 	if reward.luckMinutes then
@@ -33,7 +33,7 @@ function Rewards.Grant(player: Player, reward): string
 			table.insert(parts, reward.slime .. " slime")
 		else
 			local value = Config.SlimeById[reward.slime].price
-			PlotService.AddCash(player, value)
+			PlotService.AddCash(player, value, "Reward")
 			table.insert(parts, "+" .. Util.Money(value) .. " (pens full)")
 		end
 	end
@@ -42,7 +42,7 @@ function Rewards.Grant(player: Player, reward): string
 			table.insert(parts, if reward.rollLuck then "a LUCKY free roll" else "a free roll")
 		else
 			local amount = math.max(500, PlotService.RollCost(player))
-			PlotService.AddCash(player, amount)
+			PlotService.AddCash(player, amount, "Reward")
 			table.insert(parts, "+" .. Util.Money(amount) .. " (pens full)")
 		end
 	end

@@ -111,7 +111,7 @@ end
 
 function QuestService.Start()
 	Signals.Quest.Event:Connect(progress)
-	Net.ClaimQuestEvent.OnServerEvent:Connect(claim)
+	Net.On(Net.ClaimQuestEvent, claim)
 	-- New quests at midnight UTC for players who stay online.
 	task.spawn(function()
 		while true do

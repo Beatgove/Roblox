@@ -39,6 +39,79 @@ Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (
 Net.RedeemCode.Name = "RedeemCode"
 Net.RedeemCode.Parent = folder
 
+-- Every client -> server remote goes through Net.On: a per-player, per-remote token bucket
+-- drops spam (exploit scripts fire remotes thousands of times a second), oversized tables
+-- are refused before any handler loops over them, and a handler error is logged once with
+-- the remote's name instead of breaking the connection. Handlers still validate their own
+-- arguments; this is the shared first line of defence.
+local BURST, REFILL = 8, 4 -- up to 8 calls at once, then 4 per second per remote
+local buckets: { [Player]: { [string]: { n: number, t: number } } } = {}
+local dropped: { [Player]: number } = {}
+
+local function tooBig(v: any, depth: number): boolean
+	if type(v) ~= "table" then
+		return type(v) == "string" and #v > 200
+	end
+	if depth > 2 then
+		return true
+	end
+	local n = 0
+	for _, x in v do
+		n += 1
+		if n > 32 or tooBig(x, depth + 1) then
+			return true
+		end
+	end
+	return false
+end
+
+local function allow(player: Player, name: string): boolean
+	local mine = buckets[player]
+	if not mine then
+		mine = {}
+		buckets[player] = mine
+	end
+	local now = os.clock()
+	local b = mine[name]
+	if not b then
+		b = { n = BURST, t = now }
+		mine[name] = b
+	end
+	b.n = math.min(BURST, b.n + (now - b.t) * REFILL)
+	b.t = now
+	if b.n < 1 then
+		return false
+	end
+	b.n -= 1
+	return true
+end
+
+function Net.On(r: RemoteEvent, handler: (Player, ...any) -> ())
+	r.OnServerEvent:Connect(function(player: Player, ...)
+		local args = table.pack(...)
+		local bad = args.n > 4
+		for i = 1, math.min(args.n, 4) do
+			bad = bad or tooBig(args[i], 0)
+		end
+		if bad or not allow(player, r.Name) then
+			dropped[player] = (dropped[player] or 0) + 1
+			if dropped[player] == 50 then
+				warn("[Net] dropping spam from", player.Name, "on", r.Name)
+			end
+			return
+		end
+		local ok, err = pcall(handler, player, ...)
+		if not ok then
+			warn("[Net]", r.Name, "handler failed for", player.Name, ":", err)
+		end
+	end)
+end
+
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+	buckets[player] = nil
+	dropped[player] = nil
+end)
+
 function Net.Fx(player: Player, kind: string, data)
 	Net.FxEvent:FireClient(player, kind, data)
 end

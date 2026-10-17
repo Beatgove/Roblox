@@ -1,0 +1,33 @@
+# Every push and pull request: build the place with Rojo and type-check all the Luau code,
+# so a broken script is caught here instead of in a live server.
+name: Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: CompeyDev/setup-rokit@v0.1.2
+      - name: Build the place
+        run: rojo build default.project.json -o StealASlime.rbxl
+      - name: Type-check
+        run: |
+          curl -sSfL -o globalTypes.d.luau https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
+          rojo sourcemap default.project.json -o sourcemap.json
+          # Model children are created at runtime, so "not found in class 'Model'" is expected.
+          luau-lsp analyze --definitions=globalTypes.d.luau --sourcemap=sourcemap.json src 2>&1 \
+            | grep -v "not found in class 'Model'" | tee problems.txt || true
+          if grep -q "error\|TypeError\|SyntaxError" problems.txt; then exit 1; fi
+      - name: Compile (catches Luau's 200-local limit, which the type-checker misses)
+        run: |
+          curl -sSfL -o luau.zip https://github.com/luau-lang/luau/releases/download/0.650/luau-ubuntu.zip
+          unzip -q luau.zip -d luau-bin && chmod +x luau-bin/luau-compile
+          fail=0
+          for f in $(find src -name '*.luau'); do
+            luau-bin/luau-compile --binary "$f" > /dev/null || fail=1
+          done
+          exit $fail

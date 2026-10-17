@@ -190,9 +190,11 @@ local bountyChip, bountyLabel = chip(Color3.fromRGB(230, 170, 30))
 local rookieChip, rookieLabel = chip(Color3.fromRGB(255, 200, 90))
 local nemesisChip, nemesisLabel = chip(Color3.fromRGB(140, 50, 200))
 local blackoutChip, blackoutLabel = chip(Color3.fromRGB(50, 40, 110))
-local arcadeChip, arcadeLabel = chip(Color3.fromRGB(255, 120, 200))
-local towerChip, towerLabel = chip(Color3.fromRGB(150, 120, 255))
-local stormChip, stormLabel = chip(Color3.fromRGB(110, 90, 220))
+local hc = {} -- extra status chips, kept in one table to stay under Luau's 200-local limit
+hc.arcadeChip, hc.arcadeLabel = chip(Color3.fromRGB(255, 120, 200))
+hc.towerChip, hc.towerLabel = chip(Color3.fromRGB(150, 120, 255))
+hc.stormChip, hc.stormLabel = chip(Color3.fromRGB(110, 90, 220))
+hc.abuseChip, hc.abuseLabel = chip(Color3.fromRGB(230, 60, 60))
 local holidayChip, holidayLabel = chip(Color3.fromRGB(255, 130, 30))
 
 -- ===== Banner (Slime Rain) =====
@@ -1284,9 +1286,18 @@ task.spawn(function()
 		local event = workspace:GetAttribute("Event")
 		rainChip.Visible = rainLeft > 0 and rainKind == "rain"
 		local stormIn = (workspace:GetAttribute("NextStorm") or 0) - nowT
-		stormChip.Visible = stormIn > 0 and event ~= "SlimeStorm"
+		hc.stormChip.Visible = stormIn > 0 and event ~= "SlimeStorm"
 		if stormIn > 0 then
-			stormLabel.Text = "⛈️ STORM in " .. (if stormIn >= 86400 then string.format("%dd %dh", stormIn // 86400, (stormIn % 86400) // 3600) else Util.Duration(stormIn))
+			hc.stormLabel.Text = "⛈️ STORM in " .. (if stormIn >= 86400 then string.format("%dd %dh", stormIn // 86400, (stormIn % 86400) // 3600) else Util.Duration(stormIn))
+		end
+		-- Admin Abuse: live while it runs, a countdown once it's less than a day away.
+		local abuseLeft = (workspace:GetAttribute("AdminAbuseUntil") or 0) - nowT
+		local abuseIn = (workspace:GetAttribute("AdminAbuseNext") or 0) - nowT
+		hc.abuseChip.Visible = abuseLeft > 0 or (abuseIn > 0 and abuseIn < 86400)
+		if abuseLeft > 0 then
+			hc.abuseLabel.Text = "🛠️ ADMIN ABUSE · " .. Util.Duration(abuseLeft)
+		elseif abuseIn > 0 then
+			hc.abuseLabel.Text = "🛠️ ADMIN ABUSE in " .. Util.Duration(abuseIn)
 		end
 		local holiday = workspace:GetAttribute("Holiday")
 		local holidayDef = holiday and Config.Holidays[holiday]
@@ -1322,11 +1333,11 @@ task.spawn(function()
 		blackoutChip.Visible = blackoutLeft > 0
 		blackoutLabel.Text = "🌑 BLACKOUT " .. Util.Duration(math.max(blackoutLeft, 0))
 		local arcadeLeft = (player:GetAttribute("ArcadeUntil") or 0) - nowT
-		arcadeChip.Visible = arcadeLeft > 0
-		arcadeLabel.Text = "🔨 SCORE " .. (player:GetAttribute("ArcadeScore") or 0) .. " · " .. math.ceil(math.max(arcadeLeft, 0)) .. "s"
+		hc.arcadeChip.Visible = arcadeLeft > 0
+		hc.arcadeLabel.Text = "🔨 SCORE " .. (player:GetAttribute("ArcadeScore") or 0) .. " · " .. math.ceil(math.max(arcadeLeft, 0)) .. "s"
 		local towerStart = player:GetAttribute("TowerStart")
-		towerChip.Visible = towerStart ~= nil
-		towerLabel.Text = string.format("🗼 CLIMB %.1fs", if towerStart then nowT - towerStart else 0)
+		hc.towerChip.Visible = towerStart ~= nil
+		hc.towerLabel.Text = string.format("🗼 CLIMB %.1fs", if towerStart then nowT - towerStart else 0)
 		local nemesisName = player:GetAttribute("NemesisName")
 		nemesisChip.Visible = nemesisName ~= nil
 		nemesisLabel.Text = "☠️ " .. (nemesisName or "") .. (if player:GetAttribute("NemesisNear") then " · ⚡ CHASE" else "")
@@ -1409,6 +1420,7 @@ local tips = {
 	"Tap 💌 INVITE: you get +10% cash for every friend in your server!",
 	"🌟 Play to earn Season XP and claim free rewards in 🌟 SEASON. Tier 30 is the exclusive Starling slime!",
 	"⛈️ The SLIME STORM hits every Wednesday and Saturday. Storm-only slimes, 3x luck and 2x cash!",
+	"🛠️ ADMIN ABUSE every Saturday right after the Storm: back-to-back events, King Slimes and boxes!",
 	"Watch for events: Golden Hour, Lava Storm, Candy Party, Cash Frenzy, Lucky Hour!",
 	"During events, meteors can hit your slimes and give them TRAITS like ☄️ Meteor (x4 cash)!",
 	"Got spare slimes? Put 3 in the 🧪 FUSE Machine to make a rarer one.",

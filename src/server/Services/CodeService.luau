@@ -44,7 +44,7 @@ local function redeem(player: Player, raw: any): (boolean, string)
 	local parts = {}
 	if code.cash or code.incomeSeconds then
 		local amount = math.max(code.cash or 0, math.floor(PlotService.IncomePerSecond(player) * (code.incomeSeconds or 0)))
-		PlotService.AddCash(player, amount)
+		PlotService.AddCash(player, amount, "Code")
 		table.insert(parts, "+" .. Util.Money(amount))
 	end
 	if code.luckMinutes then

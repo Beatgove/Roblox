@@ -28,6 +28,10 @@ function EventService.Start()
 	task.spawn(function()
 		while true do
 			task.wait(Config.EventEverySeconds)
+			-- Admin Abuse runs its own back-to-back chain.
+			if (workspace:GetAttribute("AdminAbuseUntil") or 0) > workspace:GetServerTimeNow() then
+				continue
+			end
 			-- The weekly Slime Storm owns the sky while it runs.
 			if workspace:GetAttribute("Event") == "SlimeStorm" and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow() then
 				continue
