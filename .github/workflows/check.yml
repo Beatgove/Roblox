@@ -16,7 +16,8 @@ jobs:
         run: rojo build default.project.json -o StealASlime.rbxl
       - name: Type-check
         run: |
-          curl -sSfL -o globalTypes.d.luau https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
+          # Pinned to the luau-lsp version in rokit.toml; newer type files use syntax it rejects.
+          curl -sSfL -o globalTypes.d.luau https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/1.32.0/scripts/globalTypes.d.luau
           rojo sourcemap default.project.json -o sourcemap.json
           # Model children are created at runtime, so "not found in class 'Model'" is expected.
           luau-lsp analyze --definitions=globalTypes.d.luau --sourcemap=sourcemap.json src 2>&1 \
