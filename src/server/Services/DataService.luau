@@ -45,6 +45,8 @@ local function defaultData()
 		indexRewards = {},
 		snacks = {}, -- snack key -> count owned
 		towerAt = 0, -- os.time() of the last Sky Tower prize
+		minigameLuckAt = 0, -- os.time() minigame luck was last given (saved, so rejoining doesn't reset it)
+		arcadeAt = 0, -- os.time() of the last Whack-a-Slime round
 		relics = {}, -- equipped relic keys (up to Config.RelicSlots), reset on rebirth
 		relicBag = {}, -- relic key -> true, owned this run
 		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true
@@ -156,15 +158,16 @@ function DataService.Get(player: Player)
 	return profiles[player]
 end
 
-local function write(player: Player, unlock: boolean)
+-- Returns true once the save is confirmed written.
+local function write(player: Player, unlock: boolean): boolean
 	local data = profiles[player]
 	if not data or not store or not canSave[player] then
-		return
+		return false
 	end
 	data.lastOnline = os.time()
 	local key = "u_" .. player.UserId
 	local stolen = false
-	withRetry(function()
+	local ok = withRetry(function()
 		store:UpdateAsync(key, function(saved)
 			local lock = type(saved) == "table" and saved._lock
 			if type(lock) == "table" and lock.job ~= JOB then
@@ -182,10 +185,17 @@ local function write(player: Player, unlock: boolean)
 			player:Kick("You joined Steal a Slime somewhere else. Your progress is safe there.")
 		end
 	end
+	return ok and not stolen
 end
 
-function DataService.Save(player: Player)
-	write(player, false)
+function DataService.Save(player: Player): boolean
+	return write(player, false)
+end
+
+-- False when this player's data failed to load (or another server owns it): nothing they
+-- earn this session will be written, so purchases and leaderboards must not rely on it.
+function DataService.CanSave(player: Player): boolean
+	return canSave[player] == true
 end
 
 function DataService.Release(player: Player)
@@ -235,7 +245,9 @@ function DataService.Start()
 		for _, player in Players:GetPlayers() do
 			threads += 1
 			task.spawn(function()
-				DataService.Save(player)
+				-- Unlock as well, so players rejoining after the shutdown aren't kept
+				-- waiting on this server's session lock.
+				write(player, true)
 				threads -= 1
 			end)
 		end

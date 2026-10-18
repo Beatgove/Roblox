@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local Net = require(script.Parent.Net)
 local Rewards = require(script.Parent.Rewards)
@@ -70,7 +71,8 @@ local function finish(m: Machine)
 	if player and player.Parent then
 		player:SetAttribute("ArcadeScore", nil)
 		player:SetAttribute("ArcadeUntil", nil)
-		local cash = math.max(score * A.minPerPoint, math.floor(PlotService.IncomePerSecond(player) * score * A.cashPerPoint))
+		local paid = math.min(score, A.maxPaidScore)
+		local cash = math.max(paid * A.minPerPoint, math.floor(PlotService.IncomePerSecond(player) * paid * A.cashPerPoint))
 		local reward: { [string]: any } = { cash = cash }
 		if score >= A.snackAt then
 			reward.snacks = 1
@@ -78,7 +80,7 @@ local function finish(m: Machine)
 		if score >= A.luckAt then
 			reward.luckMinutes = 5
 		end
-		local text = if score > 0 then Rewards.Grant(player, reward) else "nothing this time"
+		local text = if score > 0 then Rewards.Grant(player, reward, { minigame = true }) else "nothing this time"
 		Signals.Progress(player, "minigame")
 		local record = score > best.score
 		if record then
@@ -102,6 +104,17 @@ local function play(m: Machine, player: Player)
 			return
 		end
 	end
+	-- The rest is saved in data (os.time), so rejoining doesn't skip it.
+	local data = DataService.Get(player)
+	if not data then
+		return
+	end
+	local rest = (data.arcadeAt or 0) + A.seconds + A.restSeconds - os.time()
+	if rest > 0 then
+		Net.Notify(player, "🔨 Catch your breath! Next round in " .. math.ceil(rest) .. "s.", "info")
+		return
+	end
+	data.arcadeAt = os.time()
 	m.player = player
 	m.score = 0
 	updateScreen(m)

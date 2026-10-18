@@ -9,7 +9,7 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Mutations: Golden (x2), Lava (x3, Lava Storm), Diamond (x4), Candy (x5, Candy Party), Rainbow (x8).
 - Traits (stack up to 3, multipliers add up): Sparkly, Spooky (October), and event traits Midas, Meteor, Sugar, Rich, Clover. During an event, meteors strike slimes already in your pens and can give them that event's trait.
 - Slime Dispenser: pay cash for a random slime, odds shown on the board next to it. 5x Luck boosts Rare+ odds (free for 10 minutes for new players, from codes, during Slime Rain, or bought).
-- Codes menu: `RELEASE`, `SLIMETIME`, `LUCKY`, `FREESLIME`, `SPOOKY` (Halloween, until Nov 1). Add more in `Config.Codes`.
+- Codes menu: `RELEASE`, `SLIMETIME`, `LUCKY`, `FREESLIME`, `SPOOKY` (Halloween, until Nov 1). Add more in `src/server/Services/Codes.luau` (server-only, so players can't read them early).
 - Slime Index: collection book, +1% income per slime discovered.
 - Merging: 3 identical slimes (hold R) fuse into one ★ slime with 3.5x income, up to ★★★.
 - Daily rewards: 7-day login calendar (cash, luck, Grow Boost, and the exclusive Sunny slime on day 7). Missing a day restarts it.
@@ -203,7 +203,11 @@ Admin Abuse also runs on its own every Saturday at 18:00 UTC (`Config.AdminAbuse
 
 ## Under the hood
 
-- Stolen slimes drop home if the thief moves faster than anyone legitimately can (teleport exploits), and the server logs it.
+- Stolen slimes drop home if the thief moves faster than anyone legitimately can (teleport and speed exploits), and the server logs it. Knockbacks, shields and Blackout warps give a short grace so honest players never trip it.
+- Robux purchases are only confirmed to Roblox once the player's data has saved; if a save fails, Roblox retries and the receipt id stops a double grant.
+- Minigame luck, the arcade rest and the Sky Tower prize are timed in saved data, so leaving and rejoining doesn't reset them. The tower prize needs the checkpoints climbed in order.
+- Prompts (steal, place, sell, feed, merge, lock) have a short per-player gap so spamming them can't lag the server.
+- A slime bouncing home when its owner leaves is still saved, and players whose data didn't load are kept off the leaderboards.
 - Every remote goes through `Net.On`: per-player rate limit, argument size checks, and errors caught so one bad call can't break a handler.
 - Economy and funnel analytics: every Cash source and sink, rebirths and levels go to Creator Hub > Analytics > Economy / Funnels once the game is published.
 - GitHub Actions (`.github/workflows/check.yml`) builds the place, type-checks and compiles every script on each push. Tool versions are pinned in `rokit.toml`.

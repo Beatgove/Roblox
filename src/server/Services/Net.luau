@@ -114,7 +114,24 @@ game:GetService("Players").PlayerRemoving:Connect(function(player)
 	dropped[player] = nil
 end)
 
+-- Knockback is applied on the client, so the server gives the player a short window where
+-- fast movement is expected (StealService's carry speed check reads it).
+local moveGrace: { [Player]: number } = {}
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+	moveGrace[player] = nil
+end)
+-- Call before the server moves a character itself (PivotTo), so it isn't read as a hack.
+function Net.GrantMoveGrace(player: Player, seconds: number)
+	moveGrace[player] = math.max(moveGrace[player] or 0, os.clock() + seconds)
+end
+function Net.InMoveGrace(player: Player): boolean
+	return (moveGrace[player] or 0) > os.clock()
+end
+
 function Net.Fx(player: Player, kind: string, data)
+	if kind == "knock" then
+		Net.GrantMoveGrace(player, 2.5)
+	end
 	Net.FxEvent:FireClient(player, kind, data)
 end
 

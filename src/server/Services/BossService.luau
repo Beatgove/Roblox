@@ -331,7 +331,9 @@ function BossService.Start()
 	end)
 end
 
--- For testing in Studio (command bar): require(...BossService).SpawnNow()
+-- Used by AdminService (/admin king) and DebugService. To test in Studio, run
+-- game.ServerStorage.Debug:Invoke("king") from the Server command bar: requiring this
+-- module there gives a separate copy whose King can't be hit.
 function BossService.SpawnNow()
 	task.spawn(spawnKing)
 end

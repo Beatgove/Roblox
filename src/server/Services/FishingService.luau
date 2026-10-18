@@ -175,7 +175,7 @@ local function reel(player: Player, t: any)
 	local pos = c.bobber and c.bobber.Position
 	cleanup(player)
 	local loot = rollLoot()
-	local text = Rewards.Grant(player, loot.reward)
+	local text = Rewards.Grant(player, loot.reward, { minigame = true })
 	Signals.Progress(player, "minigame")
 	Net.Fx(player, "fishCatch", { label = loot.label, text = text, pos = pos, rare = loot.weight <= 3 })
 	if loot.weight <= 1 then

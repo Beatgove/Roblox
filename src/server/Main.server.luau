@@ -1,6 +1,7 @@
 -- Entry point: builds the map, starts every service and handles players joining/leaving.
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local Services = script.Parent.Services
 local Config = require(game.ReplicatedStorage.Shared.Config)
@@ -149,7 +150,15 @@ local function onPlayerAdded(player: Player)
 	Passes.Load(player)
 	if not player.Parent then
 		DataService.Release(player)
+		Passes.Release(player) -- Load may have stored their passes after they left
 		return
+	end
+	if not DataService.CanSave(player) and not RunService:IsStudio() then
+		task.delay(6, function()
+			if player.Parent then
+				Net.Notify(player, "⚠️ Roblox couldn't load your save right now, so progress this visit won't be kept. Rejoin in a minute to fix it.", "bad")
+			end
+		end)
 	end
 	PlotService.Assign(player)
 	SettingsService.OnPlayer(player)
@@ -174,6 +183,7 @@ end
 local rebirthDebounce: { [Player]: number } = {}
 
 Players.PlayerRemoving:Connect(function(player)
+	StealService.ReturnBouncing(player) -- before the final save below
 	PlotService.Release(player)
 	DataService.Release(player)
 	Passes.Release(player)

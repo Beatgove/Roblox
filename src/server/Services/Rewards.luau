@@ -4,6 +4,7 @@
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Util = require(game.ReplicatedStorage.Shared.Util)
+local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local DispenserService = require(script.Parent.DispenserService)
 local Net = require(script.Parent.Net)
@@ -12,8 +13,24 @@ local RelicService = require(script.Parent.RelicService)
 
 local Rewards = {}
 
-function Rewards.Grant(player: Player, reward): string
+-- Minigames (Whack-a-Slime, the Goo Pond) can be replayed endlessly, so the luck they give
+-- is limited to once per Config.MinigameLuckCooldown (saved in data, so rejoining doesn't
+-- reset it) and never stacks past its own length.
+
+-- opts.minigame: the reward came from a replayable minigame (see above).
+function Rewards.Grant(player: Player, reward, opts: { minigame: boolean? }?): string
 	local parts = {}
+	if reward.luckMinutes and opts and opts.minigame then
+		local data = DataService.Get(player)
+		local t = os.time()
+		if not data or t - (data.minigameLuckAt or 0) < Config.MinigameLuckCooldown then
+			reward = table.clone(reward)
+			reward.luckMinutes = nil
+			reward.cashSeconds = (reward.cashSeconds or 0) + 30 -- a little cash instead
+		else
+			data.minigameLuckAt = t
+		end
+	end
 	if reward.cashSeconds or reward.cash then
 		local amount = math.max(reward.cashMin or reward.cash or 0, math.floor(PlotService.IncomePerSecond(player) * (reward.cashSeconds or 0)))
 		PlotService.AddCash(player, amount, "Reward")

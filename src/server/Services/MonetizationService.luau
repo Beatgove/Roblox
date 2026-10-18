@@ -3,6 +3,7 @@
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 local Util = require(game.ReplicatedStorage.Shared.Util)
@@ -57,8 +58,19 @@ local function processReceipt(receipt)
 	if not player or not DataService.Get(player) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
+	-- Studio has no DataStore unless API access is on, so test purchases still go through there.
+	local studio = RunService:IsStudio()
 	if DataService.HasReceipt(player, receipt.PurchaseId) then
-		return Enum.ProductPurchaseDecision.PurchaseGranted
+		-- Granted earlier but maybe not saved yet: only confirm once it is.
+		if studio or DataService.Save(player) then
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	-- If their data didn't load it would never save: leave the purchase for Roblox to retry
+	-- next session rather than take Robux for something that vanishes.
+	if not DataService.CanSave(player) and not studio then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	local product = productById[receipt.ProductId]
 	if not product then
@@ -71,7 +83,11 @@ local function processReceipt(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	DataService.MarkReceipt(player, receipt.PurchaseId)
-	DataService.Save(player)
+	-- Only confirm once the grant (and the receipt id) is saved. If the save fails, Roblox
+	-- calls again later; the receipt id stops a second grant in this session.
+	if not DataService.Save(player) and not studio then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 

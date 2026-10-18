@@ -85,7 +85,7 @@ local function refresh(def, store, rows)
 	-- Push everyone online first so the board includes this server.
 	for _, p in Players:GetPlayers() do
 		local data = DataService.Get(p)
-		if data then
+		if data and DataService.CanSave(p) then -- a failed load would post a blank score over their real one
 			pcall(function()
 				store:SetAsync("u_" .. p.UserId, math.floor(data[def.field] or 0))
 			end)

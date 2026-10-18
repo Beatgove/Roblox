@@ -88,6 +88,7 @@ local function catch(player: Player, pos: Vector3)
 		local char = player.Character
 		local spawnPoint = plot and plot.model:FindFirstChild("SpawnPoint") :: BasePart?
 		if char and spawnPoint then
+			Net.GrantMoveGrace(player, 1.5)
 			char:PivotTo(spawnPoint.CFrame + Vector3.new(0, 3, 0))
 		end
 	end)

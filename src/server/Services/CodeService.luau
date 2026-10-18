@@ -1,6 +1,7 @@
--- Redeemable codes (Config.Codes). Each code works once per player.
+-- Redeemable codes (Codes.luau). Each code works once per player.
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Codes = require(script.Parent.Codes)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
@@ -26,7 +27,7 @@ local function redeem(player: Player, raw: any): (boolean, string)
 		return false, "Still loading, try again in a second."
 	end
 	local key = raw:upper():gsub("%s+", "")
-	local code = Config.Codes[key]
+	local code = Codes[key]
 	if not code then
 		return false, "Invalid code."
 	end

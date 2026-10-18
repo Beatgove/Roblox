@@ -114,10 +114,44 @@ local function markThief(char: Model): { Instance }
 end
 
 -- Animates a slime hopping from `fromPos` back to the owner's next free pen, then puts it there.
+-- Slimes hopping home are in nobody's save until they land. If their owner leaves first,
+-- StealService.ReturnBouncing puts them straight back into the owner's data before it saves.
+local bouncing: { [Player]: { [any]: boolean } } = {}
+
+function StealService.ReturnBouncing(owner: Player)
+	local list = bouncing[owner]
+	bouncing[owner] = nil
+	local data = DataService.Get(owner)
+	if not list or not data then
+		return
+	end
+	for slime in list do
+		if #data.slimes < PlotService.Slots(owner) then
+			table.insert(data.slimes, slime)
+		else
+			data.cash += PlotService.SellValue(slime)
+		end
+	end
+end
+
 local function bounceHome(slime, fromPos: Vector3, owner: Player, fallback: Player?)
+	bouncing[owner] = bouncing[owner] or {}
+	bouncing[owner][slime] = true
+	-- Hands the slime over once; false if the owner left and it already went back to their save.
+	local function land(): boolean
+		local list = bouncing[owner]
+		if not list or not list[slime] then
+			return false
+		end
+		list[slime] = nil
+		return true
+	end
 	local target = PlotService.NextPenPosition(owner)
 	if not target then
 		PlotService.Transit(owner, -1)
+		if not land() then
+			return
+		end
 		if owner.Parent and PlotService.GetPlot(owner) then
 			PlotService.AddOrPay(owner, slime)
 		elseif fallback and fallback.Parent then
@@ -157,6 +191,9 @@ local function bounceHome(slime, fromPos: Vector3, owner: Player, fallback: Play
 			conn:Disconnect()
 			model:Destroy()
 			PlotService.Transit(owner, -1)
+			if not land() then
+				return
+			end
 			if owner.Parent and PlotService.GetPlot(owner) then
 				if PlotService.AddOrPay(owner, slime) then
 					Net.Notify(owner, "Your " .. Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet) .. " bounced back home!", "good")
@@ -342,7 +379,14 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 
 	local started = os.clock()
 	local nextSquirm = started + Config.SquirmEverySeconds
-	local lastPos, lastAt = root.Position, os.clock()
+	-- Speed check samples: WalkSpeed is set here but the client controls its own character,
+	-- so this is the only thing stopping a speed hack or teleport home with a slime.
+	local function flat(v: Vector3): Vector3
+		return Vector3.new(v.X, 0, v.Z)
+	end
+	local lastPos, lastAt = flat(root.Position), os.clock()
+	local windowPos, windowAt = lastPos, lastAt
+	local strikes = 0
 	task.spawn(function()
 		while not finished do
 			task.wait(0.2)
@@ -350,15 +394,35 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				finish("dropped")
 				break
 			end
-			-- Teleport exploits: nobody legitimately covers this much ground while carrying.
-			local at = os.clock()
-			local moved = (root.Position - lastPos).Magnitude
-			if moved > Config.CarryMaxSpeed * math.max(at - lastAt, 0.2) then
-				warn(string.format("[StealService] %s moved %d studs in %.2fs while carrying; dropped", thief.Name, moved, at - lastAt))
+			-- Speed check, every tick: distance this tick and over the current window (up to 1s)
+			-- against what their WalkSpeed allows. One slip is forgiven (a phone's lag spike);
+			-- two in a row, or one huge jump, is a hack and the slime drops home. A tick with a
+			-- slip can't count as reaching home. Knockback and server moves get grace (Net).
+			local at, pos = os.clock(), flat(root.Position)
+			local allowed = math.max(humanoid.WalkSpeed, 16) * Config.CarrySpeedSlack
+			local tick = (pos - lastPos).Magnitude
+			local slipped = false
+			if Net.InMoveGrace(thief) then
+				windowPos, windowAt, strikes = pos, at, 0
+			elseif tick > Config.CarryTeleportStuds then
+				strikes = 2
+			else
+				slipped = tick > math.max(12, allowed * (at - lastAt) * 2)
+					or (pos - windowPos).Magnitude > allowed * (at - windowAt) + 8
+				strikes = if slipped then strikes + 1 else 0
+			end
+			if strikes >= 2 then
+				warn(string.format("[StealService] %s moved too fast while carrying (%.0f studs/s allowed); dropped", thief.Name, allowed))
 				finish("dropped")
 				break
 			end
-			lastPos, lastAt = root.Position, at
+			if not slipped and at - windowAt >= 1 then
+				windowPos, windowAt = pos, at
+			end
+			lastPos, lastAt = pos, at
+			if strikes > 0 then
+				continue
+			end
 			if PlotService.InPlot(thiefPlot, root.Position) then
 				finish("success")
 				break

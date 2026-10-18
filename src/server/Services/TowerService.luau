@@ -14,6 +14,13 @@ local Signals = require(script.Parent.Signals)
 
 local TowerService = {}
 
+local reached: { [Player]: number } = {} -- last checkpoint each climber passed (server-side)
+local reachedAt: { [Player]: number } = {}
+game:GetService("Players").PlayerRemoving:Connect(function(p)
+	reached[p] = nil
+	reachedAt[p] = nil
+end)
+
 local T = Config.Tower
 local bestTime = { name = "nobody yet", seconds = math.huge }
 
@@ -72,6 +79,10 @@ local function build()
 	startLabel.Parent = startGui
 
 	-- Spiral steps. Every 7th is a small one, two are bounce pads for the big gaps.
+	-- Steps 10, 20 and 30 are checkpoints the server watches by height: the prize needs all
+	-- three passed in order, near the tower and a beat apart, so teleporting pays nothing.
+	local CHECKPOINTS = { 10, 20, 30 }
+	local checkpointY: { number } = {}
 	local angle = 0
 	local y = 1
 	for i = 1, T.steps do
@@ -85,6 +96,10 @@ local function build()
 		local step = part(folder, { Name = if bounce then "BouncePad" else "Step" .. i, Size = if small then Vector3.new(3.6, 1, 3.6) else Vector3.new(6, 1, 6),
 			CFrame = CFrame.lookAt(p, base + Vector3.new(0, y, 0)), Color = if bounce then Color3.fromRGB(255, 80, 200) else Color3.fromHSV(hue, 0.55, 1),
 			Material = if bounce then Enum.Material.Neon else Enum.Material.SmoothPlastic })
+		local checkpoint = table.find(CHECKPOINTS, i)
+		if checkpoint then
+			checkpointY[checkpoint] = step.Position.Y
+		end
 		if bounce then
 			CollectionService:AddTag(step, "BouncePad") -- the client launches you when you land on it
 			y += 9 -- leaves a gap only a bounce clears
@@ -127,6 +142,24 @@ local function build()
 	topLabel.Text = "🎁 PRIZE"
 	topLabel.Parent = topGui
 
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			for _, player in Players:GetPlayers() do
+				local nextCp = (reached[player] or 0) + 1
+				local root = player:GetAttribute("TowerStart") and checkpointY[nextCp] and player.Character
+					and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+				if root then
+					local flat = Vector3.new(root.Position.X - base.X, 0, root.Position.Z - base.Z).Magnitude
+					if root.Position.Y >= checkpointY[nextCp] and flat <= T.radius + 10 and os.clock() - (reachedAt[player] or 0) >= 2 then
+						reached[player] = nextCp
+						reachedAt[player] = os.clock()
+					end
+				end
+			end
+		end
+	end)
+
 	local function refreshBoard()
 		startLabel.Text = "🗼 SKY TOWER\nBest: " .. bestTime.name .. (if bestTime.seconds < math.huge then string.format(" %.1fs", bestTime.seconds) else "")
 	end
@@ -146,6 +179,8 @@ local function build()
 			return
 		end
 		if not player:GetAttribute("TowerStart") then
+			reached[player] = 0
+			reachedAt[player] = os.clock()
 			player:SetAttribute("TowerStart", workspace:GetServerTimeNow())
 			Net.Fx(player, "towerStart", {})
 		end
@@ -162,9 +197,12 @@ local function build()
 			return
 		end
 		player:SetAttribute("TowerStart", nil)
+		local climbed = reached[player] == #CHECKPOINTS
+		reached[player] = nil
 		local seconds = workspace:GetServerTimeNow() - started
-		-- A climb faster than this is not humanly possible: ignore it.
-		if seconds < 12 then
+		-- Skipped checkpoints or a climb faster than humanly possible: no prize.
+		if seconds < 12 or not climbed then
+			Net.Notify(player, "🗼 No prize: climb the steps from the start pad to win it.", "info")
 			return
 		end
 		data.towerAt = os.time()

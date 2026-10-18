@@ -30,17 +30,8 @@ Config.Products = {
 Config.StudioOwnsAllPasses = false
 
 -- ===== Codes =====
--- Players type these in the CODES menu. Each works once per player.
--- cash: flat cash. incomeSeconds: or that many seconds of income if bigger.
--- luckMinutes: minutes of 5x dispenser luck. slime: a slime id to give.
--- expires: os.time() after which the code stops working (nil = never).
-Config.Codes = {
-	RELEASE = { cash = 1000, luckMinutes = 15, msg = "Welcome! $1K and 15 minutes of 5x LUCK!" },
-	SLIMETIME = { cash = 2500, incomeSeconds = 300, msg = "Cash boost!" },
-	LUCKY = { luckMinutes = 30, msg = "30 minutes of 5x LUCK!" },
-	FREESLIME = { slime = "Codey", msg = "You got the exclusive Codey slime!" },
-	SPOOKY = { slime = "PumpkinKing", expires = os.time({ year = 2026, month = 11, day = 1, hour = 0 }), msg = "Exclusive Pumpkin King slime!" },
-}
+-- The code list is server-only (src/server/Services/Codes.luau): Config is copied to every
+-- player, so codes kept here could be read before they're announced.
 
 -- ===== Daily login rewards =====
 -- A 7-day streak. Missing a day restarts at day 1. Day 7 repeats every week.
@@ -260,6 +251,8 @@ Config.Arcade = {
 	goldenChance = 0.1, bombChance = 0.12,
 	cashPerPoint = 0.8, minPerPoint = 25, -- reward = max(score x min, income x score x cashPerPoint)
 	snackAt = 20, luckAt = 30,
+	restSeconds = 30, -- wait between rounds, so the arcade can't out-earn your base
+	maxPaidScore = 60, -- points above this still count for the record, not for cash
 }
 Config.Tower = {
 	pos = Vector3.new(-276, 0, 0), steps = 38, radius = 17, rise = 3.1, turn = math.rad(24),
@@ -559,9 +552,13 @@ Config.GroupBoost = 0.1
 Config.FavoritePromptMinutes = 8
 -- Player settings (⚙️ menu). Saved with the player's data.
 Config.DefaultSettings = { music = 0.6, sfx = 1, lowFx = false, shake = true }
--- A thief can't move faster than this while carrying (studs per second, averaged over 0.2s).
--- Anything above is a teleport exploit and drops the slime home. Bounce pads stay well under.
-Config.CarryMaxSpeed = 220
+-- Carry speed check: over each second a thief may cover their WalkSpeed x this (jumps and
+-- slopes need some slack); more than CarryTeleportStuds in one 0.2s tick is a teleport.
+-- Either drops the slime home. Knockback gets a short grace window.
+Config.CarrySpeedSlack = 1.6
+-- Luck from replayable minigames: at most once per this many seconds per player.
+Config.MinigameLuckCooldown = 900
+Config.CarryTeleportStuds = 30
 
 -- ===== Merging =====
 -- Merge 3 identical slimes (same name and same stars) into one with an extra star.

@@ -34,6 +34,18 @@ type Plot = {
 local plots: { Plot } = {}
 local plotOf: { [Player]: Plot } = {}
 local moving: { [Player]: any } = {} -- the slime (table) a player has picked up to move
+-- Base prompts rebuild the pen models, and ProximityPrompts skip Net.On's rate limit, so
+-- each player gets one base action per PROMPT_GAP seconds (spam scripts would lag the server).
+local PROMPT_GAP = 0.25
+local lastPrompt: { [Player]: number } = {}
+local function promptOk(player: Player): boolean
+	local t = os.clock()
+	if lastPrompt[player] and t - lastPrompt[player] < PROMPT_GAP then
+		return false
+	end
+	lastPrompt[player] = t
+	return true
+end
 local arriving: { [any]: boolean } = {} -- slimes still walking from the belt to their pen
 
 -- Fired when a non-owner triggers a steal prompt: (thief, victim, slotIndex)
@@ -163,7 +175,8 @@ end
 -- Rebirth waits for these so nothing can be smuggled into a fresh base.
 local inTransit: { [Player]: number } = {}
 function PlotService.Transit(player: Player, delta: number)
-	inTransit[player] = math.max((inTransit[player] or 0) + delta, 0)
+	local n = math.max((inTransit[player] or 0) + delta, 0)
+	inTransit[player] = if n > 0 and player.Parent then n else nil -- no entry left behind for leavers
 end
 
 -- Adds a slime, or pays its sell value if the pens are full, so a slime is never lost.
@@ -403,7 +416,7 @@ function PlotService.Render(player: Player)
 		if carrying and not slime and slot <= slots then
 			local place = ownerPrompt(pad, "PlacePrompt", "Move here", "Empty pen", Enum.KeyCode.T, player.UserId)
 			place.Triggered:Connect(function(who)
-				if who == player then
+				if who == player and promptOk(player) then
 					PlotService.MoveTo(player, slot)
 				end
 			end)
@@ -449,7 +462,7 @@ function PlotService.Render(player: Player)
 		sell.Parent = model.PrimaryPart
 
 		steal.Triggered:Connect(function(who)
-			if who ~= player then
+			if who ~= player and promptOk(who) then
 				PlotService.StealRequested:Fire(who, player, model:GetAttribute("Slot"))
 			end
 		end)
@@ -460,7 +473,7 @@ function PlotService.Render(player: Player)
 			local isMe = carrying == slime
 			local move = ownerPrompt(model.PrimaryPart, "MovePrompt", if isMe then "Cancel move" else "Swap here", Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet), Enum.KeyCode.T, player.UserId)
 			move.Triggered:Connect(function(who)
-				if who ~= player then
+				if who ~= player or not promptOk(player) then
 					return
 				end
 				if isMe then
@@ -483,12 +496,12 @@ function PlotService.Render(player: Player)
 		local move = ownerPrompt(model.PrimaryPart, "MovePrompt", "Move", Config.DisplayName(slime.id, slime.mut, slime.stars, slime.traits, slime.diet), Enum.KeyCode.T, player.UserId)
 		move.UIOffset = Vector2.new(0, -160)
 		move.Triggered:Connect(function(who)
-			if who == player then
+			if who == player and promptOk(player) then
 				PlotService.PickUp(player, model:GetAttribute("Slot"))
 			end
 		end)
 		sell.Triggered:Connect(function(who)
-			if who == player then
+			if who == player and promptOk(player) then
 				PlotService.Sell(player, model:GetAttribute("Slot"))
 			end
 		end)
@@ -508,7 +521,7 @@ function PlotService.Render(player: Player)
 			feed:SetAttribute("OwnerId", player.UserId)
 			feed.Parent = model.PrimaryPart
 			feed.Triggered:Connect(function(who)
-				if who == player then
+				if who == player and promptOk(player) then
 					PlotService.FeedRequested:Fire(player, model:GetAttribute("Slot"))
 				end
 			end)
@@ -528,7 +541,7 @@ function PlotService.Render(player: Player)
 			merge:SetAttribute("OwnerId", player.UserId)
 			merge.Parent = model.PrimaryPart
 			merge.Triggered:Connect(function(who)
-				if who == player then
+				if who == player and promptOk(player) then
 					PlotService.Merge(player, model:GetAttribute("Slot"))
 				end
 			end)
@@ -1003,7 +1016,7 @@ local function setupPlotInteractions(plot: Plot)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = plot.model.LockButton
 	prompt.Triggered:Connect(function(who)
-		if who ~= plot.owner then
+		if who ~= plot.owner or not promptOk(who) then
 			return
 		end
 		local data = DataService.Get(who)
@@ -1032,7 +1045,7 @@ local function setupPlotInteractions(plot: Plot)
 	skinPrompt.Parent = plot.model.SkinStand
 	skinPrompt.Triggered:Connect(function(who)
 		local data = DataService.Get(who)
-		if who ~= plot.owner or not data then
+		if who ~= plot.owner or not data or not promptOk(who) then
 			return
 		end
 		local list = PlotService.UnlockedSkins(who)
@@ -1098,6 +1111,7 @@ end
 function PlotService.Release(player: Player)
 	inTransit[player] = nil
 	moving[player] = nil
+	lastPrompt[player] = nil
 	local plot = plotOf[player]
 	if not plot then
 		return
@@ -1321,6 +1335,7 @@ function PlotService.Start(builtPlots)
 						local avenging = plot.owner ~= nil and other:GetAttribute("RevengeUserId") == plot.owner.UserId and (other:GetAttribute("RevengeUntil") or 0) > workspace:GetServerTimeNow()
 						local root = other ~= plot.owner and not avenging and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
 						if root and inPlot(plot, root.Position) then
+							Net.GrantMoveGrace(other, 1.5) -- not a teleport hack: the shield moved them
 							other.Character:PivotTo(plot.cframe * CFrame.new(0, 4, -46))
 							Net.Notify(other, "That base is shielded!", "bad")
 						end
