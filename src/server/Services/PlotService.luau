@@ -110,6 +110,9 @@ function PlotService.BoostMultiplier(player: Player): number
 	if player.MembershipType == Enum.MembershipType.Premium then
 		mult += Config.PremiumBoost
 	end
+	if player:GetAttribute("InGroup") then
+		mult += Config.GroupBoost
+	end
 	local event = Roller.ActiveEvent()
 	if event and Config.Events[event].incomeMult then
 		mult *= Config.Events[event].incomeMult

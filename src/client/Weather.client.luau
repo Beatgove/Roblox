@@ -164,7 +164,9 @@ local function apply(mode: string?)
 	if f then
 		emitter.Texture = f.texture
 		emitter.Color = f.color
-		emitter.Rate = f.rate
+		-- Low Graphics (⚙️ menu) keeps a third; BaseRate lets the menu rescale it live.
+		emitter:SetAttribute("BaseRate", f.rate)
+		emitter.Rate = if game:GetService("Players").LocalPlayer:GetAttribute("OptLowFx") then f.rate / 3 else f.rate
 		emitter.Speed = NumberRange.new(f.speed * 0.8, f.speed * 1.2)
 		emitter.Size = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 0),

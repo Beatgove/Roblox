@@ -34,6 +34,8 @@ Net.EquipRelicEvent = remote("EquipRelic") -- client -> server: (relicKey)
 Net.ReelEvent = remote("Reel") -- client -> server: (token) reel in a fish after a bite
 Net.UnequipRelicEvent = remote("UnequipRelic") -- client -> server: (relicKey)
 Net.ClaimSeasonEvent = remote("ClaimSeason") -- client -> server: (tier)
+Net.SaveSettingsEvent = remote("SaveSettings") -- client -> server: ({ music, sfx, lowFx, shake })
+Net.FavoriteAskedEvent = remote("FavoriteAsked") -- client -> server: () the favourite prompt was shown
 
 Net.RedeemCode = Instance.new("RemoteFunction") -- client -> server: (code) -> (ok, message)
 Net.RedeemCode.Name = "RedeemCode"

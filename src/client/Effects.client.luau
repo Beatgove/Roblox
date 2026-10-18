@@ -78,7 +78,7 @@ local function burst(pos: Vector3, color: Color3, count: number, opts)
 	p.Drag = 2
 	p.Rate = 0
 	p.Parent = holder
-	p:Emit(count)
+	p:Emit(if player:GetAttribute("OptLowFx") then math.ceil(count / 3) else count)
 	Debris:AddItem(holder, 3)
 end
 
@@ -163,6 +163,9 @@ end
 
 local shakeAmount = 0
 local function shake(amount: number)
+	if player:GetAttribute("OptShake") == false then
+		return
+	end
 	shakeAmount = math.max(shakeAmount, amount)
 end
 RunService:BindToRenderStep("SlimeShake", Enum.RenderPriority.Camera.Value + 1, function(dt)

@@ -44,6 +44,7 @@ local Analytics = require(Services.Analytics)
 local BossService = require(Services.BossService)
 local SlimeVoices = require(Services.SlimeVoices)
 local HolidayService = require(Services.HolidayService)
+local SettingsService = require(Services.SettingsService)
 
 local plots = MapBuilder.Build()
 DataService.Start()
@@ -81,6 +82,7 @@ Analytics.Start()
 BossService.Start()
 SlimeVoices.Start()
 HolidayService.Start()
+SettingsService.Start()
 require(Services.AdminService).Start({
 	EventService = EventService,
 	BossService = BossService,
@@ -150,6 +152,7 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	PlotService.Assign(player)
+	SettingsService.OnPlayer(player)
 	TutorialService.OnPlayer(player)
 	SeasonService.OnPlayer(player)
 	MonetizationService.OnPlayer(player)

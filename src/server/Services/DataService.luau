@@ -53,6 +53,8 @@ local function defaultData()
 		lastPhoneAlert = 0, -- os.time() of the last phone notification we sent
 		tutorial = 0, -- first-time guide step (Config.Tutorial); 99 = done
 		quests = { day = -1, list = {}, bonus = false }, -- today's daily quests
+		settings = {}, -- ⚙️ menu choices (see Config.DefaultSettings), filled in by SettingsService
+		askedFavorite = false, -- true once we've shown the favourite prompt
 		receipts = {}, -- PurchaseId -> true (recent, for idempotent ProcessReceipt)
 		receiptOrder = {},
 	}

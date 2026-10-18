@@ -551,6 +551,17 @@ Config.AllQuestsBonus = { cashSeconds = 900, cashMin = 5000, luckMinutes = 15 }
 Config.FriendBoost = 0.1 -- +10% income per friend in the server
 Config.MaxFriendBoost = 0.5
 Config.PremiumBoost = 0.1 -- Roblox Premium members earn +10%
+-- Community group: members earn a little more and get a tag, the standard way top games grow
+-- their group (and so their update reach). Put your group's id here once you make one; 0 = off.
+Config.GroupId = 0
+Config.GroupBoost = 0.1
+-- Ask once, after a few minutes of real play, to favourite the game (favourites feed discovery).
+Config.FavoritePromptMinutes = 8
+-- Player settings (⚙️ menu). Saved with the player's data.
+Config.DefaultSettings = { music = 0.6, sfx = 1, lowFx = false, shake = true }
+-- A thief can't move faster than this while carrying (studs per second, averaged over 0.2s).
+-- Anything above is a teleport exploit and drops the slime home. Bounce pads stay well under.
+Config.CarryMaxSpeed = 220
 
 -- ===== Merging =====
 -- Merge 3 identical slimes (same name and same stars) into one with an extra star.

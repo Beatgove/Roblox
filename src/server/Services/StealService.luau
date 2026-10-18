@@ -342,6 +342,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 
 	local started = os.clock()
 	local nextSquirm = started + Config.SquirmEverySeconds
+	local lastPos, lastAt = root.Position, os.clock()
 	task.spawn(function()
 		while not finished do
 			task.wait(0.2)
@@ -349,6 +350,15 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				finish("dropped")
 				break
 			end
+			-- Teleport exploits: nobody legitimately covers this much ground while carrying.
+			local at = os.clock()
+			local moved = (root.Position - lastPos).Magnitude
+			if moved > Config.CarryMaxSpeed * math.max(at - lastAt, 0.2) then
+				warn(string.format("[StealService] %s moved %d studs in %.2fs while carrying; dropped", thief.Name, moved, at - lastAt))
+				finish("dropped")
+				break
+			end
+			lastPos, lastAt = root.Position, at
 			if PlotService.InPlot(thiefPlot, root.Position) then
 				finish("success")
 				break

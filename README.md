@@ -194,8 +194,16 @@ Type these in game chat. They work for the game's owner, group members ranked 25
 
 Admin Abuse also runs on its own every Saturday at 18:00 UTC (`Config.AdminAbuse`), with warnings at 10, 5 and 1 minute and a countdown chip on the HUD for the last day.
 
+## Player polish
+
+- **Loading screen** with the game's title, a bouncing slime, real progress and tips, instead of Roblox's grey default.
+- **⚙️ Settings** (bottom-right): music and sound volume, Low Graphics (no shadows or post effects, a third of the particles) and screen shake. Saved with the player's data.
+- **Favourite prompt**: once per account, after 8 minutes of play and never mid-steal (favourites help the game get recommended).
+- **Community group perk**: set `Config.GroupId` to your group's id and members earn +10% cash.
+
 ## Under the hood
 
+- Stolen slimes drop home if the thief moves faster than anyone legitimately can (teleport exploits), and the server logs it.
 - Every remote goes through `Net.On`: per-player rate limit, argument size checks, and errors caught so one bad call can't break a handler.
 - Economy and funnel analytics: every Cash source and sink, rebirths and levels go to Creator Hub > Analytics > Economy / Funnels once the game is published.
 - GitHub Actions (`.github/workflows/check.yml`) builds the place, type-checks and compiles every script on each push. Tool versions are pinned in `rokit.toml`.
