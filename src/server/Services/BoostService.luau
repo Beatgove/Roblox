@@ -43,7 +43,13 @@ function BoostService.Start()
 	Players.PlayerAdded:Connect(function()
 		task.delay(3, refresh)
 	end)
-	Players.PlayerRemoving:Connect(function()
+	Players.PlayerRemoving:Connect(function(p)
+		local id = tostring(p.UserId)
+		for key in friendCache do
+			if string.find("_" .. key .. "_", "_" .. id .. "_", 1, true) then
+				friendCache[key] = nil
+			end
+		end
 		task.defer(refresh)
 	end)
 	task.spawn(function()

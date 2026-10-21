@@ -335,7 +335,7 @@ workspace:GetAttributeChangedSignal("Holiday"):Connect(function()
 end)
 
 local order = 0
-for _, k in { "DoubleCash", "VIP", "ExtraPens", "AutoCollect" } do
+for _, k in { "DoubleCash", "VIP", "ExtraPens", "AutoCollect", "AutoClicker" } do
 	order += 1
 	shopRow(order, Config.GamePasses[k], true)
 end

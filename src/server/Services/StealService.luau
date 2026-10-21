@@ -11,6 +11,7 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local SlimeModel = require(script.Parent.SlimeModel)
 local Net = require(script.Parent.Net)
+local AutoClick = require(script.Parent.AutoClick)
 local Signals = require(script.Parent.Signals)
 local BountyService = require(script.Parent.BountyService)
 local NemesisService = require(script.Parent.NemesisService)
@@ -22,7 +23,7 @@ local carrying: { [Player]: boolean } = {}
 -- Ends a thief's carry early (slapped, tased): the slime bounces home.
 local dropFns: { [Player]: (string?) -> () } = {}
 -- Squirm: the token the thief must send back (HoldTight) before the deadline.
-local squirms: { [Player]: { token: number, deadline: number } } = {}
+local squirms: { [Player]: { token: number, deadline: number, at: number } } = {}
 local squirmToken = 0
 -- Revenge: victim -> { thief, untilT } (os.clock time).
 local revenge: { [Player]: { thief: Player, untilT: number } } = {}
@@ -474,8 +475,18 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				nextSquirm = os.clock() + Config.SquirmEverySeconds
 				if math.random() < Config.SquirmChance(rarityOrder) * (if slippery then 2 else 1) then
 					squirmToken += 1
-					squirms[thief] = { token = squirmToken, deadline = os.clock() + Config.SquirmWindow + 0.3 }
+					local mine = { token = squirmToken, deadline = os.clock() + Config.SquirmWindow + 0.3, at = os.clock() }
+					squirms[thief] = mine
 					Net.Fx(thief, "squirm", { token = squirmToken, window = Config.SquirmWindow })
+					if AutoClick.Has(thief) then
+						-- Auto Clicker pass: hold on for them.
+						task.delay(0.5, function()
+							if squirms[thief] == mine then
+								squirms[thief] = nil
+								Net.Fx(thief, "held", {})
+							end
+						end)
+					end
 					Net.FxAll("squirmAll", { pos = root.Position + Vector3.new(0, 4, 0) })
 				end
 			end
@@ -497,7 +508,7 @@ function StealService.Start()
 	PlotService.StealRequested.Event:Connect(startSteal)
 	Net.On(Net.HoldTightEvent, function(player, token)
 		local sq = squirms[player]
-		if sq and token == sq.token then
+		if sq and token == sq.token and AutoClick.Check(player, "squirm", os.clock() - sq.at) then
 			squirms[player] = nil
 			Net.Fx(player, "held", {})
 		end

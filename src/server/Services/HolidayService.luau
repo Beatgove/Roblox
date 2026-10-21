@@ -13,6 +13,7 @@ local Rewards = require(script.Parent.Rewards)
 local MapBuilder = require(script.Parent.MapBuilder)
 local PlotService = require(script.Parent.PlotService)
 local Passes = require(script.Parent.Passes)
+local DataService = require(script.Parent.DataService)
 
 local HolidayService = {}
 
@@ -275,8 +276,23 @@ function HolidayService.Knock(player: Player, plot)
 		Net.Notify(player, "That's your own candy! Go trick-or-treat at the other bases.", "info")
 		return
 	end
+	-- When they last knocked at this owner's door is saved (by owner), so rejoining
+	-- doesn't reset the wait.
+	local data = DataService.Get(player)
+	if not data then
+		return
+	end
+	if type(data.knocks) ~= "table" then
+		data.knocks = {}
+	end
+	for key, t in data.knocks do
+		if os.time() - t > tt.cooldown then
+			data.knocks[key] = nil -- keep the list short
+		end
+	end
+	local ownerKey = tostring(plot.owner.UserId)
 	knocked[player] = knocked[player] or {}
-	local last = knocked[player][plot.model] or 0
+	local last = math.max(knocked[player][plot.model] or 0, data.knocks[ownerKey] or 0)
 	-- The Candy Bucket pass halves the wait and doubles every treat.
 	local bucket = Passes.Owns(player, "CandyBucket")
 	local wait = last + (if bucket then tt.cooldown / 2 else tt.cooldown) - os.time()
@@ -285,6 +301,7 @@ function HolidayService.Knock(player: Player, plot)
 		return
 	end
 	knocked[player][plot.model] = os.time()
+	data.knocks[ownerKey] = os.time()
 	local total = 0
 	for _, o in tt.outcomes do
 		total += o.weight

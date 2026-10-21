@@ -7,6 +7,7 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local Net = require(script.Parent.Net)
+local AutoClick = require(script.Parent.AutoClick)
 local Rewards = require(script.Parent.Rewards)
 local Signals = require(script.Parent.Signals)
 
@@ -139,11 +140,12 @@ local function play(m: Machine, player: Player)
 				local r = math.random()
 				local kind = if r < A.bombChance then "bomb" elseif r < A.bombChance + A.goldenChance then "golden" else "normal"
 				local mole = makeMole(kind, m.holes[i] * CFrame.new(0, 1.1, 0))
+				local poppedAt = os.clock()
 				local click = Instance.new("ClickDetector")
 				click.MaxActivationDistance = 32
 				click.Parent = mole.PrimaryPart
-				click.MouseClick:Connect(function(who)
-					if who ~= m.player or m.up[i] ~= mole then
+				local function whack()
+					if m.up[i] ~= mole then
 						return
 					end
 					m.up[i] = nil
@@ -153,9 +155,24 @@ local function play(m: Machine, player: Player)
 					updateScreen(m)
 					Net.Fx(player, "whack", { pos = mole.PrimaryPart.Position, points = points, color = (mole.PrimaryPart :: BasePart).Color })
 					mole:Destroy()
+				end
+				click.MouseClick:Connect(function(who)
+					if who ~= m.player or m.up[i] ~= mole then
+						return
+					end
+					if not AutoClick.Check(who, "arcade", os.clock() - poppedAt) then
+						return
+					end
+					whack()
 				end)
 				mole.Parent = m.folder
 				m.up[i] = mole
+				-- Auto Clicker pass: the machine whacks every slime except the bombs for them.
+				if kind ~= "bomb" and AutoClick.Has(player) then
+					task.delay(math.min(upTime * 0.6, 0.45 + math.random() * 0.25), function()
+						whack()
+					end)
+				end
 				task.delay(upTime, function()
 					if m.up[i] == mole then
 						m.up[i] = nil

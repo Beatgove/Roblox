@@ -7,6 +7,7 @@ local Config = require(game.ReplicatedStorage.Shared.Config)
 local Util = require(game.ReplicatedStorage.Shared.Util)
 local DataService = require(script.Parent.DataService)
 local Net = require(script.Parent.Net)
+local AutoClick = require(script.Parent.AutoClick)
 local Rewards = require(script.Parent.Rewards)
 local Signals = require(script.Parent.Signals)
 
@@ -15,7 +16,7 @@ local FishingService = {}
 local F = Config.Fishing
 local SPOTS = 8
 
-type Cast = { token: number, spot: number, biteAt: number, deadline: number?, rod: Instance?, bobber: BasePart?, done: boolean }
+type Cast = { token: number, spot: number, biteAt: number, deadline: number?, bitAt: number?, rod: Instance?, bobber: BasePart?, done: boolean }
 local casts: { [Player]: Cast } = {}
 local spotBusy: { [number]: Player } = {}
 local token = 0
@@ -102,6 +103,8 @@ local function giveRod(player: Player): Instance?
 	return rod
 end
 
+local reel: (Player, any, boolean?) -> ()
+
 local function startCast(player: Player, spot: number)
 	if casts[player] then
 		return
@@ -168,9 +171,22 @@ local function startCast(player: Player, spot: number)
 		end
 		-- Bite! The bobber dips and the player has a moment to reel.
 		c.deadline = os.clock() + F.reelWindow + 0.35
+		c.bitAt = os.clock()
 		bobber.CFrame = CFrame.new(water - Vector3.new(0, 0.5, 0))
 		top.CFrame = CFrame.new(water - Vector3.new(0, 0.1, 0))
 		Net.Fx(player, "fishBite", { token = c.token, window = F.reelWindow, pos = water })
+		if AutoClick.Has(player) then
+			-- Auto Clicker pass: reel in for them, then cast again while they stay at the spot.
+			task.wait(0.6)
+			if not c.done then
+				reel(player, c.token, true)
+				task.wait(1.5)
+				if player.Parent and not casts[player] then
+					startCast(player, spot)
+				end
+			end
+			return
+		end
 		task.wait(F.reelWindow + 0.4)
 		if not c.done then
 			Net.Fx(player, "fishMiss", {})
@@ -179,12 +195,15 @@ local function startCast(player: Player, spot: number)
 	end)
 end
 
-local function reel(player: Player, t: any)
+function reel(player: Player, t: any, auto: boolean?)
 	local c = casts[player]
 	if not c or c.token ~= t then
 		return
 	end
 	if not c.deadline or os.clock() > c.deadline then
+		return
+	end
+	if not auto and not AutoClick.Check(player, "fish", os.clock() - (c.bitAt or 0)) then
 		return
 	end
 	local pos = c.bobber and c.bobber.Position
@@ -279,7 +298,9 @@ end
 
 function FishingService.Start()
 	build()
-	Net.On(Net.ReelEvent, reel)
+	Net.On(Net.ReelEvent, function(player, t)
+		reel(player, t) -- never pass the client's extra arguments through as `auto`
+	end)
 	Players.PlayerRemoving:Connect(cleanup)
 end
 

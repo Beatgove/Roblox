@@ -165,6 +165,9 @@ end
 
 function AdminService.Start(s)
 	services = s
+	Players.PlayerRemoving:Connect(function(p)
+		adminCache[p.UserId] = nil
+	end)
 	local command = Instance.new("TextChatCommand")
 	command.Name = "AdminCommand"
 	command.PrimaryAlias = "/admin"

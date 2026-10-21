@@ -48,7 +48,8 @@ local function defaultData()
 		minigameLuckAt = 0, -- os.time() minigame luck was last given (saved, so rejoining doesn't reset it)
 		arcadeAt = 0, -- os.time() of the last Whack-a-Slime round
 		fish = { start = 0, count = 0 }, -- Goo Pond catches in the current window (Config.Fishing)
-		gifts = { day = 0, got = {} }, -- playtime gifts opened today (UTC day number)
+		gifts = { day = 0, got = {} },
+		knocks = {}, -- trick-or-treat: owner UserId -> os.time() of the last knock at their door -- playtime gifts opened today (UTC day number)
 		relics = {}, -- equipped relic keys (up to Config.RelicSlots), reset on rebirth
 		relicBag = {}, -- relic key -> true, owned this run
 		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true

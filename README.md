@@ -145,8 +145,8 @@ Suggested description: *Buy slimes, grow them into giants, and STEAL the best on
 
 Creator Hub > your experience > **Monetization**:
 
-- **Passes**: create these four, then paste each ID into `Config.GamePasses`:
-  2x Cash (199), VIP (299), Extra Pens (149), Auto Collect (99).
+- **Passes**: create these five, then paste each ID into `Config.GamePasses`:
+  2x Cash (199), VIP (299), Extra Pens (149), Auto Collect (99), Auto Clicker (149).
 - **Developer Products**: create these seven, paste IDs into `Config.Products`:
   5x Luck 15 min (79), Small Cash (25), Big Cash (99), Huge Cash (399), Shield 5 min (39), Grow Boost (49), Server Slime Rain (199).
 - Prices in Roblox must match `price` in Config (Config's price is only what the shop button shows).
