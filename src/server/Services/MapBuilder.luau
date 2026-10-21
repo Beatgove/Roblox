@@ -26,6 +26,8 @@ local PEN_Z = { -8, 12 }
 local UPPER_Y = 18.7 -- BaseDecor.UpperFloorY
 local UPPER_Z = PEN_Z
 MapBuilder.UpperFloorY = UPPER_Y
+-- Pen pedestals: a glossy, jelly-white top; the rim under it takes the slime's rarity colour.
+MapBuilder.PedestalColor = Color3.fromRGB(236, 244, 240)
 local THEMES = {
 	Color3.fromRGB(255, 90, 140),
 	Color3.fromRGB(90, 170, 255),
@@ -918,8 +920,8 @@ end
 
 local function buildPlot(map: Folder, index: number, center: Vector3, facing: number)
 	-- A big roofed base like Steal a Brainrot's: a coloured building with a wide front door
-	-- (laser door when locked), pens in two rows either side of a red-carpet aisle, lights in
-	-- the ceiling and the owner's name floating high above the roof.
+	-- (laser door when locked), pens in two rows either side of a goo river, lights in the
+	-- ceiling and the owner's name floating high above the roof.
 	local S = MapBuilder.PlotSize
 	local half = S / 2
 	local H = MapBuilder.WallHeight
@@ -940,8 +942,8 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		Name = "Floor",
 		Size = Vector3.new(S, 0.5, S),
 		CFrame = cf * CFrame.new(0, 0.25, 0),
-		Color = Color3.fromRGB(196, 150, 108),
-		Material = Enum.Material.WoodPlanks,
+		Color = theme:Lerp(Color3.fromRGB(236, 238, 232), 0.9), -- a pale lab floor with a hint of the base colour
+		Material = Enum.Material.SmoothPlastic,
 	})
 	floor.Parent = plot
 	plot.PrimaryPart = floor
@@ -1030,9 +1032,9 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 	for _, c in { Vector3.new(-half, 0, -half), Vector3.new(half, 0, -half), Vector3.new(-half, 0, half), Vector3.new(half, 0, half) } do
 		add({ Name = "WallPost", Size = Vector3.new(2.6, H + 1, 2.6), CFrame = cf * CFrame.new(c.X, (H + 1) / 2, c.Z), Color = dark, Material = Enum.Material.SmoothPlastic, CanCollide = true })
 	end
-	-- Cream walls and a light ceiling inside, so the slimes stand out.
-	local cream = Color3.fromRGB(194, 182, 168) -- inside walls: a soft warm beige, not white
-	local ceilingColor = Color3.fromRGB(150, 140, 130)
+	-- Pastel walls and a light ceiling inside, so the slimes stand out.
+	local cream = theme:Lerp(Color3.fromRGB(240, 240, 236), 0.75)
+	local ceilingColor = theme:Lerp(Color3.fromRGB(205, 205, 210), 0.7)
 	local kneeIn, headIn = KNEE - 0.8, HEADER - 0.2
 	for _, l in {
 		{ Vector3.new(S - 2, kneeIn, 0.2), Vector3.new(0, 0.8 + kneeIn / 2, half - 0.6) },
@@ -1069,15 +1071,96 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 		add({ Name = "Sill", Size = b[1], CFrame = cf * CFrame.new(b[2]), Color = soft, Material = Enum.Material.SmoothPlastic })
 	end
 
-	-- Inside: a red carpet down the middle, borders, and lights in the ceiling.
-	add({ Name = "WelcomeRug", Size = Vector3.new(13, 0.08, S - 4), CFrame = cf * CFrame.new(0, 0.55, 0), Color = Color3.fromRGB(200, 40, 60), Material = Enum.Material.Fabric })
-	add({ Name = "RugStripe", Size = Vector3.new(11, 0.1, S - 6), CFrame = cf * CFrame.new(0, 0.56, 0), Color = Color3.fromRGB(230, 60, 80), Material = Enum.Material.Fabric })
-	for _, x in { -6.8, 6.8 } do
-		add({ Name = "FloorBorder", Size = Vector3.new(0.6, 0.1, S - 4), CFrame = cf * CFrame.new(x, 0.57, 0), Color = Color3.fromRGB(255, 205, 60), Material = Enum.Material.Metal })
+	-- Inside: the base is a slime lab. A river of bright green goo runs from the door to
+	-- the back, with wobbly banks and bubbles; goo drips from under the ceiling, splats dot the
+	-- floor and two bubbling goo vats glow in the back corners.
+	-- Always slime green, whatever the base colour, so it reads as goo and not a carpet.
+	local goo = Color3.fromRGB(120, 235, 95)
+	local gooLight = Color3.fromRGB(205, 255, 175)
+	local rng = Random.new(index)
+	local function disc(name: string, x: number, y: number, z: number, d: number, color: Color3, mat: Enum.Material?)
+		return add({ Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.12, d, d), CFrame = cf * CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.pi / 2),
+			Color = color, Material = mat or Enum.Material.SmoothPlastic, Reflectance = 0.08 })
+	end
+	local riverZ0, riverZ1 = -half + 1.5, 18 -- stops short of the Goo Spiral the second floor adds
+	add({ Name = "GooRiver", Size = Vector3.new(8, 0.12, riverZ1 - riverZ0), CFrame = cf * CFrame.new(0, 0.56, (riverZ0 + riverZ1) / 2), Color = goo, Material = Enum.Material.SmoothPlastic, Reflectance = 0.12 })
+	disc("GooPool", 0, 0.56, riverZ1, 11, goo)
+	for z = riverZ0 + 1.5, riverZ1 - 2, 3.2 do
+		for _, sx in { -1, 1 } do
+			disc("GooBank", sx * (4 + rng:NextNumber(-0.3, 0.4)), 0.555, z + rng:NextNumber(-0.6, 0.6), rng:NextNumber(2.2, 3.4), goo)
+		end
+	end
+	for _ = 1, 12 do
+		local b = add({ Name = "GooBubble", Shape = Enum.PartType.Ball, Size = Vector3.one * rng:NextNumber(0.6, 1.3),
+			CFrame = cf * CFrame.new(rng:NextNumber(-3, 3), 0.6, rng:NextNumber(riverZ0 + 2, riverZ1)), Color = gooLight, Material = Enum.Material.SmoothPlastic, Reflectance = 0.3 })
+		CollectionService:AddTag(b, "Pulse")
+	end
+	-- Splats on the floor between the pens (kept off the pen spots, the cash pad and the lock).
+	local splats = 0
+	while splats < 10 do
+		local x, z = rng:NextNumber(-half + 4, half - 4), rng:NextNumber(-half + 10, half - 4)
+		local clear = math.abs(x) > 7
+		for _, px in PEN_X do
+			for _, pz in PEN_Z do
+				clear = clear and (math.abs(x - px) > 6 or math.abs(z - pz) > 6)
+			end
+		end
+		if clear then
+			splats += 1
+			local d = rng:NextNumber(1.6, 3.2)
+			disc("GooSplat", x, 0.53, z, d, goo)
+			disc("GooSplat", x + d * 0.55, 0.53, z + rng:NextNumber(-0.8, 0.8), d * 0.35, goo)
+		end
+	end
+	-- Goo oozing out from under the ceiling all round the inside, dripping down over the glass.
+	local dripTop = H - 0.2 - headIn
+	local function drips(from: Vector3, to: Vector3, inward: Vector3)
+		local len = (to - from).Magnitude
+		local dir = (to - from).Unit
+		add({ Name = "GooBand", Size = Vector3.new(if math.abs(dir.X) > 0.5 then len else 0.3, 0.9, if math.abs(dir.Z) > 0.5 then len else 0.3),
+			CFrame = cf * CFrame.new((from + to) / 2 + inward * 0.1 + Vector3.new(0, dripTop + 0.3, 0)), Color = goo, Material = Enum.Material.SmoothPlastic, Reflectance = 0.25 })
+		for t = 2, len - 2, 4.5 do
+			local at = from + dir * (t + rng:NextNumber(-1, 1)) + inward * 0.2
+			local long = rng:NextNumber(0.8, 3.2)
+			local w = rng:NextNumber(0.5, 0.9)
+			add({ Name = "GooDrip", Shape = Enum.PartType.Cylinder, Size = Vector3.new(long, w, w), CFrame = cf * CFrame.new(at + Vector3.new(0, dripTop - long / 2 + 0.1, 0)) * CFrame.Angles(0, 0, math.pi / 2),
+				Color = goo, Material = Enum.Material.SmoothPlastic, Reflectance = 0.25 })
+			add({ Name = "GooDrop", Shape = Enum.PartType.Ball, Size = Vector3.one * w * 1.35, CFrame = cf * CFrame.new(at + Vector3.new(0, dripTop - long, 0)), Color = goo, Material = Enum.Material.SmoothPlastic, Reflectance = 0.25 })
+		end
+	end
+	local inner = half - 0.75
+	drips(Vector3.new(-inner, 0, inner), Vector3.new(inner, 0, inner), Vector3.new(0, 0, -1))
+	drips(Vector3.new(-inner, 0, -inner + 1), Vector3.new(-inner, 0, inner), Vector3.new(1, 0, 0))
+	drips(Vector3.new(inner, 0, -inner + 1), Vector3.new(inner, 0, inner), Vector3.new(-1, 0, 0))
+	-- Goo vats: clear tanks of glowing goo with bubbles rising through them.
+	for _, sx in { -1, 1 } do
+		local x, z = sx * (half - 6), half - 6
+		add({ Name = "VatBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 8, 8), CFrame = cf * CFrame.new(x, 1.1, z) * CFrame.Angles(0, 0, math.pi / 2), Color = dark, Material = Enum.Material.Metal, CanCollide = true })
+		local liquid = add({ Name = "VatGoo", Shape = Enum.PartType.Cylinder, Size = Vector3.new(7, 6.2, 6.2), CFrame = cf * CFrame.new(x, 5.2, z) * CFrame.Angles(0, 0, math.pi / 2), Color = goo, Material = Enum.Material.SmoothPlastic, Reflectance = 0.2 }) -- Neon washes out to white
+		CollectionService:AddTag(liquid, "Pulse")
+		add({ Name = "VatGlass", Shape = Enum.PartType.Cylinder, Size = Vector3.new(10, 7, 7), CFrame = cf * CFrame.new(x, 6.7, z) * CFrame.Angles(0, 0, math.pi / 2), Color = Color3.fromRGB(210, 240, 255), Material = Enum.Material.SmoothPlastic, Reflectance = 0.2, Transparency = 0.75, CanCollide = true }) -- not Glass: Glass hides see-through parts behind it
+		add({ Name = "VatLid", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.8, 7.6, 7.6), CFrame = cf * CFrame.new(x, 12, z) * CFrame.Angles(0, 0, math.pi / 2), Color = dark, Material = Enum.Material.Metal })
+		add({ Name = "VatPipe", Size = Vector3.new(0.8, H - 12.4, 0.8), CFrame = cf * CFrame.new(x, 12.4 + (H - 12.4) / 2, z), Color = dark, Material = Enum.Material.Metal })
+		local bubbles = Instance.new("ParticleEmitter")
+		bubbles.Name = "Bubbles"
+		bubbles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		bubbles.Color = ColorSequence.new(gooLight)
+		bubbles.LightEmission = 0.6
+		bubbles.Size = NumberSequence.new(0.5, 0.2)
+		bubbles.Speed = NumberRange.new(1.5, 2.5)
+		bubbles.Lifetime = NumberRange.new(1.5, 2.2)
+		bubbles.EmissionDirection = Enum.NormalId.Right -- the cylinder's axis points up
+		bubbles.SpreadAngle = Vector2.new(20, 20)
+		bubbles.Rate = 6
+		bubbles:SetAttribute("BaseRate", 6)
+		bubbles.Parent = liquid
+		local glow = Instance.new("PointLight")
+		glow.Color = goo
+		glow.Range = 14
+		glow.Brightness = 1.2
+		glow.Parent = liquid
 	end
 	MapBuilder.AddRoomLights(start, cf, 0, H, theme)
-	-- A big stripe in the base colour along the back wall.
-	add({ Name = "BackStripe", Size = Vector3.new(S - 4, 0.8, 0.3), CFrame = cf * CFrame.new(0, 2.6, half - 0.8), Color = muted, Material = Enum.Material.SmoothPlastic })
 
 	-- The doorway: pillars either side, glowing orbs, laser emitters, and a name board over it.
 	for _, x in { -door - 1.2, door + 1.2 } do
@@ -1181,7 +1264,7 @@ local function buildPlot(map: Folder, index: number, center: Vector3, facing: nu
 			-- A round display pedestal with a coloured rim; PlotService shows it for unlocked
 			-- pens and tints the rim with the rarity of the slime on it.
 			local pedestal = part({ Name = "Pedestal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 7.2, 7.2), CFrame = pad.CFrame * CFrame.new(0, -0.05, 0) * CFrame.Angles(0, 0, math.pi / 2),
-				Color = Color3.fromRGB(210, 205, 215), Material = Enum.Material.Marble, Transparency = 1, CanCollide = false, CastShadow = false })
+				Color = MapBuilder.PedestalColor, Material = Enum.Material.SmoothPlastic, Reflectance = 0.2, Transparency = 1, CanCollide = false, CastShadow = false })
 			pedestal.Parent = pad
 			local ring = part({ Name = "Ring", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 8.4, 8.4), CFrame = pad.CFrame * CFrame.new(0, -0.15, 0) * CFrame.Angles(0, 0, math.pi / 2),
 				Color = theme, Material = Enum.Material.SmoothPlastic, Transparency = 1, CanCollide = false, CastShadow = false })

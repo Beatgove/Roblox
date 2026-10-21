@@ -32,11 +32,23 @@ function StormService.Next(now: number): number
 	return best
 end
 
+-- Tracked here, not read back from the shared Event attribute: another event started during
+-- the Storm (by an admin) must not make this loop restart the Storm every second.
+local stormUntil = 0
 local function stormActive(): boolean
-	return workspace:GetAttribute("Event") == "SlimeStorm" and (workspace:GetAttribute("EventUntil") or 0) > workspace:GetServerTimeNow()
+	return os.time() < stormUntil
+end
+
+function StormService.Active(): boolean
+	return stormActive() and workspace:GetAttribute("Event") == "SlimeStorm"
+end
+
+function StormService.SecondsLeft(): number
+	return math.max(0, stormUntil - os.time())
 end
 
 local function begin(seconds: number)
+	stormUntil = os.time() + seconds
 	EventService.Run("SlimeStorm", seconds)
 	Net.FxAll("stormStart", {})
 	-- The King crashes the party, unless he's already here.

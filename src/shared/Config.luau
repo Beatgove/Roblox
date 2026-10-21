@@ -235,6 +235,8 @@ end
 Config.Fishing = {
 	pos = Vector3.new(272, 0, -42), radius = 17,
 	biteMin = 2, biteMax = 6, reelWindow = 1.1,
+	-- Catches per player per window (saved), so an auto-reel macro can't farm the pond.
+	maxCatches = 20, windowSeconds = 15 * 60,
 	-- weight = chance share. Shown on the board by the pond.
 	loot = {
 		{ label = "Cash", weight = 55, reward = { cashSeconds = 6, cashMin = 40 } },

@@ -117,12 +117,25 @@ end
 -- Slimes hopping home are in nobody's save until they land. If their owner leaves first,
 -- StealService.ReturnBouncing puts them straight back into the owner's data before it saves.
 local bouncing: { [Player]: { [any]: boolean } } = {}
+-- Slimes being carried off right now, by owner: calling the function ends that carry and
+-- hands the slime back, so it can be saved with its owner if they (or the server) leave.
+local carriedFrom: { [Player]: { [Player]: () -> any } } = {}
 
 function StealService.ReturnBouncing(owner: Player)
-	local list = bouncing[owner]
+	local list = bouncing[owner] or {}
 	bouncing[owner] = nil
+	local carries = carriedFrom[owner]
+	if carries then
+		for _, takeBack in carries do
+			local slime = takeBack()
+			if slime then
+				list[slime] = true
+			end
+		end
+	end
+	carriedFrom[owner] = nil
 	local data = DataService.Get(owner)
-	if not list or not data then
+	if not data then
 		return
 	end
 	for slime in list do
@@ -288,6 +301,9 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 		end
 		finished = true
 		diedConn:Disconnect()
+		if carriedFrom[victim] then
+			carriedFrom[victim][thief] = nil
+		end
 		carrying[thief] = nil
 		dropFns[thief] = nil
 		squirms[thief] = nil
@@ -308,7 +324,12 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			humanoid.WalkSpeed = humanoid:GetAttribute("BaseSpeed") or 16
 		end
 
-		if outcome == "success" and not PlotService.AddSlime(thief, slime) then
+		if outcome == "returned" then
+			-- The owner is leaving: ReturnBouncing saves the slime with them.
+			if thief.Parent then
+				Net.Notify(thief, victim.DisplayName .. " left, so the slime went home with them.", "bad")
+			end
+		elseif outcome == "success" and not PlotService.AddSlime(thief, slime) then
 			-- The thief's pens filled during the run: the slime goes back to its owner.
 			Net.Notify(thief, "Your pens are full! The slime hopped back home.", "bad")
 			if victim.Parent and PlotService.GetPlot(victim) then
@@ -376,6 +397,14 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 	dropFns[thief] = function(reason: string?)
 		finish(reason or "slapped")
 	end
+	carriedFrom[victim] = carriedFrom[victim] or {}
+	carriedFrom[victim][thief] = function()
+		if finished then
+			return nil
+		end
+		finish("returned")
+		return slime
+	end
 
 	local started = os.clock()
 	local nextSquirm = started + Config.SquirmEverySeconds
@@ -402,8 +431,16 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 			local allowed = math.max(humanoid.WalkSpeed, 16) * Config.CarrySpeedSlack
 			local tick = (pos - lastPos).Magnitude
 			local slipped = false
-			if Net.InMoveGrace(thief) then
-				windowPos, windowAt, strikes = pos, at, 0
+			local grace = Net.MoveGrace(thief)
+			if grace then
+				-- Moved by the server or knocked back: fast is fine, but only near where that
+				-- move put them. Never counts as reaching home during the window.
+				if (pos - flat(grace.origin)).Magnitude > grace.radius + allowed * (at - grace.at) then
+					strikes = 2
+				else
+					windowPos, windowAt, strikes = pos, at, 0
+					slipped = true
+				end
 			elseif tick > Config.CarryTeleportStuds then
 				strikes = 2
 			else
@@ -420,7 +457,7 @@ local function startSteal(thief: Player, victim: Player, slot: number)
 				windowPos, windowAt = pos, at
 			end
 			lastPos, lastAt = pos, at
-			if strikes > 0 then
+			if strikes > 0 or grace then
 				continue
 			end
 			if PlotService.InPlot(thiefPlot, root.Position) then
@@ -469,7 +506,7 @@ function StealService.Start()
 		carrying[p] = nil
 		dropFns[p] = nil
 		squirms[p] = nil
-		revenge[p] = nil
+		revenge[p] = nil -- (carriedFrom[p] is cleared by ReturnBouncing, which Main calls on leave)
 		for victim, r in revenge do
 			if r.thief == p then
 				setRevenge(victim, nil)

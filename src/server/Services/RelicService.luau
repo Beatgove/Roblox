@@ -183,7 +183,7 @@ function RelicService.Start()
 
 	local function onJoin(player: Player)
 		task.spawn(function()
-			for _ = 1, 40 do
+			for _ = 1, 240 do -- up to a minute: a load can wait ~20 s on another server's lock
 				local data = DataService.Get(player)
 				if data and PlotService.GetPlot(player) then
 					-- Drop any relic keys that no longer exist.

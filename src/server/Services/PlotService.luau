@@ -1305,6 +1305,11 @@ function PlotService.Start(builtPlots)
 				-- Heads-up when another player walks into your base.
 				if plot.owner and not locked then
 					plot.intruders = plot.intruders or {}
+					for who in plot.intruders do
+						if not who.Parent then
+							plot.intruders[who] = nil -- they left the game
+						end
+					end
 					for _, other in Players:GetPlayers() do
 						local char = if other ~= plot.owner then other.Character else nil
 						local root = if char then char:FindFirstChild("HumanoidRootPart") :: BasePart? else nil
@@ -1335,8 +1340,9 @@ function PlotService.Start(builtPlots)
 						local avenging = plot.owner ~= nil and other:GetAttribute("RevengeUserId") == plot.owner.UserId and (other:GetAttribute("RevengeUntil") or 0) > workspace:GetServerTimeNow()
 						local root = other ~= plot.owner and not avenging and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
 						if root and inPlot(plot, root.Position) then
-							Net.GrantMoveGrace(other, 1.5) -- not a teleport hack: the shield moved them
-							other.Character:PivotTo(plot.cframe * CFrame.new(0, 4, -46))
+							local outside = plot.cframe * CFrame.new(0, 4, -46)
+							Net.GrantMoveGrace(other, 1.5, outside.Position, 12) -- not a teleport hack: the shield moved them
+							other.Character:PivotTo(outside)
 							Net.Notify(other, "That base is shielded!", "bad")
 						end
 					end

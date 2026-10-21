@@ -149,8 +149,8 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 	for _, pad in (if pens then pens:GetChildren() else {}) do
 		local pedestal = pad:FindFirstChild("Pedestal") :: BasePart?
 		if pedestal then
-			pedestal.Color = if rebirths >= 20 then Color3.fromRGB(240, 195, 70) else Color3.fromRGB(210, 205, 215)
-			pedestal.Material = if rebirths >= 20 then Enum.Material.Metal else Enum.Material.Marble
+			pedestal.Color = if rebirths >= 20 then Color3.fromRGB(240, 195, 70) else Color3.fromRGB(236, 244, 240) -- MapBuilder.PedestalColor
+			pedestal.Material = if rebirths >= 20 then Enum.Material.Metal else Enum.Material.SmoothPlastic
 		end
 	end
 
@@ -444,10 +444,10 @@ local function applyTiers(model: Model, cf: CFrame, rebirths: number)
 		} do
 			local w, d = r[2] - r[1], r[4] - r[3]
 			local cx, cz = (r[1] + r[2]) / 2, (r[3] + r[4]) / 2
-			solid({ Name = "UpperFloor", Size = Vector3.new(w, 0.8, d), CFrame = at(cx, FY - 0.4, cz), Color = Color3.fromRGB(196, 150, 108), Material = Enum.Material.WoodPlanks })
+			solid({ Name = "UpperFloor", Size = Vector3.new(w, 0.8, d), CFrame = at(cx, FY - 0.4, cz), Color = theme:Lerp(Color3.fromRGB(236, 238, 232), 0.9), Material = Enum.Material.SmoothPlastic })
 			part(folder, { Name = "UpperCeiling", Size = Vector3.new(w, 0.1, d), CFrame = at(cx, FY - 0.85, cz), Color = ceilingColor, Material = Enum.Material.SmoothPlastic })
 		end
-		part(folder, { Name = "UpperRug", Size = Vector3.new(11, 0.08, HZ + inner - 2), CFrame = at(0, FY + 0.04, (HZ - inner) / 2), Color = Color3.fromRGB(200, 40, 60), Material = Enum.Material.Fabric })
+		part(folder, { Name = "UpperRug", Size = Vector3.new(11, 0.08, HZ + inner - 2), CFrame = at(0, FY + 0.04, (HZ - inner) / 2), Color = Color3.fromRGB(120, 235, 95), Material = Enum.Material.SmoothPlastic, Reflectance = 0.3 }) -- goo, like downstairs
 		-- Walls all round, with windows, an inner lining and lights in the new ceiling. A band
 		-- closes the gap between the old wall tops and the new walls.
 		local wallColor = muted

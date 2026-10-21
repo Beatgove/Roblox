@@ -81,13 +81,25 @@ local function buildBoard(def)
 	return rows
 end
 
+-- OrderedDataStores only hold integers up to ~9.2e18, and late-game cash goes far past that,
+-- so money boards store a scaled log10 instead (still sorts the same way).
+local function encode(def, v: number): number
+	if def.money then
+		return math.floor(math.log10(math.max(v, 0) + 1) * 1e6)
+	end
+	return math.floor(math.min(v, 9e18))
+end
+local function decode(def, v: number): number
+	return if def.money then 10 ^ (v / 1e6) - 1 else v
+end
+
 local function refresh(def, store, rows)
 	-- Push everyone online first so the board includes this server.
 	for _, p in Players:GetPlayers() do
 		local data = DataService.Get(p)
 		if data and DataService.CanSave(p) then -- a failed load would post a blank score over their real one
 			pcall(function()
-				store:SetAsync("u_" .. p.UserId, math.floor(data[def.field] or 0))
+				store:SetAsync("u_" .. p.UserId, encode(def, data[def.field] or 0))
 			end)
 		end
 	end
@@ -102,7 +114,7 @@ local function refresh(def, store, rows)
 		local e = entries[i]
 		if e then
 			local userId = tonumber(string.sub(e.key, 3)) or 0
-			local value = if def.money then Util.Money(e.value) else Util.Format(e.value)
+			local value = if def.money then Util.Money(decode(def, e.value)) else Util.Format(e.value)
 			rows[i].Text = string.format("#%d  %s  ·  %s", i, nameOf(userId), value)
 		else
 			rows[i].Text = ""
@@ -114,7 +126,7 @@ function LeaderboardService.Start()
 	for _, def in BOARDS do
 		local rows = buildBoard(def)
 		local ok, store = pcall(function()
-			return DataStoreService:GetOrderedDataStore("Top_" .. def.key)
+			return DataStoreService:GetOrderedDataStore((if def.money then "TopLog_" else "Top_") .. def.key)
 		end)
 		if ok and store then
 			task.spawn(function()

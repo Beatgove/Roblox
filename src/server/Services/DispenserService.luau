@@ -14,6 +14,25 @@ local Analytics = require(script.Parent.Analytics)
 
 local DispenserService = {}
 
+local pending: { [Player]: { [any]: boolean } } = {} -- rolled slimes still in the reveal animation
+
+-- Called on leave, before the final save: rolls still animating go straight into the save.
+function DispenserService.Flush(player: Player)
+	local list = pending[player]
+	pending[player] = nil
+	local data = DataService.Get(player)
+	if not list or not data then
+		return
+	end
+	for slime in list do
+		if #data.slimes < PlotService.Slots(player) then
+			table.insert(data.slimes, slime)
+		else
+			data.cash += PlotService.SellValue(slime)
+		end
+	end
+end
+
 local lastRoll: { [Player]: number } = {}
 
 function DispenserService.Luck(player: Player): number
@@ -81,11 +100,22 @@ local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 	-- The client plays a spin animation, then reveals; the slime lands when the reveal ends.
 	Net.Fx(player, "roll", { name = name, rarity = def.rarity, mut = mut, luck = luck })
 	Net.FxAll("dispense", { pos = MapBuilder.DispenserPosition, color = rarity.color, order = rarity.order })
+	-- Until it lands the slime counts as in transit (no rebirth mid-roll), and if the player
+	-- leaves first, DispenserService.Flush puts it straight into their save.
+	local slime = { id = def.id, born = os.time(), mut = mut, traits = traits }
+	pending[player] = pending[player] or {}
+	pending[player][slime] = true
+	PlotService.Transit(player, 1)
 	task.delay(1.6, function()
+		if not (pending[player] and pending[player][slime]) then
+			return -- already saved by Flush
+		end
+		pending[player][slime] = nil
+		PlotService.Transit(player, -1)
 		if not player.Parent then
 			return
 		end
-		if not PlotService.AddSlime(player, { id = def.id, born = os.time(), mut = mut, traits = traits }, MapBuilder.DispenserPosition - Vector3.new(0, 0, 7)) then -- out of the front of the machine
+		if not PlotService.AddSlime(player, slime, MapBuilder.DispenserPosition - Vector3.new(0, 0, 7)) then -- out of the front of the machine
 			-- Pens filled up during the animation: refund (a free roll pays the slime's value).
 			PlotService.AddCash(player, if free then PlotService.SellValue({ id = def.id, mut = mut, traits = traits }) else cost, "DispenserRefund")
 			Net.Notify(player, "Pens full, roll refunded.", "bad")

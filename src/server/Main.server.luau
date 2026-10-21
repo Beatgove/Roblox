@@ -184,10 +184,19 @@ local rebirthDebounce: { [Player]: number } = {}
 
 Players.PlayerRemoving:Connect(function(player)
 	StealService.ReturnBouncing(player) -- before the final save below
+	DispenserService.Flush(player)
 	PlotService.Release(player)
 	DataService.Release(player)
 	Passes.Release(player)
 	rebirthDebounce[player] = nil
+	-- Free the connections made on this player and their character (Roblox doesn't destroy
+	-- them on leave by default), once every leave handler has run.
+	task.delay(10, function()
+		if player.Character then
+			player.Character:Destroy()
+		end
+		player:Destroy()
+	end)
 end)
 
 Net.On(Net.RebirthEvent, function(player)

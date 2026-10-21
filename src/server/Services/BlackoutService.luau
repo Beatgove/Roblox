@@ -88,8 +88,9 @@ local function catch(player: Player, pos: Vector3)
 		local char = player.Character
 		local spawnPoint = plot and plot.model:FindFirstChild("SpawnPoint") :: BasePart?
 		if char and spawnPoint then
-			Net.GrantMoveGrace(player, 1.5)
-			char:PivotTo(spawnPoint.CFrame + Vector3.new(0, 3, 0))
+			local target = spawnPoint.CFrame + Vector3.new(0, 3, 0)
+			Net.GrantMoveGrace(player, 1.5, target.Position, 12)
+			char:PivotTo(target)
 		end
 	end)
 	Net.NotifyAll("👻 The Gloom got " .. player.DisplayName .. (if carrying then " and their stolen slime hopped home!" else "!"), "info")

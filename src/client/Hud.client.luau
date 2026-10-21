@@ -937,7 +937,13 @@ fuseBtn = button({ Size = UDim2.new(1, -40, 0, 50), Position = UDim2.new(0, 20, 
 	if fuseState.active then
 		Remotes.FuseClaim:FireServer()
 	elseif #fuseSelected == Config.FuseCount then
-		Remotes.FuseStart:FireServer(fuseSelected)
+		-- Send what each pick is too, so the server can refuse if the list changed meanwhile.
+		local picks = {}
+		for _, i in fuseSelected do
+			local s = fuseSlimes[i]
+			table.insert(picks, { i = i, id = s and s.id, stars = s and s.stars, mut = s and s.mut })
+		end
+		Remotes.FuseStart:FireServer(picks)
 	end
 end)
 local function refreshFuseState()

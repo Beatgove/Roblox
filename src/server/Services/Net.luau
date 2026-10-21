@@ -19,7 +19,6 @@ Net.NotifyEvent = remote("Notify") -- server -> client: (text, kind)
 Net.RebirthEvent = remote("Rebirth") -- client -> server: ()
 Net.BannerEvent = remote("Banner") -- server -> all: (text, seconds, kind "rain" | "event")
 Net.FxEvent = remote("Fx") -- server -> client: (kind, data) visual/sound effects
-Net.RollEvent = remote("Roll") -- client -> server: () use the Slime Dispenser
 Net.ClaimDailyEvent = remote("ClaimDaily") -- client -> server: () claim today's login reward
 Net.BuyGearEvent = remote("BuyGear") -- client -> server: (gearKey)
 Net.ClaimGiftEvent = remote("ClaimGift") -- client -> server: (giftIndex)
@@ -116,21 +115,29 @@ end)
 
 -- Knockback is applied on the client, so the server gives the player a short window where
 -- fast movement is expected (StealService's carry speed check reads it).
-local moveGrace: { [Player]: number } = {}
+-- The grace is anchored: `origin` is where the move lands (or starts, for a knock) and
+-- `radius` how far from it the move can take them, so a hacker can't use the window to
+-- teleport somewhere else.
+export type Grace = { untilT: number, origin: Vector3, radius: number, at: number }
+local moveGrace: { [Player]: Grace } = {}
 game:GetService("Players").PlayerRemoving:Connect(function(player)
 	moveGrace[player] = nil
 end)
 -- Call before the server moves a character itself (PivotTo), so it isn't read as a hack.
-function Net.GrantMoveGrace(player: Player, seconds: number)
-	moveGrace[player] = math.max(moveGrace[player] or 0, os.clock() + seconds)
+function Net.GrantMoveGrace(player: Player, seconds: number, origin: Vector3, radius: number)
+	moveGrace[player] = { untilT = os.clock() + seconds, origin = origin, radius = radius, at = os.clock() }
 end
-function Net.InMoveGrace(player: Player): boolean
-	return (moveGrace[player] or 0) > os.clock()
+function Net.MoveGrace(player: Player): Grace?
+	local g = moveGrace[player]
+	return if g and g.untilT > os.clock() then g else nil
 end
 
 function Net.Fx(player: Player, kind: string, data)
 	if kind == "knock" then
-		Net.GrantMoveGrace(player, 2.5)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			Net.GrantMoveGrace(player, 2.5, root.Position, 50)
+		end
 	end
 	Net.FxEvent:FireClient(player, kind, data)
 end

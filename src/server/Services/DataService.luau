@@ -47,6 +47,8 @@ local function defaultData()
 		towerAt = 0, -- os.time() of the last Sky Tower prize
 		minigameLuckAt = 0, -- os.time() minigame luck was last given (saved, so rejoining doesn't reset it)
 		arcadeAt = 0, -- os.time() of the last Whack-a-Slime round
+		fish = { start = 0, count = 0 }, -- Goo Pond catches in the current window (Config.Fishing)
+		gifts = { day = 0, got = {} }, -- playtime gifts opened today (UTC day number)
 		relics = {}, -- equipped relic keys (up to Config.RelicSlots), reset on rebirth
 		relicBag = {}, -- relic key -> true, owned this run
 		diets = {}, -- "SlimeId:SnackKey" -> true once evolved (Diet Book) -- milestone count (as string) -> true
@@ -119,12 +121,17 @@ function DataService.Load(player: Player)
 	local data
 	if store then
 		local success, result = false, nil
-		-- Wait up to ~20 s for another server to let go (it saves and unlocks on leave).
+		local busy = false
+		-- Wait up to ~20 s for another server to let go (it saves and unlocks on leave). On
+		-- the last try, take the save over only if that server hasn't saved for a while
+		-- (it's likely gone); a live but slow server keeps it, and this session won't save.
 		for attempt = 1, 8 do
-			local busy = false
+			busy = false
 			success, result = withRetry(function()
 				return store:UpdateAsync(key, function(saved)
-					if lockedByOther(saved) and attempt < 8 then
+					local lock = type(saved) == "table" and saved._lock
+					local quiet = type(lock) == "table" and os.time() - (lock.t or 0) > Config.SaveIntervalSeconds * 1.5
+					if lockedByOther(saved) and (attempt < 8 or not quiet) then
 						busy = true
 						return nil -- leave it alone
 					end
@@ -138,7 +145,7 @@ function DataService.Load(player: Player)
 			end
 			task.wait(2.5)
 		end
-		if success and result then
+		if success and result and not busy then
 			data = reconcile(result)
 			canSave[player] = true
 		else
@@ -158,6 +165,8 @@ function DataService.Get(player: Player)
 	return profiles[player]
 end
 
+local inFlight = 0 -- saves still being written (BindToClose waits for them)
+
 -- Returns true once the save is confirmed written.
 local function write(player: Player, unlock: boolean): boolean
 	local data = profiles[player]
@@ -167,6 +176,7 @@ local function write(player: Player, unlock: boolean): boolean
 	data.lastOnline = os.time()
 	local key = "u_" .. player.UserId
 	local stolen = false
+	inFlight += 1
 	local ok = withRetry(function()
 		store:UpdateAsync(key, function(saved)
 			local lock = type(saved) == "table" and saved._lock
@@ -178,6 +188,7 @@ local function write(player: Player, unlock: boolean): boolean
 			return data
 		end)
 	end)
+	inFlight -= 1
 	if stolen then
 		canSave[player] = false
 		warn("[DataService] another server took over", player.Name, "- this server stops saving them")
@@ -252,7 +263,9 @@ function DataService.Start()
 			end)
 		end
 		local t = os.clock()
-		while threads > 0 and os.clock() - t < 25 do
+		-- Also wait for saves already under way, like the last player's leave save, which
+		-- would otherwise be cut off when the server closes.
+		while (threads > 0 or inFlight > 0) and os.clock() - t < 25 do
 			task.wait(0.1)
 		end
 	end)

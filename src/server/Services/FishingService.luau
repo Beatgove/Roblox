@@ -4,6 +4,8 @@
 local Players = game:GetService("Players")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
+local Util = require(game.ReplicatedStorage.Shared.Util)
+local DataService = require(script.Parent.DataService)
 local Net = require(script.Parent.Net)
 local Rewards = require(script.Parent.Rewards)
 local Signals = require(script.Parent.Signals)
@@ -108,6 +110,19 @@ local function startCast(player: Player, spot: number)
 		Net.Notify(player, "Someone is already fishing here. Try another spot!", "bad")
 		return
 	end
+	local data = DataService.Get(player)
+	if not data then
+		return
+	end
+	local fish = data.fish
+	if type(fish) ~= "table" or os.time() - (fish.start or 0) >= F.windowSeconds then
+		fish = { start = os.time(), count = 0 }
+		data.fish = fish
+	end
+	if fish.count >= F.maxCatches then
+		Net.Notify(player, "🎣 The fish are tired! Try again in " .. Util.Duration(fish.start + F.windowSeconds - os.time()) .. ".", "info")
+		return
+	end
 	local char = player.Character
 	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not root then
@@ -174,6 +189,10 @@ local function reel(player: Player, t: any)
 	end
 	local pos = c.bobber and c.bobber.Position
 	cleanup(player)
+	local data = DataService.Get(player)
+	if data and type(data.fish) == "table" then
+		data.fish.count += 1
+	end
 	local loot = rollLoot()
 	local text = Rewards.Grant(player, loot.reward, { minigame = true })
 	Signals.Progress(player, "minigame")

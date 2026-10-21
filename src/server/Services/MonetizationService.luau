@@ -14,6 +14,7 @@ local ConveyorService = require(script.Parent.ConveyorService)
 local DispenserService = require(script.Parent.DispenserService)
 local Net = require(script.Parent.Net)
 local EventService = require(script.Parent.EventService)
+local StormService = require(script.Parent.StormService)
 local Rewards = require(script.Parent.Rewards)
 
 local MonetizationService = {}
@@ -43,7 +44,17 @@ local function grantProduct(player: Player, product): boolean
 	elseif product.kind == "Rain" then
 		ConveyorService.StartRain(Config.RainDurationSeconds, player.DisplayName)
 	elseif product.kind == "Event" then
-		EventService.Run(product.event, nil, player.DisplayName)
+		local left = StormService.SecondsLeft()
+		if StormService.Active() and left > 0 then
+			-- Don't cut the Slime Storm short: the bought event starts right after it.
+			local name = player.DisplayName
+			task.delay(left + 3, function()
+				EventService.Run(product.event, nil, name)
+			end)
+			Net.Notify(player, "⛈️ Your event starts as soon as the Slime Storm ends (" .. Util.Duration(left) .. "). Thanks for the support!", "epic")
+		else
+			EventService.Run(product.event, nil, player.DisplayName)
+		end
 	elseif product.kind == "Pack" then
 		local got = Rewards.Grant(player, product.reward)
 		Net.Notify(player, product.name .. ": " .. got .. "! Thanks for the support!", "epic")

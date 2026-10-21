@@ -64,14 +64,21 @@ local function start(player: Player, slots)
 		Net.Notify(player, "The Fuse Machine is already working on your slimes!", "bad")
 		return
 	end
-	-- Validate: exactly FuseCount distinct, existing slots.
+	-- Validate: exactly FuseCount distinct, existing slots, each still holding the slime the
+	-- player picked (a steal or sale while the menu was open shifts the list).
 	local seen, list = {}, {}
 	for _, v in slots do
-		local i = tonumber(v)
-		if i and data.slimes[i] and not seen[i] then
-			seen[i] = true
-			table.insert(list, i)
+		local i = typeof(v) == "table" and tonumber(v.i)
+		local s = i and data.slimes[i]
+		if not s or seen[i] then
+			continue
 		end
+		if s.id ~= v.id or (s.stars or 0) ~= (tonumber(v.stars) or 0) or s.mut ~= v.mut then
+			Net.Notify(player, "Your slimes changed. Pick again!", "bad")
+			return
+		end
+		seen[i] = true
+		table.insert(list, i)
 	end
 	for _, i in list do
 		if Config.SlimeById[data.slimes[i].id].rarity == "Exclusive" then
