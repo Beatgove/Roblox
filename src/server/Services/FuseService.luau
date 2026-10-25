@@ -13,6 +13,7 @@ local Roller = require(script.Parent.Roller)
 local Signals = require(script.Parent.Signals)
 local Net = require(script.Parent.Net)
 local Analytics = require(script.Parent.Analytics)
+local Policy = require(script.Parent.Policy)
 
 local FuseService = {}
 
@@ -85,6 +86,10 @@ local function start(player: Player, slots)
 			Net.Notify(player, "Exclusive slimes are too special to fuse!", "bad")
 			return
 		end
+	end
+	if Policy.PaidRandomRestricted(player) then
+		Net.Notify(player, "The Fuse Machine isn't available in your region.", "bad")
+		return
 	end
 	if #list ~= Config.FuseCount then
 		Net.Notify(player, "Pick " .. Config.FuseCount .. " slimes to fuse.", "bad")

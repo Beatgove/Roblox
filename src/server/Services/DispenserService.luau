@@ -11,6 +11,7 @@ local Roller = require(script.Parent.Roller)
 local Net = require(script.Parent.Net)
 local Signals = require(script.Parent.Signals)
 local Analytics = require(script.Parent.Analytics)
+local Policy = require(script.Parent.Policy)
 
 local DispenserService = {}
 
@@ -64,6 +65,11 @@ end
 local function roll(player: Player, free: boolean?, minLuck: number?): boolean
 	local t = os.clock()
 	if not free and lastRoll[player] and t - lastRoll[player] < Config.DispenserCooldown then
+		return false
+	end
+	if not free and Policy.PaidRandomRestricted(player) then
+		Net.Notify(player, "The Slime Dispenser isn't available in your region.", "bad")
+		Net.Fx(player, "deny", {})
 		return false
 	end
 	local data = DataService.Get(player)
