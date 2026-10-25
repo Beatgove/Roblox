@@ -69,7 +69,7 @@ Buy slimes off the conveyor or roll the Slime Dispenser, they earn cash every se
 - Analytics: onboarding funnel (joined, bought, collected, locked, done) and events for steals, rebirths, mini games, the King, fusing and evolving. See them in Creator Hub > Analytics once the game is live.
 - Global leaderboards by spawn: Top Earners and Top Thieves (they fill in once the game is published).
 
-Store art: `marketing/icon_512.png` (game icon) and `marketing/thumbnail_1920x1080.png` (thumbnail).
+Store art: `marketing/icon_512.png` (game icon) and four thumbnails `marketing/thumbnail_*.jpg` (upload all four; Roblox shows each player the one they click most). Text stays out of the bottom strip, where Roblox draws the player count.
 
 ## Files
 
