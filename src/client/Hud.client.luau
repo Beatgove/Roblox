@@ -305,7 +305,7 @@ local function shopRow(order: number, item, isPass: boolean)
 	text({ Size = UDim2.new(0.66, -10, 0, 28), Position = UDim2.fromOffset(12, 6), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = if isPass then COLORS.gold else COLORS.text, Text = (if isPass then "⭐ " else "") .. item.name, Parent = row })
 	text({ Size = UDim2.new(0.66, -10, 0, 28), Position = UDim2.fromOffset(12, 36), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = COLORS.muted, Font = Enum.Font.GothamMedium, TextStrokeTransparency = 1, Text = item.desc, Parent = row })
 	local label = if item.id == 0 then "Soon" else ("R$ " .. item.price)
-	button({ Size = UDim2.new(0.3, -8, 0, 48), Position = UDim2.new(0.7, 0, 0, 11), BackgroundColor3 = if item.id == 0 then Color3.fromRGB(120, 110, 140) else COLORS.accent, Text = label, Parent = row }, function()
+	local buy = button({ Size = UDim2.new(0.3, -8, 0, 48), Position = UDim2.new(0.7, 0, 0, 11), BackgroundColor3 = if item.id == 0 then Color3.fromRGB(120, 110, 140) else COLORS.accent, Text = label, Parent = row }, function()
 		if item.id == 0 then
 			toast("This item isn't set up yet (add its ID in Config).", "bad")
 		elseif isPass then
@@ -314,6 +314,15 @@ local function shopRow(order: number, item, isPass: boolean)
 			MarketplaceService:PromptProductPurchase(player, item.id)
 		end
 	end)
+	-- Regional pricing: show the price Roblox will actually charge this player.
+	if item.id ~= 0 then
+		task.spawn(function()
+			local ok, info = pcall(MarketplaceService.GetProductInfo, MarketplaceService, item.id, if isPass then Enum.InfoType.GamePass else Enum.InfoType.Product)
+			if ok and info and typeof(info.PriceInRobux) == "number" then
+				buy.Text = "R$ " .. info.PriceInRobux
+			end
+		end)
+	end
 	return row
 end
 
