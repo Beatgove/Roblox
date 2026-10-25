@@ -6,13 +6,13 @@ local Config = {}
 -- Create these in Creator Hub (your experience > Monetization) and paste the IDs.
 -- An ID of 0 means "not set up yet"; the shop shows it as unavailable.
 Config.GamePasses = {
-	DoubleCash = { id = 0, name = "2x Cash", price = 199, desc = "Double all slime income forever." },
-	VIP = { id = 0, name = "VIP", price = 299, desc = "+25% income, gold name tag, base lock lasts twice as long." },
-	ExtraPens = { id = 0, name = "Extra Pens", price = 149, desc = "+4 pen slots for more slimes." },
-	AutoCollect = { id = 0, name = "Auto Collect", price = 99, desc = "Cash goes straight to you, no collector needed." },
-	AutoClicker = { id = 0, name = "Auto Clicker", price = 149, desc = "Auto reels fish, auto whacks arcade slimes and auto holds squirming slimes. Other auto clickers are blocked." },
+	DoubleCash = { id = 2052167901, name = "2x Cash", price = 199, desc = "Double all slime income forever." },
+	VIP = { id = 2052149921, name = "VIP", price = 299, desc = "+25% income, gold name tag, base lock lasts twice as long." },
+	ExtraPens = { id = 2052317983, name = "Extra Pens", price = 149, desc = "+4 pen slots for more slimes." },
+	AutoCollect = { id = 2053541941, name = "Auto Collect", price = 99, desc = "Cash goes straight to you, no collector needed." },
+	AutoClicker = { id = 2055473882, name = "Auto Clicker", price = 149, desc = "Auto reels fish, auto whacks arcade slimes and auto holds squirming slimes. Other auto clickers are blocked." },
 	-- Holiday items only show in the shop while their holiday is on (Config.Holidays).
-	CandyBucket = { id = 0, name = "🍬 Candy Bucket", price = 99, desc = "Trick-or-treat: double treats and knock again twice as fast, every Halloween.", holiday = "Halloween" },
+	CandyBucket = { id = 2052419951, name = "🍬 Candy Bucket", price = 99, desc = "Trick-or-treat: double treats and knock again twice as fast, every Halloween.", holiday = "Halloween" },
 }
 
 Config.Products = {
