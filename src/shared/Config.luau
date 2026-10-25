@@ -16,13 +16,13 @@ Config.GamePasses = {
 }
 
 Config.Products = {
-	SmallCash = { id = 0, name = "Small Cash", price = 25, desc = "5 minutes of your income (min $500).", kind = "Cash", seconds = 300, min = 500 },
-	BigCash = { id = 0, name = "Big Cash", price = 99, desc = "30 minutes of your income (min $5K).", kind = "Cash", seconds = 1800, min = 5000 },
-	HugeCash = { id = 0, name = "Huge Cash", price = 399, desc = "3 hours of your income (min $50K).", kind = "Cash", seconds = 10800, min = 50000 },
-	Luck = { id = 0, name = "5x Luck (15 min)", price = 79, desc = "5x Rare+ odds on the Slime Dispenser. Odds are shown on the machine.", kind = "Luck", seconds = 900 },
-	InstantLock = { id = 0, name = "Shield (5 min)", price = 39, desc = "Nobody can raid your base for 5 minutes.", kind = "Lock", seconds = 300 },
-	GrowBoost = { id = 0, name = "Grow Boost", price = 49, desc = "Every slime you own grows one stage now.", kind = "Grow" },
-	SlimeRain = { id = 0, name = "Server Slime Rain", price = 199, desc = "Start a Slime Rain for everyone. Rare slimes x5!", kind = "Rain" },
+	SmallCash = { id = 3722160136, name = "Small Cash", price = 25, desc = "5 minutes of your income (min $500).", kind = "Cash", seconds = 300, min = 500 },
+	BigCash = { id = 3722160654, name = "Big Cash", price = 99, desc = "30 minutes of your income (min $5K).", kind = "Cash", seconds = 1800, min = 5000 },
+	HugeCash = { id = 3722160778, name = "Huge Cash", price = 399, desc = "3 hours of your income (min $50K).", kind = "Cash", seconds = 10800, min = 50000 },
+	Luck = { id = 3722161098, name = "5x Luck (15 min)", price = 79, desc = "5x Rare+ odds on the Slime Dispenser. Odds are shown on the machine.", kind = "Luck", seconds = 900 },
+	InstantLock = { id = 3722161226, name = "Shield (5 min)", price = 39, desc = "Nobody can raid your base for 5 minutes.", kind = "Lock", seconds = 300 },
+	GrowBoost = { id = 3722161320, name = "Grow Boost", price = 49, desc = "Every slime you own grows one stage now.", kind = "Grow" },
+	SlimeRain = { id = 3722161453, name = "Server Slime Rain", price = 199, desc = "Start a Slime Rain for everyone. Rare slimes x5!", kind = "Rain" },
 	PumpkinNight = { id = 0, name = "🎃 Start Pumpkin Night", price = 149, desc = "Start Pumpkin Night for the whole server: Halloween slimes, 2x luck, candy drops!", kind = "Event", event = "PumpkinNight", holiday = "Halloween" },
 	HalloweenPack = { id = 0, name = "🦇 Halloween Pack", price = 199, desc = "The Batty slime + 30 minutes of 5x LUCK. Always the same, no random.", kind = "Pack", reward = { slime = "Batty", luckMinutes = 30 }, holiday = "Halloween" },
 }
