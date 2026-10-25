@@ -65,6 +65,11 @@ local function start(player: Player, slots)
 		Net.Notify(player, "The Fuse Machine is already working on your slimes!", "bad")
 		return
 	end
+	-- Checked before validating, since the first lookup can wait on Roblox.
+	if Policy.PaidRandomRestricted(player) then
+		Net.Notify(player, "The Fuse Machine isn't available in your region.", "bad")
+		return
+	end
 	-- Validate: exactly FuseCount distinct, existing slots, each still holding the slime the
 	-- player picked (a steal or sale while the menu was open shifts the list).
 	local seen, list = {}, {}
@@ -86,10 +91,6 @@ local function start(player: Player, slots)
 			Net.Notify(player, "Exclusive slimes are too special to fuse!", "bad")
 			return
 		end
-	end
-	if Policy.PaidRandomRestricted(player) then
-		Net.Notify(player, "The Fuse Machine isn't available in your region.", "bad")
-		return
 	end
 	if #list ~= Config.FuseCount then
 		Net.Notify(player, "Pick " .. Config.FuseCount .. " slimes to fuse.", "bad")
