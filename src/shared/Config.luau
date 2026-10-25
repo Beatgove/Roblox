@@ -6,7 +6,7 @@ local Config = {}
 -- Create these in Creator Hub (your experience > Monetization) and paste the IDs.
 -- An ID of 0 means "not set up yet"; the shop shows it as unavailable.
 Config.GamePasses = {
-	DoubleCash = { id = 2052167901, name = "2x Cash", price = 199, desc = "Double all slime income forever." },
+	DoubleCash = { id = 2052167901, name = "2x Cash", price = 149, desc = "Double all slime income forever." },
 	VIP = { id = 2052149921, name = "VIP", price = 299, desc = "+25% income, gold name tag, base lock lasts twice as long." },
 	ExtraPens = { id = 2052317983, name = "Extra Pens", price = 149, desc = "+4 pen slots for more slimes." },
 	AutoCollect = { id = 2053541941, name = "Auto Collect", price = 99, desc = "Cash goes straight to you, no collector needed." },
