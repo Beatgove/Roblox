@@ -23,8 +23,8 @@ Config.Products = {
 	InstantLock = { id = 3722161226, name = "Shield (5 min)", price = 39, desc = "Nobody can raid your base for 5 minutes.", kind = "Lock", seconds = 300 },
 	GrowBoost = { id = 3722161320, name = "Grow Boost", price = 49, desc = "Every slime you own grows one stage now.", kind = "Grow" },
 	SlimeRain = { id = 3722161453, name = "Server Slime Rain", price = 199, desc = "Start a Slime Rain for everyone. Rare slimes x5!", kind = "Rain" },
-	PumpkinNight = { id = 0, name = "🎃 Start Pumpkin Night", price = 149, desc = "Start Pumpkin Night for the whole server: Halloween slimes, 2x luck, candy drops!", kind = "Event", event = "PumpkinNight", holiday = "Halloween" },
-	HalloweenPack = { id = 0, name = "🦇 Halloween Pack", price = 199, desc = "The Batty slime + 30 minutes of 5x LUCK. Always the same, no random.", kind = "Pack", reward = { slime = "Batty", luckMinutes = 30 }, holiday = "Halloween" },
+	PumpkinNight = { id = 3722161727, name = "🎃 Start Pumpkin Night", price = 149, desc = "Start Pumpkin Night for the whole server: Halloween slimes, 2x luck, candy drops!", kind = "Event", event = "PumpkinNight", holiday = "Halloween" },
+	HalloweenPack = { id = 3722161577, name = "🦇 Halloween Pack", price = 199, desc = "The Batty slime + 30 minutes of 5x LUCK. Always the same, no random.", kind = "Pack", reward = { slime = "Batty", luckMinutes = 30 }, holiday = "Halloween" },
 }
 
 -- Set true to pretend you own every game pass while testing in Studio.
